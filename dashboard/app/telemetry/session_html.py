@@ -10,6 +10,7 @@ from bokeh.models.callbacks import CustomJS
 from bokeh.palettes import Spectral11
 from bokeh.themes import built_in_themes, DARK_MINIMAL
 
+from flask import current_app
 from app.extensions import db
 from app.models.session import Session
 from app.models.session_html import SessionHtml
@@ -36,12 +37,12 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
     d = msgpack.unpackb(session.data)
     telemetry = dataclass_from_dict(Telemetry, d)
 
-    tick = 1.0 / telemetry.SampleRate  # time step length in seconds
+    tick = 1.0 / telemetry.SampleRate
 
     if telemetry.Front.Present:
         p_front_travel_hist = travel_histogram_figure(
-            telemetry.Front.Strokes,
-            telemetry.Front.TravelBins,
+            telemetry.Front,
+            telemetry.Linkage.MaxFrontTravel,
             front_color,
             "Travel histogram (front)")
         p_front_vel_hist, p_front_vel_hist_ls = velocity_histogram_figure(
@@ -61,12 +62,12 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
             telemetry.Front.Travel,
             tick,
             front_color,
-            "Frequencies (front)")
+            "Frequency (front)")
 
     if telemetry.Rear.Present:
         p_rear_travel_hist = travel_histogram_figure(
-            telemetry.Rear.Strokes,
-            telemetry.Rear.TravelBins,
+            telemetry.Rear,
+            telemetry.Linkage.MaxRearTravel,
             rear_color,
             "Travel histogram (rear)")
         p_rear_vel_hist, p_rear_vel_hist_ls = velocity_histogram_figure(
@@ -86,7 +87,7 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
             telemetry.Rear.Travel,
             tick,
             rear_color,
-            "Frequencies (rear)")
+            "Frequency (rear)")
 
     p_travel = travel_figure(telemetry, lod, front_color, rear_color)
     p_velocity = velocity_figure(telemetry, lod, front_color, rear_color)
@@ -95,18 +96,12 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
     p_velocity.x_range.js_link('start', p_travel.x_range, 'start')
     p_velocity.x_range.js_link('end', p_travel.x_range, 'end')
 
-    '''
-    Leverage-related graphs. These are input data, not something measured.
-    '''
     p_lr = leverage_ratio_figure(
         np.array(telemetry.Linkage.LeverageRatio), Spectral11[5])
     p_sw = shock_wheel_figure(telemetry.Linkage.ShockWheelCoeffs,
                               telemetry.Linkage.MaxRearStroke,
                               Spectral11[5])
 
-    '''
-    Compression and rebound velocity balance
-    '''
     if telemetry.Front.Present and telemetry.Rear.Present:
         p_balance_compression = balance_figure(
             telemetry.Front.Strokes.Compressions,
@@ -150,9 +145,6 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
     on_seek.code = on_seek_code
     p_travel.toolbar.active_inspect.overlay.js_on_change('location', on_seek)
 
-    '''
-    Construct the layout.
-    '''
     suspension_count = 0
     if telemetry.Front.Present:
         suspension_count += 1
@@ -204,14 +196,18 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
         document.add_root(p_balance_rebound)
         columns.extend(['cbalance', 'rbalance'])
 
-    # Some Bokeh models (like the map) need to be dynamically initialized based
-    # on values in a particular Flask session.
     document.js_on_event(DocumentReady, CustomJS(
         args=dict(), code='SST.init_models();'))
 
     script, divs = components(document.roots, theme=dark_minimal_theme)
     components_data = dict(zip(columns, [session_id, script] + list(divs)))
-    session_html = dataclass_from_dict(SessionHtml, components_data)
+    session_html_object = dataclass_from_dict(SessionHtml, components_data)
 
-    db.session.add(session_html)
+    existing_html_entry = SessionHtml.query.filter_by(session_id=session_id).first()
+    if existing_html_entry:
+        db.session.delete(existing_html_entry)
+        if current_app.debug:
+            db.session.commit()
+
+    db.session.add(session_html_object)
     db.session.commit()

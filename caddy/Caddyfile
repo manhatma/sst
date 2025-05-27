@@ -1,14 +1,49 @@
 {
-	admin off
-	default_sni sst.caddy.local
+    admin off
+    default_sni sst.caddy.local
+    # Empfehlung: HTTP/3 kann manchmal zu unerwartetem Verhalten mit lokalen Dev-Zertifikaten führen.
+    # Wenn Probleme bestehen, versuchen Sie, es temporär zu deaktivieren:
+    # experimental_http3 off
 }
+
 :443, sst.caddy.local, localhost {
-	tls internal
-	handle {
-		reverse_proxy dashboard:5000
-	}
-	log {
-		output file /data/caddy-access.log
-		format json
-	}
+    tls internal
+
+    # Globale Header, um Caching aggressiv zu deaktivieren für ALLE Antworten
+    # von diesem Host während der Entwicklung.
+    header {
+        # Deaktiviert Caching so stark wie möglich
+        Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+        Pragma "no-cache" # Für HTTP/1.0 Clients/Proxies
+        Expires "0"       # Für Proxies
+        # Optional: Entfernt ETag, um Validierung zu verhindern
+        # -Etag
+    }
+
+    # Ihre spezifische Regel für /static/* ist gut, aber die globalen Header
+    # oben sollten dies bereits abdecken. Sie können sie zur Sicherheit beibehalten.
+    @static path /static/*
+    header @static Cache-Control "public, max-age=0, must-revalidate" # Dies überschreibt ggf. die globalen für /static
+
+    handle {
+        # Proxy-Anfragen an den Flask-Dashboard-Dienst
+        reverse_proxy dashboard:5000 {
+            # Standard-Header für das Upstream-Backend
+            header_up Host {upstream_hostport}
+            header_up X-Real-IP {remote_ip}
+            header_up X-Forwarded-For {remote_ip}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Zugriffslogs im JSON-Format
+    log {
+        output file /data/caddy-access.log # Stellt sicher, dass Caddy in das /data Volume schreibt, das in docker-compose.yml gemountet ist
+        format json
+    }
 }
+
+# Optional: HTTP auf Port 80, leitet auf HTTPS um (Caddy macht das oft automatisch)
+# http://sst.caddy.local, http://localhost {
+#    redir https://{host}{uri}
+# }

@@ -1,11 +1,39 @@
+version: '3.8'
+
 services:
   dashboard:
     build:
       target: dashboard
       context: ./dashboard
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - FLASK_APP=dashboard.py # Stellt sicher, dass Flask weiß, welche App es ist
+      - FLASK_ENV=development  # Aktiviert Flasks Debug-Modus
     volumes:
+      - ./dashboard:/app # Mountet Ihren lokalen Code nach /app im Container
       - data:/data/
     restart: unless-stopped
+    working_dir: /app # Setzt das Arbeitsverzeichnis auf /app, wo der Code gemountet ist
+    command: # Verwendet jetzt die Array-Form für mehr Robustheit
+      - /bin/sh # Oder sh, je nachdem was im python:3.11-slim-bookworm image verfügbar ist
+      - -c
+      - |
+        flask init &&
+        gunicorn dashboard:app \
+        --bind 0.0.0.0:5000 \
+        --worker-class eventlet \
+        --workers 1 \
+        --reload \
+        --access-logfile - \
+        --error-logfile -
+    # Erläuterung zum command:
+    # Die Array-Form ['executable', 'param1', 'param2'] ist oft sicherer.
+    # /bin/sh -c "commands" wird verwendet, um mehrere Befehle (flask init && gunicorn...) auszuführen.
+    # Die Gunicorn-Argumente sind jetzt klarer getrennt.
+    #   --reload: SEHR WICHTIG! Gunicorn überwacht Code-Änderungen und startet bei Bedarf neu.
+    #   --access-logfile -: Leitet Access-Logs nach stdout.
+    #   --error-logfile -: Leitet Error-Logs nach stdout.
+
   gosst-http:
     build:
       target: gosst-http
@@ -13,6 +41,7 @@ services:
     volumes:
       - data:/data/
     restart: unless-stopped
+
   gosst-tcp:
     build:
       target: gosst-tcp
@@ -22,6 +51,7 @@ services:
     volumes:
       - data:/data/
     restart: unless-stopped
+
   caddy:
     image: caddy:2.7.6
     restart: unless-stopped
@@ -30,8 +60,13 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile
-      - data:/data/
+      - caddy_data:/data
+      - caddy_config:/config
+
 volumes:
   data:
+  caddy_data:
+  caddy_config:

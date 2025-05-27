@@ -6,6 +6,8 @@ import uuid
 from bokeh import __version__ as bokeh_version
 from io import BytesIO
 from http import HTTPStatus as status
+from datetime import datetime
+from typing import Tuple
 
 from flask import current_app, jsonify, request, send_file
 from flask_jwt_extended import (
@@ -16,23 +18,17 @@ from flask_jwt_extended import (
 from markupsafe import Markup
 
 from app import id_queue
-from app.api.common import (
-    get_entity,
-    delete_entity)
+from app.api.common import get_entity, delete_entity
 from app.api.session import bp
 from app.extensions import db
 from app.models.session import Session
 from app.models.session_html import SessionHtml
 from app.models.track import Track
+
 from app.telemetry.balance import update_balance
 from app.telemetry.fft import update_fft
 from app.telemetry.map import gpx_to_dict, track_data
-from app.telemetry.psst import (
-    Suspension,
-    Strokes,
-    Telemetry,
-    dataclass_from_dict
-)
+from app.telemetry.psst import Suspension, Strokes, Telemetry, dataclass_from_dict
 from app.telemetry.session_html import create_cache
 from app.telemetry.travel import update_travel_histogram
 from app.telemetry.velocity import (
@@ -40,38 +36,52 @@ from app.telemetry.velocity import (
     update_velocity_histogram
 )
 
-
-def _filter_strokes(strokes: Strokes, start: int, end: int) -> Strokes:
+def _filter_strokes(strokes, start, end):
     if start is None or end is None:
         return strokes
-    return Strokes(
-        Compressions=[c for c in strokes.Compressions if
-                      c.Start > start and c.End < end],
-        Rebounds=[r for r in strokes.Rebounds if
-                  r.Start > start and r.End < end])
 
+    filtered_compressions = []
+    if strokes.Compressions:
+        for c in strokes.Compressions:
+            if hasattr(c, 'Start') and c.Start is not None and \
+               hasattr(c, 'End') and c.End is not None and \
+               c.Start > start and c.End < end:
+                filtered_compressions.append(c)
 
-def _extract_range(sample_rate: int) -> (int, int):
+    filtered_rebounds = []
+    if strokes.Rebounds:
+        for r in strokes.Rebounds:
+            if hasattr(r, 'Start') and r.Start is not None and \
+               hasattr(r, 'End') and r.End is not None and \
+               r.Start > start and r.End < end:
+                filtered_rebounds.append(r)
+                
+    return Strokes(Compressions=filtered_compressions, Rebounds=filtered_rebounds)
+
+def _extract_range(sample_rate: int) -> Tuple[int, int]:
     try:
-        start = request.args.get('start')
-        start = int(float(start) * sample_rate)
-    except BaseException:
+        start_str = request.args.get('start')
+        start = int(float(start_str) * sample_rate) if start_str is not None else None
+    except Exception:
         start = None
     try:
-        end = request.args.get('end')
-        end = int(float(end) * sample_rate)
-    except BaseException:
+        end_str = request.args.get('end')
+        end = int(float(end_str) * sample_rate) if end_str is not None else None
+    except Exception:
         end = None
     return start, end
 
-
 def _validate_range(start: int, end: int, count: int) -> bool:
-    return (start is not None and end is not None and
-            start >= 0 and end < count and start < end)
+    return (start is not None and end is not None and start >= 0 and end < count and start < end)
 
-
-def _update_stroke_based(strokes: Strokes, suspension: Suspension):
-    thist = update_travel_histogram(strokes, suspension.TravelBins)
+def _update_stroke_based(strokes: Strokes, suspension: Suspension, telemetry_linkage_max_travel: float, travel_data: list[float], selection_start_abs_index: int):
+    thist = update_travel_histogram(
+        strokes,
+        travel_data,
+        suspension.TravelBins,
+        telemetry_linkage_max_travel,
+        selection_start_abs_index
+    )
     vhist = update_velocity_histogram(
         strokes,
         suspension.Velocity,
@@ -92,20 +102,18 @@ def _update_stroke_based(strokes: Strokes, suspension: Suspension):
         balance=None
     )
 
-
 @bp.route('', methods=['GET'])
 def get_all():
-    entities = db.session.execute(Session.select().order_by(
-        Session.timestamp.desc())).scalars()
+    entities = db.session.execute(
+        Session.select().order_by(Session.timestamp.desc())
+    ).scalars()
     return jsonify(list(entities)), status.OK
-
 
 @bp.route('/incomplete', methods=['GET'])
 def get_incomplete():
     query = db.select(Session.id).filter_by(deleted=None, data=None)
     entities = db.session.execute(query).scalars()
     return jsonify(list(entities)), status.OK
-
 
 @bp.route('/<uuid:id>/psst', methods=['GET'])
 def get_psst(id: uuid.UUID):
@@ -120,65 +128,94 @@ def get_psst(id: uuid.UUID):
         mimetype="application/octet-stream",
     )
 
-
 @bp.route('/last', methods=['GET'])
 def get_last():
-    entity = db.session.execute(Session.select().order_by(
-        Session.timestamp.desc()).limit(1)).scalar_one_or_none()
+    entity = db.session.execute(
+        Session.select().order_by(Session.timestamp.desc()).limit(1)
+    ).scalar_one_or_none()
     if not entity:
         return jsonify(msg="Session does not exist!"), status.NOT_FOUND
     return jsonify(entity), status.OK
 
-
 @bp.route('/<uuid:id>', methods=['GET'])
 def get(id: uuid.UUID):
     return get_entity(Session, id)
-
 
 @bp.route('/<uuid:id>/filter', methods=['GET'])
 def filter(id: uuid.UUID):
     entity = Session.get(id)
     if not entity:
         return jsonify(msg="Session does not exist!"), status.NOT_FOUND
+
     d = msgpack.unpackb(entity.data)
     t = dataclass_from_dict(Telemetry, d)
 
     start, end = _extract_range(t.SampleRate)
     count = len(t.Front.Travel if t.Front.Present else t.Rear.Travel)
     if not _validate_range(start, end, count):
-        start = None
-        end = None
+        start, end = None, None
 
     updated_data = {'front': None, 'rear': None}
     tick = 1.0 / t.SampleRate
+
+    actual_selection_start_index_front = 0
+    actual_selection_start_index_rear = 0
+
     if t.Front.Present:
-        f_strokes = _filter_strokes(t.Front.Strokes, start, end)
-        updated_data['front'] = _update_stroke_based(f_strokes, t.Front)
-        updated_data['front']['fft'] = update_fft(
-            t.Front.Travel[start:end], tick)
+        if start is not None and end is not None:
+            f_strokes = _filter_strokes(t.Front.Strokes, start, end)
+            travel_data_for_hist_and_fft = t.Front.Travel[start:end]
+            actual_selection_start_index_front = start
+        else:
+            f_strokes = t.Front.Strokes
+            travel_data_for_hist_and_fft = t.Front.Travel
+        
+        updated_data['front'] = _update_stroke_based(
+            f_strokes,
+            t.Front,
+            t.Linkage.MaxFrontTravel,
+            travel_data_for_hist_and_fft,
+            actual_selection_start_index_front
+        )
+        updated_data['front']['fft'] = update_fft(travel_data_for_hist_and_fft, tick)
+
     if t.Rear.Present:
-        r_strokes = _filter_strokes(t.Rear.Strokes, start, end)
-        updated_data['rear'] = _update_stroke_based(r_strokes, t.Rear)
-        updated_data['rear']['fft'] = update_fft(
-            t.Rear.Travel[start:end], tick)
+        if start is not None and end is not None:
+            r_strokes = _filter_strokes(t.Rear.Strokes, start, end)
+            travel_data_for_hist_and_fft_rear = t.Rear.Travel[start:end]
+            actual_selection_start_index_rear = start
+        else:
+            r_strokes = t.Rear.Strokes
+            travel_data_for_hist_and_fft_rear = t.Rear.Travel
+
+        updated_data['rear'] = _update_stroke_based(
+            r_strokes,
+            t.Rear,
+            t.Linkage.MaxRearTravel,
+            travel_data_for_hist_and_fft_rear,
+            actual_selection_start_index_rear
+        )
+        updated_data['rear']['fft'] = update_fft(travel_data_for_hist_and_fft_rear, tick)
+
     if t.Front.Present and t.Rear.Present:
+        f_balance_strokes = _filter_strokes(t.Front.Strokes, start, end)
+        r_balance_strokes = _filter_strokes(t.Rear.Strokes, start, end)
         updated_data['balance'] = dict(
             compression=update_balance(
-                f_strokes.Compressions,
-                r_strokes.Compressions,
+                f_balance_strokes.Compressions,
+                r_balance_strokes.Compressions,
                 t.Linkage.MaxFrontTravel,
                 t.Linkage.MaxRearTravel
             ),
             rebound=update_balance(
-                f_strokes.Rebounds,
-                r_strokes.Rebounds,
+                f_balance_strokes.Rebounds,
+                r_balance_strokes.Rebounds,
                 t.Linkage.MaxFrontTravel,
                 t.Linkage.MaxRearTravel
             ),
         )
 
     return jsonify(updated_data)
-
 
 @bp.route('/<uuid:id>', methods=['DELETE'])
 @jwt_required()
@@ -187,7 +224,6 @@ def delete(id: uuid.UUID):
     db.session.execute(db.delete(SessionHtml).filter_by(session_id=id))
     db.session.commit()
     return '', status.NO_CONTENT
-
 
 @bp.route('', methods=['PUT'])
 @jwt_required()
@@ -200,7 +236,6 @@ def put():
     else:
         return jsonify(msg="Session could not be imported"), status.BAD_REQUEST
 
-
 @bp.route('/normalized', methods=['PUT'])
 @jwt_required()
 def put_normalized():
@@ -212,7 +247,6 @@ def put_normalized():
     else:
         return jsonify(msg="Session could not be imported"), status.BAD_REQUEST
 
-
 @bp.route('/psst', methods=['PUT'])
 @jwt_required()
 def put_processed():
@@ -223,39 +257,33 @@ def put_processed():
         return jsonify(msg="Invalid data for Session"), status.BAD_REQUEST
     try:
         entity.psst = session_data
-    except BaseException:
+    except Exception:
         return jsonify(msg="Invalid data for Session"), status.BAD_REQUEST
     entity = db.session.merge(entity)
     db.session.commit()
     generate_bokeh(entity.id)
     return jsonify(id=entity.id), status.CREATED
 
-
 @bp.route('/<uuid:id>', methods=['PATCH'])
 @jwt_required()
 def patch(id: uuid.UUID):
     data = request.json
     db.session.execute(db.update(Session).filter_by(id=id).values(
-        name=data['name'] if 'name' in data else None,
-        description=data['desc'] if 'desc' in data else None,
-        front_springrate=(data['front_springrate']
-                          if 'front_springrate' in data
-                          else None),
-        rear_springrate=(data['rear_springrate']
-                         if 'rear_springrate' in data
-                         else None),
-        front_hsc=data['front_hsc'] if 'front_hsc' in data else None,
-        rear_hsc=data['rear_hsc'] if 'rear_hsc' in data else None,
-        front_lsc=data['front_lsc'] if 'front_lsc' in data else None,
-        rear_lsc=data['rear_lsc'] if 'rear_lsc' in data else None,
-        front_lsr=data['front_lsr'] if 'front_lsr' in data else None,
-        rear_lsr=data['rear_lsr'] if 'rear_lsr' in data else None,
-        front_hsr=data['front_hsr'] if 'front_hsr' in data else None,
-        rear_hsr=data['rear_hsr'] if 'rear_hsr' in data else None,
+        name=data.get('name'),
+        description=data.get('desc'),
+        front_springrate=data.get('front_springrate'),
+        rear_springrate=data.get('rear_springrate'),
+        front_hsc=data.get('front_hsc'),
+        rear_hsc=data.get('rear_hsc'),
+        front_lsc=data.get('front_lsc'),
+        rear_lsc=data.get('rear_lsc'),
+        front_lsr=data.get('front_lsr'),
+        rear_lsr=data.get('rear_lsr'),
+        front_hsr=data.get('front_hsr'),
+        rear_hsr=data.get('rear_hsr'),
     ))
     db.session.commit()
     return '', status.NO_CONTENT
-
 
 @bp.route('/<uuid:id>/psst', methods=['PATCH'])
 @jwt_required()
@@ -263,12 +291,6 @@ def patch_psst(id: uuid.UUID):
     session = Session.get(id)
     if not session:
         return jsonify(), status.NOT_FOUND
-
-    # This API endpoint should only be used during the synchronization process
-    # to eliminate the need for sending potentially too large HTTP requests.
-    # It is called for each modified session after an /api/sync/pull call. We
-    # don't want the 'updated' field set by that call overwritten here, so we
-    # set the updated value explicitly.
     db.session.execute(db.update(Session).filter_by(id=id).values(
         data=request.data,
         updated=session.updated,
@@ -277,7 +299,6 @@ def patch_psst(id: uuid.UUID):
     generate_bokeh(id)
     return '', status.NO_CONTENT
 
-
 @bp.route('/<uuid:id>/bokeh', methods=['PUT'])
 def generate_bokeh(id: uuid.UUID):
     s = Session.get(id)
@@ -285,70 +306,60 @@ def generate_bokeh(id: uuid.UUID):
         return jsonify(msg=f"session #{id} does not exist"), status.BAD_REQUEST
 
     sh = db.session.execute(
-        db.select(SessionHtml).filter_by(session_id=id)).scalar_one_or_none()
-    if not sh:
+        db.select(SessionHtml).filter_by(session_id=id)
+    ).scalar_one_or_none()
+
+    if not sh or current_app.debug:
         id_queue.put(id)
-        return '', status.NO_CONTENT
+        return '', status.ACCEPTED
 
-    return jsonify(msg=f"already generated (session {id})"), status.BAD_REQUEST
-
+    return jsonify(msg=f"already generated (session {id})"), status.OK
 
 @bp.route('/last/bokeh', methods=['GET'], defaults={'session_id': None})
 @bp.route('/<uuid:session_id>/bokeh', methods=['GET'])
 def session_html(session_id: uuid.UUID):
-    # Not using @jwt_required(optional=True), because we want to be able to
-    # load the dashboard even with an invalid token.
     try:
         verify_jwt_in_request()
         full_access = True
-    except BaseException:
+    except Exception:
         full_access = False
 
     if not session_id:
-        session = db.session.execute(Session.select().order_by(
-            Session.timestamp.desc()).limit(1)).scalar_one_or_none()
+        session = db.session.execute(
+            Session.select().order_by(Session.timestamp.desc()).limit(1)
+        ).scalar_one_or_none()
     else:
         session = Session.get(session_id)
     if not session:
         return jsonify(), status.NOT_FOUND
 
-    session_html = db.session.execute(db.select(SessionHtml).filter_by(
-        session_id=session.id)).scalar_one_or_none()
-    if not session_html:
-        return jsonify(), status.NOT_FOUND
+    session_html_entry = db.session.execute(
+        db.select(SessionHtml).filter_by(session_id=session.id)
+    ).scalar_one_or_none()
+    if not session_html_entry:
+        return jsonify(msg=f"Bokeh HTML for session {session.id} not yet generated."), status.NOT_FOUND
 
-    # If cached Bokeh document was generated with a previous version of Bokeh,
-    # we need to delete and regenerate the cache.
-    version_string = f'"version":"{bokeh_version}"'
-    if session_html.script.find(version_string) == -1:
-        db.session.execute(db.delete(SessionHtml).filter_by(
-                           session_id=session.id))
-        db.session.commit()
-        create_cache(session.id, 5, 200)
-        session_html = db.session.execute(db.select(SessionHtml).filter_by(
-            session_id=session.id)).scalar_one_or_none()
-
-    components_script = Markup(session_html.script.replace(
-        '<script type="text/javascript">', '').replace('</script>', ''))
-    components_divs = [Markup(d) if d else None for d in session_html.divs]
+    components_script = Markup(
+        session_html_entry.script
+            .replace('<script type="text/javascript">', '')
+            .replace('</script>', '')
+    )
+    components_divs = [Markup(d) for d in session_html_entry.divs]
 
     track = Track.get(session.track)
-
     d = msgpack.unpackb(session.data)
     t = dataclass_from_dict(Telemetry, d)
 
-    suspension_count = 0
-    if t.Front.Present:
-        suspension_count += 1
-    if t.Rear.Present:
-        suspension_count += 1
-
+    suspension_count = int(t.Front.Present) + int(t.Rear.Present)
     record_num = len(t.Front.Travel) if t.Front.Present else len(t.Rear.Travel)
     elapsed_time = record_num / t.SampleRate
     start_time = session.timestamp
     end_time = start_time + elapsed_time
-    full_track, session_track = track_data(track.track if track else None,
-                                           start_time, end_time)
+
+    full_track, session_track = track_data(
+        track.track if track else None,
+        start_time, end_time
+    )
 
     response = jsonify(
         id=session.id,
@@ -364,7 +375,7 @@ def session_html(session_id: uuid.UUID):
         rear_lsr=session.rear_lsr,
         front_hsr=session.front_hsr,
         rear_hsr=session.rear_hsr,
-        start_time=session.timestamp,
+        start_time=start_time,
         end_time=end_time,
         suspension_count=suspension_count,
         full_track=full_track,
@@ -376,50 +387,3 @@ def session_html(session_id: uuid.UUID):
     if not full_access:
         unset_jwt_cookies(response)
     return response
-
-
-@bp.route('/<uuid:id>/gpx', methods=['PUT'])
-@jwt_required()
-def upload_gpx(id: uuid.UUID):
-    session = Session.get(id)
-    if not session:
-        return jsonify(msg="Session does not exist!"), status.NOT_FOUND
-
-    d = msgpack.unpackb(session.data)
-    t = dataclass_from_dict(Telemetry, d)
-    record_num = len(t.Front.Travel) if t.Front.Present else len(t.Rear.Travel)
-    elapsed_time = record_num / t.SampleRate
-    start_time = session.timestamp
-    end_time = start_time + elapsed_time
-
-    track_dict = gpx_to_dict(request.data)
-    ts, tf = track_dict['time'][0], track_dict['time'][-1]
-    full_track, session_track = track_data(track_dict, start_time, end_time)
-    if session_track is None:
-        return jsonify(msg="Track is not applicable!"), status.BAD_REQUEST
-
-    new_track = Track(track=json.dumps(track_dict))
-    db.session.add(new_track)
-    db.session.commit()
-
-    s1 = db.aliased(Session)
-    s2 = db.aliased(Session)
-
-    stmt_select = (
-        db.session.query(s2.id)
-        .select_from(s1)
-        .join(s2, s1.setup == s2.setup)
-        .filter(s1.id == id)
-        .filter(s2.timestamp >= ts)
-        .filter(s2.timestamp <= tf)
-    )
-    stmt_update = (
-        db.update(Session)
-        .filter(Session.id.in_(stmt_select))
-        .values(track=new_track.id)
-    )
-    db.session.execute(stmt_update)
-    db.session.commit()
-
-    data = dict(full_track=full_track, session_track=session_track)
-    return jsonify(data), status.OK
