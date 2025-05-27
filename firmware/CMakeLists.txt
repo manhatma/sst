@@ -1,3 +1,17 @@
+# == DO NOT EDIT THE FOLLOWING LINES for the Raspberry Pi Pico VS Code Extension to work ==
+if(WIN32)
+    set(USERHOME $ENV{USERPROFILE})
+else()
+    set(USERHOME $ENV{HOME})
+endif()
+set(sdkVersion 2.1.0)
+set(toolchainVersion 13_3_Rel1)
+set(picotoolVersion 2.1.0)
+set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
+if (EXISTS ${picoVscode})
+    include(${picoVscode})
+endif()
+# ====================================================================================
 cmake_minimum_required(VERSION 3.21.1)
 
 set(PICO_BOARD pico_w)
@@ -25,8 +39,9 @@ add_executable(sufni-suspension-telemetry
     src/ui/pushbutton.c
     src/util/config.c
     src/util/list.c
-    src/sensor/rotational.c
-    src/sensor/linear.c
+#    src/sensor/rotational.c    	# Rotational sensor implementation (AS5600)
+    src/sensor/linear_ads1115.c # Linear sensor with external adc implementation
+#    src/sensor/evomini_debug.c  # Evomini debug/logging functions 
 )
 
 pico_generate_pio_header(sufni-suspension-telemetry
@@ -34,31 +49,24 @@ pico_generate_pio_header(sufni-suspension-telemetry
 )
 
 add_subdirectory(external/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src firmware/external/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src)
-add_subdirectory(external/pico-as5600 firmware/external/pico-as5600)
+#add_subdirectory(external/pico-as5600 firmware/external/pico-as5600)
 add_subdirectory(external/pico-ssd1306 firmware/external/pico-ssd1306)
+add_subdirectory(external/pico-ads1115)
 
 if(${DISP_PROTO} STREQUAL SPI)
-    target_compile_options(sufni-suspension-telemetry PUBLIC
-        -DSPI_DISPLAY
-    )
+    target_compile_options(sufni-suspension-telemetry PUBLIC -DSPI_DISPLAY)
 endif()
 
 if(${SPI_MICROSD})
-    target_compile_options(sufni-suspension-telemetry PUBLIC
-        -DSPI_MICROSD
-    )
+    target_compile_options(sufni-suspension-telemetry PUBLIC -DSPI_MICROSD)
 endif()
 
-if(${FORK_LINEAR})
-    target_compile_options(sufni-suspension-telemetry PUBLIC
-        -DFORK_LINEAR
-    )
+if("${FORK_LINEAR}" STREQUAL "ON")
+    target_compile_options(sufni-suspension-telemetry PUBLIC -DFORK_LINEAR)
 endif()
 
-if(${SHOCK_LINEAR})
-    target_compile_options(sufni-suspension-telemetry PUBLIC
-        -DSHOCK_LINEAR
-    )
+if("${SHOCK_LINEAR}" STREQUAL "ON")
+    target_compile_options(sufni-suspension-telemetry PUBLIC -DSHOCK_LINEAR)
 endif()
 
 target_include_directories(sufni-suspension-telemetry PUBLIC
@@ -81,9 +89,16 @@ target_link_libraries(sufni-suspension-telemetry
     hardware_pio
     hardware_rtc
     no-OS-FatFS-SD-SDIO-SPI-RPi-Pico
-    as5600
     ssd1306
 )
+
+if(FORK_LINEAR STREQUAL "ON" OR SHOCK_LINEAR STREQUAL "ON")
+    target_link_libraries(sufni-suspension-telemetry pico-ads1115)
+endif()
+
+if(NOT (FORK_LINEAR STREQUAL "ON" OR SHOCK_LINEAR STREQUAL "ON"))
+    target_link_libraries(sufni-suspension-telemetry as5600)
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(sufni-suspension-telemetry PUBLIC
