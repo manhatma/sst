@@ -1,7 +1,8 @@
 Sufni Suspension Telemetry
 ==========================
 
-![dashboard](pics/dashboard.png)
+![dashboard](pics/dashboard_1.png)
+![dashboard](pics/dashboard_2.png)
 
 Sufni\* Suspension Telemetry is a mountain bike suspension telemetry system that
 was born out of sheer curiosity. The [data acquisition unit](https://github.com/sghctoma/sst/wiki/02-Data-Acquisition-Unit) is built around the
