@@ -31,16 +31,33 @@ const (
 	BOTTOMOUT_THRESHOLD                 = 3
 
 	// Anwendungsspezifische Parameter für den Whittaker-Henderson Smoother:
-	// -3dB-Grenzfrequenz wie der ursprüngliche Savitzky-Golay-Filter mit 
-	// den Parametern (51, 1, 3). 
 	// (Schmid, M., Rath, D., & Diebold, U. (2022). Why and How Savitzky-Golay
 	// Filters Should Be Replaced. ACS Measurement Science Au, 2, 185-196.
 	// Chapter 2.4. Replacing SG Filters, Eq. 14)    
-	// WH_ORDER  = 2
-	// WH_LAMBDA = 500
+	//
+	// -3dB cutoff frequency according to the original Savitzky-Golay-Filter with 
+	// parameter (51, 1, 3): WH_ORDER  = 2, WH_LAMBDA = 500
+
 	WH_ORDER  = 2
-	// entspricht ca. 95% Fidelity für FWHM von ca. 21 Samples; -3dB bei ca. 31 Hz
-	WH_LAMBDA = 5000
+
+	// f_cutoff    WH_LAMBDA	 FWHM for 95% 
+	// (-3dB)	                 Fidelity
+ 	// 5.0 Hz	      233.000	 129 samples
+ 	// 7.5 Hz	       46.000	  86 Samples
+	// 10.0 Hz	       14.600	  65 Samples
+	// 12.5 Hz	        5.900	  52 Samples
+	// 15.0 Hz	        2.900	  43 Samples
+	// 17.5 Hz	        1.550	  37 Samples
+	// 20.0 Hz	          920	  32 Samples
+	// 22.5 Hz	          580	  29 Samples
+	// 25.0 Hz	          380	  26 Samples
+	// 27.5 Hz	          260	  23 Samples
+	// 30.0 Hz	          185	  21 Samples
+	// 32.5 Hz	          130	  20 Samples
+	// 35.0 Hz	          100	  18 Samples
+	// 37.5 Hz	           75	  17 Samples
+	// 40.0 Hz	           60	  16 Samples
+	WH_LAMBDA = 380
 )
 
 // calculateDerivative berechnet die Ableitung mittels zentraler Differenzen für innere Punkte
