@@ -160,6 +160,7 @@ type Processed struct {
 	Rear     suspension
 	Linkage  Linkage
 	Airtimes []*airtime
+}
 
 func (this *Linkage) ProcessRawData() error {
 	var records []LinkageRecord
