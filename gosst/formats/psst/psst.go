@@ -2,48 +2,46 @@ package psst
 
 import (
 	"bufio"
-	"errors" // Beibehalten für andere Fehler
-	"fmt"    // Beibehalten für Formatierung
+	"errors"
+	"fmt"
 	"math"
 	"strings"
 
 	"github.com/SeanJxie/polygo"
 	"github.com/google/uuid"
 	"github.com/openacid/slimarray/polyfit"
-	// Savitzky-Golay Import wurde bereits entfernt
-	"gonum.org/v1/gonum/floats" // Für globale Statistiken
+	"gonum.org/v1/gonum/floats"
 	"golang.org/x/exp/constraints"
 )
 
 const (
-	VELOCITY_ZERO_THRESHOLD             = 0.02
-	IDLING_DURATION_THRESHOLD           = 0.01
-	AIRTIME_TRAVEL_THRESHOLD            = 15 // 3
-	AIRTIME_DURATION_THRESHOLD          = 0.20
-	AIRTIME_VELOCITY_THRESHOLD          = 500
-	AIRTIME_OVERLAP_THRESHOLD           = 0.5
-	AIRTIME_TRAVEL_MEAN_THRESHOLD_RATIO = 0.1 // 0.04
-	STROKE_LENGTH_THRESHOLD             = 5 // 2.5 // 1.25 // 5
-	TRAVEL_HIST_BINS                    = 40
-	VELOCITY_HIST_TRAVEL_BINS           = 10
-	VELOCITY_HIST_STEP                  = 100.0
-	VELOCITY_HIST_STEP_FINE             = 15.0
-	BOTTOMOUT_THRESHOLD                 = 3
+	VELOCITY_ZERO_THRESHOLD             = 0.02	// (mm/s) maximum velocity to be considered as zero
+	IDLING_DURATION_THRESHOLD           = 0.10	// (s) minimum duration to consider stroke an idle period
+	AIRTIME_TRAVEL_THRESHOLD            = 3		// (mm) maximum travel to consider stroke an airtime
+	AIRTIME_DURATION_THRESHOLD          = 0.20	// (s) minimum duration to consider stroke an airtime
+	AIRTIME_VELOCITY_THRESHOLD          = 500	// (mm/s) minimum velocity after stroke to consider it an airtime
+	AIRTIME_OVERLAP_THRESHOLD           = 0.5	// f&r airtime candidates must overlap at least this amount to be an airtime
+	AIRTIME_TRAVEL_MEAN_THRESHOLD_RATIO = 0.04	// stroke f&r mean travel must be below max*this to be an airtime
+	STROKE_LENGTH_THRESHOLD             = 1.5 	// (mm) minimum length to consider stroke a compression/rebound
+	TRAVEL_HIST_BINS                    = 40	// number of travel histogram bins
+	VELOCITY_HIST_TRAVEL_BINS           = 10	// number of travel histogram bins for velocity histogram
+	VELOCITY_HIST_STEP                  = 100.0	// (mm/s) step between velocity histogram bins
+	VELOCITY_HIST_STEP_FINE             = 15.0	// (mm/s) step between fine-grained velocity histogram bins
+	BOTTOMOUT_THRESHOLD                 = 2.5	// (mm) bottomouts are regions where travel > max_travel - this value
 
-	// Anwendungsspezifische Parameter für den Whittaker-Henderson Smoother:
+	// Whittaker-Henderson Smoother specific parameters:  
 	// (Schmid, M., Rath, D., & Diebold, U. (2022). Why and How Savitzky-Golay
 	// Filters Should Be Replaced. ACS Measurement Science Au, 2, 185-196.
 	// Chapter 2.4. Replacing SG Filters, Eq. 14)    
 	//
-	// -3dB cutoff frequency according to the original Savitzky-Golay-Filter with 
-	// parameter (51, 1, 3): WH_ORDER  = 2, WH_LAMBDA = 500
+	// ~27 Hz -3dB cutoff based on original Savitzky-Golay filter parameters (51, 1, 3) at 1 kHz sample rate.
+	// Translates to: WH_ORDER = 2, WH_LAMBDA = 272 for equivalent smoothing characteristics.
 
 	WH_ORDER  = 2
 
-	// f_cutoff    WH_LAMBDA	 FWHM for 95% 
-	// (-3dB)	                 Fidelity
- 	// 5.0 Hz	      233.000	 129 samples
- 	// 7.5 Hz	       46.000	  86 Samples
+	// f_cutoff    WH_LAMBDA	 FWHM for 95%	 
+	//  (-3dB)                     fidelity
+	//                              @860SPS	
 	// 10.0 Hz	       14.600	  65 Samples
 	// 12.5 Hz	        5.900	  52 Samples
 	// 15.0 Hz	        2.900	  43 Samples
@@ -51,17 +49,23 @@ const (
 	// 20.0 Hz	          920	  32 Samples
 	// 22.5 Hz	          580	  29 Samples
 	// 25.0 Hz	          380	  26 Samples
+	// 27.1 Hz	          272	  24 Samples	<-- ~original SG-Filter
 	// 27.5 Hz	          260	  23 Samples
 	// 30.0 Hz	          185	  21 Samples
 	// 32.5 Hz	          130	  20 Samples
 	// 35.0 Hz	          100	  18 Samples
 	// 37.5 Hz	           75	  17 Samples
 	// 40.0 Hz	           60	  16 Samples
-	WH_LAMBDA = 380
+	WH_LAMBDA = 260
+
+	// Suspension dynamics are in the 0–10 Hz band. 
+	// Using a cutoff near 2.5-3× (27.5 Hz) maintains signal integrity 
+	// while providing sufficient attenuation of high-frequency noise.
+	// Balances fidelity and noise suppression without over-filtering.
 )
 
-// calculateDerivative berechnet die Ableitung mittels zentraler Differenzen für innere Punkte
-// und Vorwärts-/Rückwärtsdifferenzen für Randpunkte.
+// calculateDerivative computes the derivative using central differences for interior points,
+// and forward/backward differences for boundary points.
 func calculateDerivative(data []float64, sampleRate uint16) ([]float64, error) {
 	n := len(data)
 	if n == 0 {
@@ -121,10 +125,10 @@ type Linkage struct {
 
 type suspension struct {
 	Present                bool
-	Calibration            Calibration // Definiert in calibration.go
+	Calibration            Calibration
 	Travel                 []float64
 	Velocity               []float64
-	Strokes                strokes     // Definiert in stroke.go
+	Strokes                strokes
 	TravelBins             []float64
 	VelocityBins           []float64
 	FineVelocityBins       []float64
@@ -146,8 +150,8 @@ type Meta struct {
 
 type SetupData struct {
 	Linkage          *Linkage
-	FrontCalibration *Calibration // Definiert in calibration.go
-	RearCalibration  *Calibration // Definiert in calibration.go
+	FrontCalibration *Calibration
+	RearCalibration  *Calibration
 }
 
 type Processed struct {
@@ -155,8 +159,7 @@ type Processed struct {
 	Front    suspension
 	Rear     suspension
 	Linkage  Linkage
-	Airtimes []*airtime // airtime definiert in stroke.go, Methode airtimes in airtimes.go
-}
+	Airtimes []*airtime
 
 func (this *Linkage) ProcessRawData() error {
 	var records []LinkageRecord
@@ -216,15 +219,14 @@ type MissingRecordsError struct{}
 
 func (e *MissingRecordsError) Error() string { return "Front- und Rear-Record-Arrays sind leer" }
 
-// RecordCountMismatchError wird in der aktuellen Logik nicht explizit verwendet, wenn WH eingesetzt wird,
-// da Front und Rear unabhängig geglättet werden können.
+// RecordCountMismatchError is not explicitly used in the current logic when WH is enabled,
+// since Front and Rear can be smoothed independently.
 // type RecordCountMismatchError struct{}
-// func (e *RecordCountMismatchError) Error() string { return "Anzahl der Front- und Rear-Records ist nicht gleich" }
+// func (e *RecordCountMismatchError) Error() string { return "Number of Front and Rear records does not match" }
 
 func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*Processed, error) {
 	var pd Processed
 	pd.Meta = meta
-	// Calibration wird von setup.FrontCalibration zugewiesen, dessen Typ aus calibration.go stammt
 	pd.Front.Calibration = *setup.FrontCalibration
 	pd.Rear.Calibration = *setup.RearCalibration
 	pd.Linkage = *setup.Linkage
@@ -242,7 +244,7 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 		pd.Front.Travel = make([]float64, fc)
 		front_coeff := math.Sin(pd.Linkage.HeadAngle * math.Pi / 180.0)
 		for idx, value := range front {
-			out, _ := pd.Front.Calibration.Evaluate(float64(value)) // Evaluate von calibration.go
+			out, _ := pd.Front.Calibration.Evaluate(float64(value))
 			x := out * front_coeff
 			x = math.Max(0, x)
 			x = math.Min(x, pd.Linkage.MaxFrontTravel)
@@ -251,20 +253,20 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 
 		if len(pd.Front.Travel) > 0 {
 			pd.Front.GlobalMaxTravelAllData = floats.Max(pd.Front.Travel)
-			pd.Front.GlobalP95TravelAllData = getPercentileValue(pd.Front.Travel, 0.95) // von stroke.go
+			pd.Front.GlobalP95TravelAllData = getPercentileValue(pd.Front.Travel, 0.95)
 			pd.Front.GlobalAvgTravelAllData = floats.Sum(pd.Front.Travel) / float64(len(pd.Front.Travel))
 		}
 
 		var dtFront []int
 		if pd.Linkage.MaxFrontTravel > 0 {
 			tbins := linspace(0, pd.Linkage.MaxFrontTravel, TRAVEL_HIST_BINS+1)
-			dtFront = digitize(pd.Front.Travel, tbins) // von stroke.go
+			dtFront = digitize(pd.Front.Travel, tbins)
 			pd.Front.TravelBins = tbins
 		} else {
 			pd.Front.TravelBins = []float64{}
 			dtFront = make([]int, fc)
 		}
-		// pd.Front.Strokes.digitizeTravel(dtFront) // Veralteter Aufruf
+		// pd.Front.Strokes.digitizeTravel(dtFront) // legacy call
 
 		minPointsForWH := WH_ORDER + 1
 		if fc >= minPointsForWH && pd.Meta.SampleRate > 0 {
@@ -276,47 +278,47 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 					if errVel == nil {
 						pd.Front.Velocity = velocity
 					} else {
-						fmt.Printf("Warnung: Fehler bei der Berechnung der Front-Geschwindigkeit: %v. Null-Geschwindigkeit wird verwendet.\n", errVel)
+						fmt.Printf("Warning: Error calculating front velocity: %v. Using zero velocity instead.\n", errVel)
 						pd.Front.Velocity = make([]float64, fc)
 					}
 				} else {
-					fmt.Printf("Warnung: Fehler beim Glätten des Front-Federwegs: %v. Null-Geschwindigkeit wird verwendet.\n", errSmooth)
+					fmt.Printf("Warning: Error smoothing front travel data: %v. Using zero velocity instead.\n", errSmooth)
 					pd.Front.Velocity = make([]float64, fc)
 				}
 			} else {
-				fmt.Printf("Warnung: Fehler beim Erstellen des Front-WH-Smoothers: %v. Null-Geschwindigkeit wird verwendet.\n", errWhs)
+				fmt.Printf("Warning: Failed to create WH smoother for front travel: %v. Using zero velocity instead.\n", errWhs)
 				pd.Front.Velocity = make([]float64, fc)
 			}
 		} else {
 			if fc < minPointsForWH {
-				fmt.Printf("Warnung: Front-Datenpunkte (%d) zu wenige für WH-Smoother (min %d für Ordnung %d benötigt). Null-Geschwindigkeit wird verwendet.\n", fc, minPointsForWH, WH_ORDER)
+				fmt.Printf("Warning: Not enough front data points (%d) for WH smoother (minimum %d required for order %d). Using zero velocity instead.\n", fc, minPointsForWH, WH_ORDER)
 			}
 			if pd.Meta.SampleRate == 0 {
-				fmt.Printf("Warnung: Front-SampleRate ist Null, Geschwindigkeit kann nicht berechnet werden. Null-Geschwindigkeit wird verwendet.\n")
+				fmt.Printf("Warning: Front sample rate is zero; velocity cannot be computed. Using zero velocity instead.\n")
 			}
 			pd.Front.Velocity = make([]float64, fc)
 		}
 
-		vbins, dv := digitizeVelocity(pd.Front.Velocity, VELOCITY_HIST_STEP) // von stroke.go
+		vbins, dv := digitizeVelocity(pd.Front.Velocity, VELOCITY_HIST_STEP)
 		pd.Front.VelocityBins = vbins
-		vbinsFine, dvFine := digitizeVelocity(pd.Front.Velocity, VELOCITY_HIST_STEP_FINE) // von stroke.go
+		vbinsFine, dvFine := digitizeVelocity(pd.Front.Velocity, VELOCITY_HIST_STEP_FINE)
 		pd.Front.FineVelocityBins = vbinsFine
 
-		currentStrokes := filterStrokes(pd.Front.Velocity, pd.Front.Travel, pd.Linkage.MaxFrontTravel, pd.Meta.SampleRate) // von stroke.go
-		pd.Front.Strokes.categorize(currentStrokes, pd.Front.Travel, pd.Linkage.MaxFrontTravel) // von stroke.go
+		currentStrokes := filterStrokes(pd.Front.Velocity, pd.Front.Travel, pd.Linkage.MaxFrontTravel, pd.Meta.SampleRate)
+		pd.Front.Strokes.categorize(currentStrokes, pd.Front.Travel, pd.Linkage.MaxFrontTravel)
 
 		if len(pd.Front.Strokes.Compressions) == 0 && len(pd.Front.Strokes.Rebounds) == 0 {
 			pd.Front.Present = false
 		} else {
-			// pd.Front.Strokes.digitizeVelocity(dv, dvFine) // Veralteter Aufruf
-			pd.Front.Strokes.digitize(dtFront, dv, dvFine) // Korrigierter Aufruf gemäß stroke.go
+			// pd.Front.Strokes.digitizeVelocity(dv, dvFine) // legacy call
+			pd.Front.Strokes.digitize(dtFront, dv, dvFine)
 		}
 	}
 
 	if pd.Rear.Present {
 		pd.Rear.Travel = make([]float64, rc)
 		for idx, value := range rear {
-			out, _ := pd.Rear.Calibration.Evaluate(float64(value)) // von calibration.go
+			out, _ := pd.Rear.Calibration.Evaluate(float64(value))
 			x := pd.Linkage.polynomial.At(out)
 			x = math.Max(0, x)
 			x = math.Min(x, pd.Linkage.MaxRearTravel)
@@ -325,20 +327,20 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 
 		if len(pd.Rear.Travel) > 0 {
 			pd.Rear.GlobalMaxTravelAllData = floats.Max(pd.Rear.Travel)
-			pd.Rear.GlobalP95TravelAllData = getPercentileValue(pd.Rear.Travel, 0.95) // von stroke.go
+			pd.Rear.GlobalP95TravelAllData = getPercentileValue(pd.Rear.Travel, 0.95)
 			pd.Rear.GlobalAvgTravelAllData = floats.Sum(pd.Rear.Travel) / float64(len(pd.Rear.Travel))
 		}
 
 		var dtRear []int
 		if pd.Linkage.MaxRearTravel > 0 {
 			tbins := linspace(0, pd.Linkage.MaxRearTravel, TRAVEL_HIST_BINS+1)
-			dtRear = digitize(pd.Rear.Travel, tbins) // von stroke.go
+			dtRear = digitize(pd.Rear.Travel, tbins)
 			pd.Rear.TravelBins = tbins
 		} else {
 			pd.Rear.TravelBins = []float64{}
 			dtRear = make([]int, rc)
 		}
-		// pd.Rear.Strokes.digitizeTravel(dtRear) // Veralteter Aufruf
+		// pd.Rear.Strokes.digitizeTravel(dtRear) // legacy call
 
 		minPointsForWH := WH_ORDER + 1
 		if rc >= minPointsForWH && pd.Meta.SampleRate > 0 {
@@ -350,42 +352,42 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 					if errVel == nil {
 						pd.Rear.Velocity = velocity
 					} else {
-						fmt.Printf("Warnung: Fehler bei der Berechnung der Rear-Geschwindigkeit: %v. Null-Geschwindigkeit wird verwendet.\n", errVel)
+						fmt.Printf("Warning: Error calculating rear velocity: %v. Using zero velocity instead.\n", errVel)
 						pd.Rear.Velocity = make([]float64, rc)
 					}
 				} else {
-					fmt.Printf("Warnung: Fehler beim Glätten des Rear-Federwegs: %v. Null-Geschwindigkeit wird verwendet.\n", errSmooth)
+					fmt.Printf("Warning: Error smoothing rear travel data: %v. Using zero velocity instead.\n", errSmooth)
 					pd.Rear.Velocity = make([]float64, rc)
 				}
 			} else {
-				fmt.Printf("Warnung: Fehler beim Erstellen des Rear-WH-Smoothers: %v. Null-Geschwindigkeit wird verwendet.\n", errWhs)
+				fmt.Printf("Warning: Failed to create WH smoother for rear travel: %v. Using zero velocity instead.\n", errWhs)
 				pd.Rear.Velocity = make([]float64, rc)
 			}
 		} else {
 			if rc < minPointsForWH {
-				fmt.Printf("Warnung: Rear-Datenpunkte (%d) zu wenige für WH-Smoother (min %d für Ordnung %d benötigt). Null-Geschwindigkeit wird verwendet.\n", rc, minPointsForWH, WH_ORDER)
+				fmt.Printf("Warning: Not enough rear data points (%d) for WH smoother (minimum %d required for order %d). Using zero velocity instead.\n", rc, minPointsForWH, WH_ORDER)
 			}
 			if pd.Meta.SampleRate == 0 {
-				fmt.Printf("Warnung: Rear-SampleRate ist Null, Geschwindigkeit kann nicht berechnet werden. Null-Geschwindigkeit wird verwendet.\n")
+				fmt.Printf("Warning: Rear sample rate is zero; velocity cannot be computed. Using zero velocity instead.\n")
 			}
 			pd.Rear.Velocity = make([]float64, rc)
 		}
 
-		vbins, dv := digitizeVelocity(pd.Rear.Velocity, VELOCITY_HIST_STEP) // von stroke.go
+		vbins, dv := digitizeVelocity(pd.Rear.Velocity, VELOCITY_HIST_STEP)
 		pd.Rear.VelocityBins = vbins
-		vbinsFine, dvFine := digitizeVelocity(pd.Rear.Velocity, VELOCITY_HIST_STEP_FINE) // von stroke.go
+		vbinsFine, dvFine := digitizeVelocity(pd.Rear.Velocity, VELOCITY_HIST_STEP_FINE)
 		pd.Rear.FineVelocityBins = vbinsFine
 
-		currentStrokes := filterStrokes(pd.Rear.Velocity, pd.Rear.Travel, pd.Linkage.MaxRearTravel, pd.Meta.SampleRate) // von stroke.go
-		pd.Rear.Strokes.categorize(currentStrokes, pd.Rear.Travel, pd.Linkage.MaxRearTravel) // von stroke.go
+		currentStrokes := filterStrokes(pd.Rear.Velocity, pd.Rear.Travel, pd.Linkage.MaxRearTravel, pd.Meta.SampleRate)
+		pd.Rear.Strokes.categorize(currentStrokes, pd.Rear.Travel, pd.Linkage.MaxRearTravel)
 		if len(pd.Rear.Strokes.Compressions) == 0 && len(pd.Rear.Strokes.Rebounds) == 0 {
 			pd.Rear.Present = false
 		} else {
-			// pd.Rear.Strokes.digitizeVelocity(dv, dvFine) // Veralteter Aufruf
-			pd.Rear.Strokes.digitize(dtRear, dv, dvFine) // Korrigierter Aufruf gemäß stroke.go
+			// pd.Rear.Strokes.digitizeVelocity(dv, dvFine) // legacy call
+			pd.Rear.Strokes.digitize(dtRear, dv, dvFine)
 		}
 	}
 
-	pd.airtimes() // Methode von airtimes.go
+	pd.airtimes()
 	return &pd, nil
 }
