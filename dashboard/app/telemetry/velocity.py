@@ -1,19 +1,19 @@
 import numpy as np
 from typing import Any, Tuple, List, Optional
 
-from bokeh import events
-from bokeh.models import ColumnDataSource
-from bokeh.models.annotations import BoxAnnotation, ColorBar, Label, Span
-from bokeh.models.callbacks import CustomJS
-from bokeh.models.formatters import PrintfTickFormatter
-from bokeh.models.mappers import LinearColorMapper
-from bokeh.models.ranges import Range1d
-from bokeh.models.tickers import FixedTicker, SingleIntervalTicker
-from bokeh.models.tools import WheelZoomTool, CrosshairTool
-from bokeh.palettes import Spectral11
-from bokeh.plotting import figure
+from bokeh import events # type: ignore
+from bokeh.models import ColumnDataSource # type: ignore
+from bokeh.models.annotations import BoxAnnotation, ColorBar, Label, Span # type: ignore
+from bokeh.models.callbacks import CustomJS # type: ignore
+from bokeh.models.formatters import PrintfTickFormatter # type: ignore
+from bokeh.models.mappers import LinearColorMapper # type: ignore
+from bokeh.models.ranges import Range1d # type: ignore
+from bokeh.models.tickers import FixedTicker, SingleIntervalTicker # type: ignore
+from bokeh.models.tools import WheelZoomTool, CrosshairTool # type: ignore
+from bokeh.palettes import Spectral11 # type: ignore
+from bokeh.plotting import figure # type: ignore
 from scipy.stats import norm
-from flask import current_app
+from flask import current_app # type: ignore
 
 try:
     from app.telemetry.psst import Strokes, Telemetry, Stroke, StrokeStat
@@ -37,7 +37,7 @@ except ImportError:
 
     class SuspensionData:
         Velocity: List[float] = []
-        Strokes: Optional[Strokes] = None
+        Strokes: Optional[Strokes] = None # type: ignore
         TravelBins: List[float] = []
         VelocityBins: List[float] = []
         FineVelocityBins: List[float] = []
@@ -104,8 +104,8 @@ def velocity_figure(telemetry: Telemetry, lod: int,
         min_border_right=50,
         sizing_mode="stretch_width",
         toolbar_location='above',
-        tools='xpan,reset,hover,crosshair', # Ensure 'crosshair' is in tools string
-        # active_inspect=None, # We will set this later
+        tools='xpan,reset,hover,crosshair', 
+        # active_inspect=None,
         active_drag='xpan',
         tooltips=[("elapsed time", "@t{0.000} s"),
                   ("front wheel", "@f{0.000} m/s"),
@@ -550,11 +550,21 @@ def velocity_band_stats_figure(strokes: Optional[Strokes], velocity_data: list[f
     total_perc = sum([val for val in [hsr, lsr, lsc, hsc] if val is not None and np.isfinite(val)])
     y_range_end_val = max(total_perc if total_perc > 0 and np.isfinite(total_perc) else 1.0, 1.0)
 
-
     p = figure(
-        title="Speed\nzones\n\n\n", width=70, height=600,
-        x_range=(-0.5, 0.5), y_range=(0, y_range_end_val),
-        sizing_mode='fixed', tools='', toolbar_location=None)
+        title="Speed\nzones",  # Split into two lines for limited space
+        width=70, 
+        height=600,
+        x_range=(-0.5, 0.5), 
+        y_range=(0, y_range_end_val),
+        sizing_mode='fixed', 
+        tools='', 
+        toolbar_location=None)
+    
+    # Update title styling but keep center alignment for two-line title
+    p.title.text_align = 'center'  # Changed from 'right' to 'center'
+    p.title.align = 'center'
+    p.title.text_font_size = '14px'
+    
     p.grid.grid_line_color = None
     p.xaxis.visible = False; p.yaxis.visible = False
 
@@ -565,7 +575,7 @@ def velocity_band_stats_figure(strokes: Optional[Strokes], velocity_data: list[f
 
     text_props = {'x': 0, 'x_units': 'data', 'y_units': 'data',
                   'text_baseline': 'middle', 'text_align': 'center',
-                  'text_font_size': '11px',
+                  'text_font_size': '13px',
                   'text_color': '#fefefe'}
 
     current_y_base = 0.0

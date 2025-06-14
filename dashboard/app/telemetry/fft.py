@@ -2,12 +2,12 @@ import numpy as np
 from scipy.signal import welch # Für die Welch-Methode hinzugefügt
 from scipy.fft import rfft, rfftfreq
 
-from bokeh.models import CustomJS, ColumnDataSource
-from bokeh.models.formatters import CustomJSTickFormatter
-from bokeh.models.ranges import Range1d
-from bokeh.models.tickers import FixedTicker
-from bokeh.models.tools import HoverTool, WheelZoomTool
-from bokeh.plotting import figure
+from bokeh.models import CustomJS, ColumnDataSource # type: ignore
+from bokeh.models.formatters import CustomJSTickFormatter # type: ignore
+from bokeh.models.ranges import Range1d # type: ignore
+from bokeh.models.tickers import FixedTicker # type: ignore
+from bokeh.models.tools import HoverTool, WheelZoomTool # type: ignore
+from bokeh.plotting import figure # type: ignore
 
 
 TARGET_RESOLUTION = 0.025  # Hz - Feste Ziel-Frequenzauflösung

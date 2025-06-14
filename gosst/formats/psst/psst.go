@@ -30,9 +30,10 @@ const (
 	BOTTOMOUT_THRESHOLD                 = 2.5	// (mm) bottomouts are regions where travel > max_travel - this value
 
 	// Whittaker-Henderson Smoother specific parameters:  
-	// (Schmid, M., Rath, D., & Diebold, U. (2022). Why and How Savitzky-Golay
-	// Filters Should Be Replaced. ACS Measurement Science Au, 2, 185-196.
-	// Chapter 2.4. Replacing SG Filters, Eq. 14)    
+	// Schmid, M., Rath, D., & Diebold, U. (2022). 
+	// Why and How Savitzky-Golay Filters Should Be Replaced.
+	// ACS Measurement Science Au, 2, 185-196.
+	// Chapter 2.4. Replacing SG Filters, Eq. 14    
 	//
 	// ~27 Hz -3dB cutoff based on original Savitzky-Golay filter parameters (51, 1, 3) at 1 kHz sample rate.
 	// Translates to: WH_ORDER = 2, WH_LAMBDA = 272 for equivalent smoothing characteristics.

@@ -1,17 +1,17 @@
 import numpy as np
-from flask import current_app
+from flask import current_app # type: ignore
 from typing import Tuple, List
 
-from bokeh.events import DoubleTap, SelectionGeometry
-from bokeh.models import ColumnDataSource
-from bokeh.models.annotations import BoxAnnotation, Label, Span
-from bokeh.models.axes import LinearAxis
-from bokeh.models.callbacks import CustomJS
-from bokeh.models.ranges import Range1d
-from bokeh.models.tools import BoxSelectTool, CrosshairTool, WheelZoomTool
-from bokeh.palettes import Spectral11
-from bokeh.plotting import figure
-from bokeh.models.tickers import SingleIntervalTicker
+from bokeh.events import DoubleTap, SelectionGeometry # type: ignore
+from bokeh.models import ColumnDataSource # type: ignore
+from bokeh.models.annotations import BoxAnnotation, Label, Span # type: ignore
+from bokeh.models.axes import LinearAxis # type: ignore
+from bokeh.models.callbacks import CustomJS # type: ignore
+from bokeh.models.ranges import Range1d # type: ignore
+from bokeh.models.tools import BoxSelectTool, CrosshairTool, WheelZoomTool # type: ignore
+from bokeh.palettes import Spectral11 # type: ignore
+from bokeh.plotting import figure # type: ignore
+from bokeh.models.tickers import SingleIntervalTicker # type: ignore
 
 from app.telemetry.psst import Airtime, Strokes, Telemetry, Suspension
 
