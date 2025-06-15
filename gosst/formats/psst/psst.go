@@ -166,6 +166,7 @@ type Processed struct {
 func (this *Linkage) ProcessRawData() error {
 	var records []LinkageRecord
 	scanner := bufio.NewScanner(strings.NewReader(this.RawData))
+	prev_w := 0.0
 	s := 0.0
 	for scanner.Scan() {
 		var w, l float64
@@ -176,7 +177,8 @@ func (this *Linkage) ProcessRawData() error {
 				WheelTravel:   w,
 				LeverageRatio: l,
 			})
-			s += 1.0 / l
+			s += (w - prev_w) / l
+			prev_w = w
 		}
 	}
 	this.Process(records)
