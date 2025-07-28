@@ -22,11 +22,11 @@ const (
 	AIRTIME_VELOCITY_THRESHOLD          = 500	// (mm/s) minimum velocity after stroke to consider it an airtime
 	AIRTIME_OVERLAP_THRESHOLD           = 0.5	// f&r airtime candidates must overlap at least this amount to be an airtime
 	AIRTIME_TRAVEL_MEAN_THRESHOLD_RATIO = 0.04	// stroke f&r mean travel must be below max*this to be an airtime
-	STROKE_LENGTH_THRESHOLD             = 1.5 	// (mm) minimum length to consider stroke a compression/rebound
-	TRAVEL_HIST_BINS                    = 40	// number of travel histogram bins
-	VELOCITY_HIST_TRAVEL_BINS           = 10	// number of travel histogram bins for velocity histogram
-	VELOCITY_HIST_STEP                  = 100.0	// (mm/s) step between velocity histogram bins
-	VELOCITY_HIST_STEP_FINE             = 15.0	// (mm/s) step between fine-grained velocity histogram bins
+	STROKE_LENGTH_THRESHOLD             = 5 	// (mm) minimum length to consider stroke a compression/rebound
+	TRAVEL_HIST_BINS                    = 20	// number of travel histogram bins
+	VELOCITY_HIST_TRAVEL_BINS           = 20	// number of travel histogram bins for velocity histogram
+	VELOCITY_HIST_STEP                  = 50.0	// (mm/s) step between velocity histogram bins
+	VELOCITY_HIST_STEP_FINE             = 10 	// (mm/s) step between fine-grained velocity histogram bins
 	BOTTOMOUT_THRESHOLD                 = 2.5	// (mm) bottomouts are regions where travel > max_travel - this value
 
 	// Whittaker-Henderson Smoother specific parameters:  
