@@ -21,8 +21,9 @@ const (
 	AIRTIME_DURATION_THRESHOLD          = 0.20	// (s) minimum duration to consider stroke an airtime
 	AIRTIME_VELOCITY_THRESHOLD          = 500	// (mm/s) minimum velocity after stroke to consider it an airtime
 	AIRTIME_OVERLAP_THRESHOLD           = 0.5	// f&r airtime candidates must overlap at least this amount to be an airtime
-	AIRTIME_TRAVEL_MEAN_THRESHOLD_RATIO = 0.04	// stroke f&r mean travel must be below max*this to be an airtime
+	AIRTIME_TRAVEL_MEAN_THRESHOLD_RATIO = 0.08	// stroke f&r mean travel must be below max*this to be an airtime
 	STROKE_LENGTH_THRESHOLD             = 0.5 	// (mm) minimum length to consider stroke a compression/rebound
+    STROKE_LENGTH_THRESHOLD_FAC         = 30 	// factor for airtime detection with respect to small stroke length threshold
 	TRAVEL_HIST_BINS                    = 20	// number of travel histogram bins
 	VELOCITY_HIST_TRAVEL_BINS           = 20	// number of travel histogram bins for velocity histogram
 	VELOCITY_HIST_STEP                  = 100.0	// (mm/s) step between velocity histogram bins
