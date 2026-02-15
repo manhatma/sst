@@ -15,9 +15,13 @@ EXPOSE 5000/tcp
 
 COPY requirements.txt ./
 RUN pip install \
+	--root-user-action=ignore \
 	--extra-index-url https://www.piwheels.org/simple \
 	--no-cache-dir -r requirements.txt
-RUN apt-get update && apt-get -y install \
+RUN apt-get update && \
+	DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends \
+	apt-utils && \
+	apt-get -y install --no-install-recommends \
 	libatlas-base-dev \
 	libjpeg62-turbo \
 	libopenjp2-7
