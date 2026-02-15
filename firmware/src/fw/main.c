@@ -127,7 +127,7 @@ static void calibrate_if_needed() {
 // ----------------------------------------------------------------------------
 // Data acquisition
 
-static const uint16_t SAMPLE_RATE = 1000;
+static const uint16_t SAMPLE_RATE = 860;
 
 // We are using two buffers. Data acquisition happens on core #1 into the active
 // buffer (referred to by the pointer active_buffer) and we dump to Micro SD card
@@ -405,6 +405,7 @@ static void on_rec_start() {
     multicore_fifo_drain();
     
     display_message(&disp, "INIT SENS");
+    sleep_ms(100);
     if (!start_sensors()) {
         display_message(&disp, "NO SENS");
         sleep_ms(1000);
