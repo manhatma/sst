@@ -6,11 +6,11 @@
 #include <stdint.h>
 
 static void rotational_sensor_init(struct sensor *sensor) {
-    i2c_init(sensor->comm.i2c.instance, 1000000);
+    i2c_init(sensor->comm.i2c.instance, 400 * 1000);
     gpio_set_function(sensor->comm.i2c.sda_gpio, GPIO_FUNC_I2C);
     gpio_set_function(sensor->comm.i2c.scl_gpio, GPIO_FUNC_I2C);
-    gpio_pull_up(sensor->comm.i2c.sda_gpio);
-    gpio_pull_up(sensor->comm.i2c.scl_gpio);        
+//    gpio_pull_up(sensor->comm.i2c.sda_gpio);
+//    gpio_pull_up(sensor->comm.i2c.scl_gpio);        
 }
 
 static bool rotational_sensor_check_availability(struct sensor *sensor) {
@@ -69,7 +69,10 @@ static void rotational_sensor_calibrate_compressed(struct sensor *sensor) {
     }   
 }
 
-#ifndef FORK_LINEAR
+//--------------------------------------------------------------------------
+// Define sensor instances for different mounting positions.
+// These instances are used when the sensor is not defined as a linear sensor.
+#if !defined(EVOMINI_FORK_SENSOR) && !defined(FORK_LINEAR)
 struct sensor fork_sensor = {
     .comm.i2c = {FORK_I2C, FORK_PIN_SCL, FORK_PIN_SDA},
     .init = rotational_sensor_init,
@@ -81,7 +84,7 @@ struct sensor fork_sensor = {
 };
 #endif
 
-#ifndef SHOCK_LINEAR
+#if !defined(EVOMINI_SHOCK_SENSOR) && !defined(SHOCK_LINEAR)
 struct sensor shock_sensor = {
     .comm.i2c = {SHOCK_I2C, SHOCK_PIN_SCL, SHOCK_PIN_SDA},
     .init = rotational_sensor_init,
