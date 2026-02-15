@@ -19,7 +19,7 @@ from app.telemetry.fft import fft_figure
 from app.telemetry.leverage import leverage_ratio_figure, shock_wheel_figure
 from app.telemetry.map import map_figure
 from app.telemetry.psst import Telemetry, dataclass_from_dict
-from app.telemetry.travel import travel_figure, travel_histogram_figure
+from app.telemetry.travel import travel_figure, travel_histogram_figure, travel_histogram_comparison_figure
 from app.telemetry.velocity import velocity_figure
 from app.telemetry.velocity import (
     velocity_histogram_figure,
@@ -195,6 +195,18 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
         document.add_root(p_balance_compression)
         document.add_root(p_balance_rebound)
         columns.extend(['cbalance', 'rbalance'])
+
+        p_thist_comp = travel_histogram_comparison_figure(
+            telemetry.Front,
+            telemetry.Rear,
+            telemetry.Linkage.MaxFrontTravel,
+            telemetry.Linkage.MaxRearTravel,
+            front_color,
+            rear_color,
+        )
+        p_thist_comp.name = 'thist_comp'
+        document.add_root(p_thist_comp)
+        columns.append('thist_comp')
 
     document.js_on_event(DocumentReady, CustomJS(
         args=dict(), code='SST.init_models();'))

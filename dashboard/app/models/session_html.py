@@ -23,6 +23,7 @@ class SessionHtml(db.Model):
     r_vhist: str = db.Column(db.String)
     cbalance: str = db.Column(db.String)
     rbalance: str = db.Column(db.String)
+    thist_comp: str = db.Column(db.String)
 
     def _get_divs(self) -> list[str]:
         d = asdict(self)

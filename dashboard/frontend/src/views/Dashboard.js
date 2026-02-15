@@ -28,7 +28,9 @@ var DualSuspensionTabs = {
     tabOne.checked = true;
   },
   view: function() {
-    return m("div", {class: Session.current.session_track || VideoPlayer.loaded ? "tabs" : "tabs novidmap"}, [
+    var hasCompTab = !!Session.current.divs[13];
+    var tabsClass = (Session.current.session_track || VideoPlayer.loaded ? "tabs" : "tabs novidmap") + (hasCompTab ? "" : " no-comp-tab");
+    return m("div", {class: tabsClass}, [
       m("input.radiotab", {name: "tabs", tabindex: "1", type: "radio", id: "tabone"}),
       m("label.label", {style: "grid-column: 1", for: "tabone"}, "Spring rate"),
       m(".panel springrate", {tabindex: "1"}, [
@@ -49,6 +51,11 @@ var DualSuspensionTabs = {
         m(".balance-compression", m.trust(Session.current.divs[11])),
         m(".balance-rebound", m.trust(Session.current.divs[12])),
       ]),
+      Session.current.divs[13] ? m("input.radiotab", {name: "tabs", tabindex: "1", type: "radio", id: "tabfour"}) : null,
+      Session.current.divs[13] ? m("label.label", {style: "grid-column: 4", for: "tabfour"}, "Travel hist. comp.") : null,
+      Session.current.divs[13] ? m(".panel thist-comp", {tabindex: "1"}, [
+        m(".thist-comp-chart", m.trust(Session.current.divs[13])),
+      ]) : null,
     ])
   }
 }

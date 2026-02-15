@@ -1,4 +1,7 @@
 .tabs {
+  grid-template-columns: repeat(4, 1fr);
+}
+.tabs.no-comp-tab {
   grid-template-columns: repeat(3, 1fr);
 }
 
@@ -26,6 +29,12 @@
 }
 .balance-compression { grid-column: 1; grid-row: 1; }
 .balance-rebound     { grid-column: 2; grid-row: 1; }
+
+.thist-comp {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.thist-comp-chart { grid-column: 1; grid-row: 1; }
 
 /* Small screens (mobile phone) */
 
@@ -71,6 +80,12 @@
   }
   .balance-compression { grid-column: 1; grid-row: 1; }
   .balance-rebound     { grid-column: 1; grid-row: 2; }
+
+  .thist-comp {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .thist-comp-chart { grid-column: 1; grid-row: 1; }
 }
 
 /* Medium screens */

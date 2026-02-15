@@ -44,7 +44,7 @@
   z-index: 0;
   top: 42px;
   left: 0px;
-  grid-column: 1 / 4;
+  grid-column: 1 / -1;
   grid-row: 2;
   background: #15191c;
 }

@@ -299,6 +299,69 @@ def update_travel_histogram(
     )
     return update_dict
 
+def travel_histogram_comparison_figure(
+    front_suspension: Suspension,
+    rear_suspension: Suspension,
+    front_max_travel_mm: float,
+    rear_max_travel_mm: float,
+    front_color: tuple[str, ...],
+    rear_color: tuple[str, ...],
+) -> figure:
+    """Create an overlay of front and rear travel histograms on one figure."""
+    front_hist = _travel_histogram_data(
+        front_suspension.Strokes, front_suspension.TravelBins, front_max_travel_mm)
+    rear_hist = _travel_histogram_data(
+        rear_suspension.Strokes, rear_suspension.TravelBins, rear_max_travel_mm)
+
+    max_time_front = max(front_hist['time_perc']) if front_hist.get('time_perc') and len(front_hist['time_perc']) > 0 else 0
+    max_time_rear = max(rear_hist['time_perc']) if rear_hist.get('time_perc') and len(rear_hist['time_perc']) > 0 else 0
+    y_range_top = HISTOGRAM_RANGE_MULTIPLIER * max(max_time_front, max_time_rear, 1.0)
+
+    p = figure(
+        title="Travel histogram comparison",
+        min_height=300,
+        min_border_left=70,
+        min_border_right=50,
+        x_range=(0, 100),
+        y_range=(0, y_range_top),
+        sizing_mode="stretch_both",
+        x_axis_label="Travel (%)",
+        y_axis_label="Time (%)",
+        toolbar_location='above',
+        tools='xpan,xwheel_zoom,reset',
+        active_drag='xpan',
+        output_backend='webgl')
+
+    p.xaxis.ticker = np.arange(0, 101, 10)
+
+    if front_hist.get('travel_mids_perc') and len(front_hist['travel_mids_perc']) > 0 and \
+       front_hist.get('bin_widths_perc') and len(front_hist['bin_widths_perc']) == len(front_hist['travel_mids_perc']):
+        front_source = ColumnDataSource(name='ds_hist_front_comp', data={
+            'travel_mids_perc': front_hist['travel_mids_perc'],
+            'time_perc': front_hist['time_perc'],
+            'bar_widths_perc': front_hist['bin_widths_perc'],
+        })
+        p.vbar(x='travel_mids_perc', width='bar_widths_perc', top='time_perc', bottom=0,
+               source=front_source, legend_label="Front",
+               line_width=1, color=front_color, fill_alpha=0.35, line_alpha=0.7)
+
+    if rear_hist.get('travel_mids_perc') and len(rear_hist['travel_mids_perc']) > 0 and \
+       rear_hist.get('bin_widths_perc') and len(rear_hist['bin_widths_perc']) == len(rear_hist['travel_mids_perc']):
+        rear_source = ColumnDataSource(name='ds_hist_rear_comp', data={
+            'travel_mids_perc': rear_hist['travel_mids_perc'],
+            'time_perc': rear_hist['time_perc'],
+            'bar_widths_perc': rear_hist['bin_widths_perc'],
+        })
+        p.vbar(x='travel_mids_perc', width='bar_widths_perc', top='time_perc', bottom=0,
+               source=rear_source, legend_label="Rear",
+               line_width=1, color=rear_color, fill_alpha=0.35, line_alpha=0.7)
+
+    p.legend.location = 'top_right'
+    p.legend.click_policy = 'hide'
+    p.legend.level = 'overlay'
+    return p
+
+
 def travel_figure(telemetry: Telemetry, lod: int,
                   front_color: tuple[str, ...], rear_color: tuple[str, ...]) -> figure:
     length = len(telemetry.Front.Travel if telemetry.Front.Present else

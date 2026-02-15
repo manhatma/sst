@@ -48,6 +48,7 @@ var SST = {
       const r_vhist = Bokeh.documents[0].get_model_by_name("rear_velocity_hist");
       const cbalance = Bokeh.documents[0].get_model_by_name("balance_compression");
       const rbalance = Bokeh.documents[0].get_model_by_name("balance_rebound");
+      const thist_comp = Bokeh.documents[0].get_model_by_name("thist_comp");
 
       SST.update.fft(f_fft, u.front.fft);
       SST.update.fft(r_fft, u.rear.fft);
@@ -59,6 +60,9 @@ var SST = {
       SST.update.vbands(r_vhist.children[2], u.rear.vbands);
       SST.update.balance(cbalance, u.balance.compression);
       SST.update.balance(rbalance, u.balance.rebound);
+      if (thist_comp) {
+        SST.update.thist_comp(thist_comp, u.front.thist, u.rear.thist);
+      }
     },
     process_single_json: function(u) {
       const fft = Bokeh.documents[0].get_model_by_name("fft");
@@ -167,6 +171,25 @@ var SST = {
       p.select_one("ds_f").data = u.f_data;
       p.select_one("ds_r").data = u.r_data;
       p.x_range.end = u.range_end;
+    },
+    thist_comp: function(p, front_u, rear_u) {
+      const ds_front = p.select_one("ds_hist_front_comp");
+      const ds_rear = p.select_one("ds_hist_rear_comp");
+      if (ds_front && front_u && front_u.source_data) {
+        ds_front.data = front_u.source_data;
+      }
+      if (ds_rear && rear_u && rear_u.source_data) {
+        ds_rear.data = rear_u.source_data;
+      }
+      // Adjust y_range to fit both
+      var max_y = 1.0;
+      if (front_u && front_u.source_data && front_u.source_data.time_perc) {
+        max_y = Math.max(max_y, Math.max.apply(null, front_u.source_data.time_perc));
+      }
+      if (rear_u && rear_u.source_data && rear_u.source_data.time_perc) {
+        max_y = Math.max(max_y, Math.max.apply(null, rear_u.source_data.time_perc));
+      }
+      p.y_range.end = max_y * 1.3;
     },
     map: function(full_track, session_track) {
       const map = Bokeh.documents[0].get_model_by_name("map");
