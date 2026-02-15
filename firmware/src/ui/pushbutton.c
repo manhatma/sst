@@ -34,13 +34,18 @@ static int64_t debounce_callback(alarm_id_t id, void *user_data) {
             }
         }
     }
+    btn->debounce_alarm = -1;
+    // Re-enable interrupts after debounce processing
+    gpio_set_irq_enabled(btn->gpio, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
     return 0;
 }
 
 static void gpio_callback(uint gpio, uint32_t events) {
     struct button *btn = buttons[gpio];
-    if (NULL != btn && btn->enabled) {
-        add_alarm_in_us(250, debounce_callback, btn, true);
+    if (NULL != btn && btn->enabled && btn->debounce_alarm == -1) {
+        // Disable interrupts temporarily during debounce
+        gpio_set_irq_enabled(gpio, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, false);
+        btn->debounce_alarm = add_alarm_in_us(20000, debounce_callback, btn, true);
     }
 }
 
@@ -55,6 +60,7 @@ void create_button(uint gpio, void *user_data, void (*onpress)(void *), void (*o
     btn->state = gpio_get(gpio); // should be true, since we pulled the GPIO up
     btn->enabled = true;
     btn->alarm = -1;
+    btn->debounce_alarm = -1;  // Initialize new field
     btn->user_data = user_data;
     btn->onpress = onpress;
     btn->onlongpress = onlongpress;
@@ -62,12 +68,12 @@ void create_button(uint gpio, void *user_data, void (*onpress)(void *), void (*o
 }
 
 void disable_button(uint gpio, bool release_only) {
-	buttons[gpio]->enabled = false;
-	uint32_t mask = GPIO_IRQ_EDGE_RISE | (release_only ? 0 : GPIO_IRQ_EDGE_FALL);
+    buttons[gpio]->enabled = false;
+    uint32_t mask = GPIO_IRQ_EDGE_RISE | (release_only ? 0 : GPIO_IRQ_EDGE_FALL);
     gpio_set_irq_enabled(gpio, mask, false);
 }
 
 void enable_button(uint gpio) {
-	buttons[gpio]->enabled = true;
+    buttons[gpio]->enabled = true;
     gpio_set_irq_enabled(gpio, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
 }

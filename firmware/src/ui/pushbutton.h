@@ -8,6 +8,7 @@ struct button {
     bool state;
     bool enabled;
     alarm_id_t alarm;
+    alarm_id_t debounce_alarm;  // New field for debounce timer tracking
     void *user_data;
     void (*onpress)(void *user_data);
     void (*onlongpress)(void *user_data);
