@@ -8,7 +8,7 @@ from bokeh.models.annotations import BoxAnnotation, Label, Span # type: ignore
 from bokeh.models.axes import LinearAxis # type: ignore
 from bokeh.models.callbacks import CustomJS # type: ignore
 from bokeh.models.ranges import Range1d # type: ignore
-from bokeh.models.tools import BoxSelectTool, CrosshairTool, WheelZoomTool # type: ignore
+from bokeh.models.tools import BoxSelectTool, CrosshairTool, CustomAction, WheelZoomTool # type: ignore
 from bokeh.palettes import Spectral11 # type: ignore
 from bokeh.plotting import figure # type: ignore
 from bokeh.models.tickers import SingleIntervalTicker # type: ignore
@@ -44,6 +44,7 @@ def _travel_histogram_data(
     bin_mids_mm = []
     bin_mids_perc = []
     bin_widths_perc = []
+    bin_widths_mm = []
 
     if hist_len > 0 and theoretical_max_travel_mm > 0:
         bin_mids_mm_np = (np.array(bins_mm[:-1]) + np.array(bins_mm[1:])) / 2.0
@@ -56,11 +57,18 @@ def _travel_histogram_data(
         adjusted_bin_widths_perc_np = np.maximum(adjusted_bin_widths_perc_np, full_bin_widths_perc_np * 0.1)
         bin_widths_perc = adjusted_bin_widths_perc_np.tolist()
 
+        full_bin_widths_mm_np = np.diff(np.array(bins_mm))
+        mm_gap = percentage_gap * theoretical_max_travel_mm / 100.0
+        adjusted_bin_widths_mm_np = full_bin_widths_mm_np - mm_gap
+        adjusted_bin_widths_mm_np = np.maximum(adjusted_bin_widths_mm_np, full_bin_widths_mm_np * 0.1)
+        bin_widths_mm = adjusted_bin_widths_mm_np.tolist()
+
     return dict(
         travel_mids_mm=bin_mids_mm,
         travel_mids_perc=bin_mids_perc,
         time_perc=hist.tolist(),
-        bin_widths_perc=bin_widths_perc
+        bin_widths_perc=bin_widths_perc,
+        bin_widths_mm=bin_widths_mm
     )
 
 def _selection_travel_stats(
@@ -306,8 +314,11 @@ def travel_histogram_comparison_figure(
     rear_max_travel_mm: float,
     front_color: tuple[str, ...],
     rear_color: tuple[str, ...],
-) -> figure:
-    """Create an overlay of front and rear travel histograms on one figure."""
+):
+    """Create an overlay of front and rear travel histograms on one figure.
+
+    Returns a column layout containing a %-vs-mm toggle and the figure.
+    """
     front_hist = _travel_histogram_data(
         front_suspension.Strokes, front_suspension.TravelBins, front_max_travel_mm)
     rear_hist = _travel_histogram_data(
@@ -334,31 +345,126 @@ def travel_histogram_comparison_figure(
 
     p.xaxis.ticker = np.arange(0, 101, 10)
 
+    front_source = None
+    rear_source = None
+
     if front_hist.get('travel_mids_perc') and len(front_hist['travel_mids_perc']) > 0 and \
        front_hist.get('bin_widths_perc') and len(front_hist['bin_widths_perc']) == len(front_hist['travel_mids_perc']):
         front_source = ColumnDataSource(name='ds_hist_front_comp', data={
-            'travel_mids_perc': front_hist['travel_mids_perc'],
+            'x': front_hist['travel_mids_perc'],
+            'w': front_hist['bin_widths_perc'],
             'time_perc': front_hist['time_perc'],
+            'travel_mids_perc': front_hist['travel_mids_perc'],
+            'travel_mids_mm': front_hist['travel_mids_mm'],
             'bar_widths_perc': front_hist['bin_widths_perc'],
+            'bar_widths_mm': front_hist['bin_widths_mm'],
         })
-        p.vbar(x='travel_mids_perc', width='bar_widths_perc', top='time_perc', bottom=0,
+        p.vbar(x='x', width='w', top='time_perc', bottom=0,
                source=front_source, legend_label="Front",
                line_width=1, color=front_color, fill_alpha=0.35, line_alpha=0.7)
 
     if rear_hist.get('travel_mids_perc') and len(rear_hist['travel_mids_perc']) > 0 and \
        rear_hist.get('bin_widths_perc') and len(rear_hist['bin_widths_perc']) == len(rear_hist['travel_mids_perc']):
         rear_source = ColumnDataSource(name='ds_hist_rear_comp', data={
-            'travel_mids_perc': rear_hist['travel_mids_perc'],
+            'x': rear_hist['travel_mids_perc'],
+            'w': rear_hist['bin_widths_perc'],
             'time_perc': rear_hist['time_perc'],
+            'travel_mids_perc': rear_hist['travel_mids_perc'],
+            'travel_mids_mm': rear_hist['travel_mids_mm'],
             'bar_widths_perc': rear_hist['bin_widths_perc'],
+            'bar_widths_mm': rear_hist['bin_widths_mm'],
         })
-        p.vbar(x='travel_mids_perc', width='bar_widths_perc', top='time_perc', bottom=0,
+        p.vbar(x='x', width='w', top='time_perc', bottom=0,
                source=rear_source, legend_label="Rear",
                line_width=1, color=rear_color, fill_alpha=0.35, line_alpha=0.7)
 
     p.legend.location = 'top_right'
     p.legend.click_policy = 'hide'
     p.legend.level = 'overlay'
+
+    # --- Toolbar button to switch x-axis between % and mm ---
+    max_mm = max(front_max_travel_mm or 0, rear_max_travel_mm or 0)
+    mm_tick_interval = max(5, int(np.ceil(max_mm / 10 / 5)) * 5)
+    mm_ticks = np.arange(0, max_mm + mm_tick_interval, mm_tick_interval).tolist()
+    perc_ticks = np.arange(0, 101, 10).tolist()
+
+    # Base64-encoded SVG icons for the toolbar button
+    # "mm" icon – shown when currently displaying %, click to switch to mm
+    icon_mm = ("data:image/svg+xml;base64,"
+        "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIg"
+        "aGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIj48dGV4dCB4PSIxMCIgeT0iMTUi"
+        "IGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdo"
+        "dD0iYm9sZCIgZmlsbD0iI2UwZTBlMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+bW08L3Rl"
+        "eHQ+PC9zdmc+")
+    # "%" icon – shown when currently displaying mm, click to switch to %
+    icon_pct = ("data:image/svg+xml;base64,"
+        "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIg"
+        "aGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIj48dGV4dCB4PSIxMCIgeT0iMTUi"
+        "IGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdo"
+        "dD0iYm9sZCIgZmlsbD0iI2UwZTBlMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+JTwvdGV4"
+        "dD48L3N2Zz4=")
+
+    toggle_action = CustomAction(
+        icon=icon_mm,
+        description="Switch to mm",
+    )
+
+    cb_args = dict(
+        x_range=p.x_range,
+        xaxis=p.xaxis[0],
+        action=toggle_action,
+        max_mm=max_mm,
+        mm_ticks=mm_ticks,
+        perc_ticks=perc_ticks,
+        icon_mm=icon_mm,
+        icon_pct=icon_pct,
+    )
+    if front_source is not None:
+        cb_args['front_source'] = front_source
+    if rear_source is not None:
+        cb_args['rear_source'] = rear_source
+
+    toggle_code = """
+        // Track state on the action model itself
+        if (typeof action._is_mm === 'undefined') {
+            action._is_mm = false;
+        }
+        action._is_mm = !action._is_mm;
+        const is_mm = action._is_mm;
+
+        const key_mids = is_mm ? 'travel_mids_mm' : 'travel_mids_perc';
+        const key_widths = is_mm ? 'bar_widths_mm' : 'bar_widths_perc';
+
+        if (typeof front_source !== 'undefined') {
+            front_source.data['x'] = front_source.data[key_mids].slice();
+            front_source.data['w'] = front_source.data[key_widths].slice();
+            front_source.change.emit();
+        }
+        if (typeof rear_source !== 'undefined') {
+            rear_source.data['x'] = rear_source.data[key_mids].slice();
+            rear_source.data['w'] = rear_source.data[key_widths].slice();
+            rear_source.change.emit();
+        }
+
+        if (is_mm) {
+            x_range.start = 0;
+            x_range.end = max_mm * 1.05;
+            xaxis.axis_label = 'Travel (mm)';
+            xaxis.ticker.ticks = mm_ticks;
+            action.icon = icon_pct;
+            action.description = 'Switch to %';
+        } else {
+            x_range.start = 0;
+            x_range.end = 100;
+            xaxis.axis_label = 'Travel (%)';
+            xaxis.ticker.ticks = perc_ticks;
+            action.icon = icon_mm;
+            action.description = 'Switch to mm';
+        }
+    """
+
+    toggle_action.callback = CustomJS(args=cb_args, code=toggle_code)
+    p.add_tools(toggle_action)
     return p
 
 
