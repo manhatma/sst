@@ -2,10 +2,13 @@
 #define _SST_H
 
 #include "tusb.h"
-#include "as5600.h"
 #include "ssd1306.h"
 #include "../net/tcpclient.h"
 #include "../ui/pushbutton.h"
+
+#if !defined(FORK_LINEAR) || !defined(SHOCK_LINEAR)
+#include "as5600.h"
+#endif
 
 enum state {
     IDLE,
