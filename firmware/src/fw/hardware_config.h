@@ -27,7 +27,7 @@
 
 #define DISPLAY_WIDTH    128
 #define DISPLAY_HEIGHT    64
-#define DISPLAY_FLIPPED    1
+#define DISPLAY_FLIPPED    0
 
 #ifdef SPI_DISPLAY
 #define DISPLAY_SPI      spi1
@@ -45,7 +45,7 @@
 
 #ifdef SPI_MICROSD
 #define MICROSD_SPI      spi0
-#define BAUD_RATE        (25 * 1000 * 1000)
+#define BAUD_RATE        (6.75 * 1000 * 1000) // (25 * 1000 * 1000))
 #define MICROSD_PIN_MISO 16
 #define MICROSD_PIN_MOSI 19
 #define MICROSD_PIN_SCK  18
@@ -65,8 +65,9 @@
 // Fork and shock sensors
 
 #ifdef FORK_LINEAR
-#define FORK_ADC         0
-#define FORK_PIN_ADC     26
+#define FORK_I2C         i2c0
+#define FORK_PIN_SDA     8
+#define FORK_PIN_SCL     9
 #else
 #define FORK_I2C         i2c0
 #define FORK_PIN_SDA     8
@@ -74,8 +75,9 @@
 #endif // FORK_LINEAR
 
 #ifdef SHOCK_LINEAR
-#define SHOCK_ADC        1
-#define SHOCK_PIN_ADC    27
+#define SHOCK_I2C        i2c1
+#define SHOCK_PIN_SDA    14
+#define SHOCK_PIN_SCL    15
 #else
 #define SHOCK_I2C        i2c1
 #define SHOCK_PIN_SDA    14
