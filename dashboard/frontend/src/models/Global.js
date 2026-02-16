@@ -101,71 +101,79 @@ var SST = {
     },
     thist: function(p, u) {
       p.select_one("ds_hist").data = u.data;
-      p.x_range.end = u.range_end;
+      p.y_range.end = u.range_end;
 
-      const l_avg = p.select_one("l_avg");
-      l_avg.text = u.avg_text;
-      l_avg.x = u.range_end;
-      l_avg.y = u.avg;
-      const l_max = p.select_one("l_max");
-      l_max.x = u.range_end;
-      l_max.y = u.mx;
       const s_avg = p.select_one("s_avg");
-      s_avg.location = u.avg;
+      if (s_avg) s_avg.location = u.avg;
       const s_max = p.select_one("s_max");
-      s_max.location = u.mx;
+      if (s_max) s_max.location = u.mx;
+      const s_p95 = p.select_one("s_p95");
+      if (s_p95) s_p95.location = u.p95;
+
+      const l_avg = p.select_one("l_avg_short");
+      if (l_avg) l_avg.x = u.avg;
+      const l_max = p.select_one("l_max_short");
+      if (l_max) l_max.x = u.mx;
+      const l_p95 = p.select_one("l_p95_short");
+      if (l_p95) l_p95.x = u.p95;
+
+      const tb = p.select_one("stats_textbox");
+      if (tb) tb.text = u.stats_textbox_text;
     },
     vhist: function(p, p_lowspeed, u) {
       p.select_one("ds_hist").data = u.data;
       p.x_range.end = u.mx;
       p_lowspeed.select_one("ds_hist_lowspeed").data = u.data_lowspeed;
       p_lowspeed.x_range.end = u.mx_lowspeed;
-  
+
       p.select_one("ds_normal").data = u.normal_data;
       p_lowspeed.select_one("ds_normal_lowspeed").data = u.normal_data_lowspeed;
 
-      const top = p.y_range.end;
-      const bottom = p.y_range.start;
+      // Update span locations (null-safe)
+      const s_avgr = p.select_one("s_avgr");
+      if (s_avgr) s_avgr.location = u.s_avgr_loc;
+      const s_maxr = p.select_one("s_maxr");
+      if (s_maxr) s_maxr.location = u.s_maxr_loc;
+      const s_p95r = p.select_one("s_p95r");
+      if (s_p95r) s_p95r.location = u.s_p95r_loc;
+      const s_avgc = p.select_one("s_avgc");
+      if (s_avgc) s_avgc.location = u.s_avgc_loc;
+      const s_maxc = p.select_one("s_maxc");
+      if (s_maxc) s_maxc.location = u.s_maxc_loc;
+      const s_p95c = p.select_one("s_p95c");
+      if (s_p95c) s_p95c.location = u.s_p95c_loc;
 
-      p.select_one("s_avgr").location = u.avgr;
-      p.select_one("s_avgc").location = u.avgc;
-      p.select_one("s_maxr").location = u.maxr;
-      p.select_one("s_maxc").location = u.maxc;
+      // Update label y positions (null-safe)
+      const l_maxr = p.select_one("l_short_maxr");
+      if (l_maxr) l_maxr.y = u.l_short_maxr_y;
+      const l_p95r = p.select_one("l_short_p95r");
+      if (l_p95r) l_p95r.y = u.l_short_p95r_y;
+      const l_avgr = p.select_one("l_short_avgr");
+      if (l_avgr) l_avgr.y = u.l_short_avgr_y;
+      const l_avgc = p.select_one("l_short_avgc");
+      if (l_avgc) l_avgc.y = u.l_short_avgc_y;
+      const l_p95c = p.select_one("l_short_p95c");
+      if (l_p95c) l_p95c.y = u.l_short_p95c_y;
+      const l_maxc = p.select_one("l_short_maxc");
+      if (l_maxc) l_maxc.y = u.l_short_maxc_y;
 
-      const l_avgr = p.select_one("l_avgr");
-      l_avgr.x = u.mx;
-      l_avgr.y = u.avgr;
-      l_avgr.text = u.avgr_text;
-      const l_maxr = p.select_one("l_maxr");
-      l_maxr.x = u.mx;
-      l_maxr.y = Math.max(top, u.maxr);
-      l_maxr.text = u.maxr_text;;
-      const l_avgc = p.select_one("l_avgc");
-      l_avgc.x = u.mx;
-      l_avgc.y = u.avgc;
-      l_avgc.text = u.avgc_text;
-      const l_maxc = p.select_one("l_maxc");
-      l_maxc.x = u.mx;
-      l_maxc.y = Math.min(bottom, u.maxc);
-      l_maxc.text = u.maxc_text;
+      // Update velocity textbox
+      const vtb = p.select_one("l_velocity_textbox");
+      if (vtb) vtb.text = u.velocity_textbox_text;
     },
     vbands: function(p, u) {
       p.select_one("ds_stats").data = u.data;
-  
-      const l_hsr = p.select_one("l_hsr");
-      l_hsr.text = u.hsr_text;
-      l_hsr.y = u.hsc + u.lsc + u.lsr + u.hsr / 2;
-      const l_lsr = p.select_one("l_lsr");
-      l_lsr.text = u.lsr_text;
-      l_lsr.y = u.hsc + u.lsc + u.lsr / 2;
-      const l_lsc = p.select_one("l_lsc");
-      l_lsc.text = u.lsc_text;
-      l_lsc.y = u.hsc + u.lsc / 2;
-      const l_hsc = p.select_one("l_hsc");
-      l_hsc.text = u.hsc_text;
-      l_hsc.y = u.hsc / 2;
 
-      p.y_range.end = u.hsr + u.lsr + u.lsc + u.hsc;
+      const l_hsr = p.select_one("l_hsr");
+      if (l_hsr) { l_hsr.text = u.hsr_text; if (u.y_hsr != null) l_hsr.y = u.y_hsr; }
+      const l_lsr = p.select_one("l_lsr");
+      if (l_lsr) { l_lsr.text = u.lsr_text; if (u.y_lsr != null) l_lsr.y = u.y_lsr; }
+      const l_lsc = p.select_one("l_lsc");
+      if (l_lsc) { l_lsc.text = u.lsc_text; if (u.y_lsc != null) l_lsc.y = u.y_lsc; }
+      const l_hsc = p.select_one("l_hsc");
+      if (l_hsc) { l_hsc.text = u.hsc_text; if (u.y_hsc != null) l_hsc.y = u.y_hsc; }
+
+      p.y_range.end = u.y_range_end;
     },
     balance: function(p, u) {
       p.select_one("ds_f").data = u.f_data;
@@ -175,19 +183,33 @@ var SST = {
     thist_comp: function(p, front_u, rear_u) {
       const ds_front = p.select_one("ds_hist_front_comp");
       const ds_rear = p.select_one("ds_hist_rear_comp");
-      if (ds_front && front_u && front_u.source_data) {
-        ds_front.data = front_u.source_data;
+
+      // Determine current toggle state from x-axis label
+      const is_mm = p.below && p.below.length > 0 &&
+                    p.below[0].axis_label &&
+                    p.below[0].axis_label.includes('mm');
+      const key_mids = is_mm ? 'travel_mids_mm' : 'travel_mids_perc';
+      const key_widths = is_mm ? 'bar_widths_mm' : 'bar_widths_perc';
+
+      if (ds_front && front_u && front_u.comp_data) {
+        const cd = front_u.comp_data;
+        cd['x'] = cd[key_mids].slice();
+        cd['w'] = cd[key_widths].slice();
+        ds_front.data = cd;
       }
-      if (ds_rear && rear_u && rear_u.source_data) {
-        ds_rear.data = rear_u.source_data;
+      if (ds_rear && rear_u && rear_u.comp_data) {
+        const cd = rear_u.comp_data;
+        cd['x'] = cd[key_mids].slice();
+        cd['w'] = cd[key_widths].slice();
+        ds_rear.data = cd;
       }
       // Adjust y_range to fit both
       var max_y = 1.0;
-      if (front_u && front_u.source_data && front_u.source_data.time_perc) {
-        max_y = Math.max(max_y, Math.max.apply(null, front_u.source_data.time_perc));
+      if (front_u && front_u.comp_data && front_u.comp_data.time_perc) {
+        max_y = Math.max(max_y, Math.max.apply(null, front_u.comp_data.time_perc));
       }
-      if (rear_u && rear_u.source_data && rear_u.source_data.time_perc) {
-        max_y = Math.max(max_y, Math.max.apply(null, rear_u.source_data.time_perc));
+      if (rear_u && rear_u.comp_data && rear_u.comp_data.time_perc) {
+        max_y = Math.max(max_y, Math.max.apply(null, rear_u.comp_data.time_perc));
       }
       p.y_range.end = max_y * 1.3;
     },

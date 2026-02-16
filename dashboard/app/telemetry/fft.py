@@ -77,4 +77,4 @@ def fft_figure(travel: list[float], tick: float, color: tuple[str],
 
 def update_fft(travel: list[float], tick: float):
     data = _fft_data(travel, tick)
-    return data
+    return dict(data=data)

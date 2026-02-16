@@ -114,18 +114,18 @@ def _add_travel_stat_labels_stats(
     avg_mm_val: float, mx_mm_val: float, p95_mm_val: float,
     avg_perc_val: float, mx_perc_val: float, p95_perc_val: float,
     bottomouts_count: int,
-    axis_max_travel_perc: float,
+    axis_max_travel_mm: float,
     y_range_start: float, y_range_end: float, p: figure
 ):
     span_line_color = '#FFD700'
-    if np.isfinite(avg_perc_val):
-        s_avg = Span(name='s_avg', location=avg_perc_val, dimension='height', line_color=span_line_color, line_dash='dashed', line_width=2)
+    if np.isfinite(avg_mm_val):
+        s_avg = Span(name='s_avg', location=avg_mm_val, dimension='height', line_color=span_line_color, line_dash='dashed', line_width=2)
         p.add_layout(s_avg)
-    if np.isfinite(mx_perc_val):
-        s_max = Span(name='s_max', location=mx_perc_val, dimension='height', line_color=span_line_color, line_dash='dashed', line_width=2)
+    if np.isfinite(mx_mm_val):
+        s_max = Span(name='s_max', location=mx_mm_val, dimension='height', line_color=span_line_color, line_dash='dashed', line_width=2)
         p.add_layout(s_max)
-    if np.isfinite(p95_perc_val):
-        s_p95 = Span(name='s_p95', location=p95_perc_val, dimension='height', line_color=span_line_color, line_dash='dashed', line_width=2)
+    if np.isfinite(p95_mm_val):
+        s_p95 = Span(name='s_p95', location=p95_mm_val, dimension='height', line_color=span_line_color, line_dash='dashed', line_width=2)
         p.add_layout(s_p95)
     
     vertical_font_size_px = 12
@@ -142,30 +142,30 @@ def _add_travel_stat_labels_stats(
     vertical_label_y_pos = max(vertical_label_y_pos, min_y_label_pos)
     vertical_label_y_pos = min(vertical_label_y_pos, y_range_end - (y_axis_height * 0.03))
 
-    if np.isfinite(avg_perc_val):
-        l_avg_short = Label(name='l_avg_short', x=avg_perc_val, y=vertical_label_y_pos, text="avg",
+    if np.isfinite(avg_mm_val):
+        l_avg_short = Label(name='l_avg_short', x=avg_mm_val, y=vertical_label_y_pos, text="avg",
                             x_offset=label_x_offset_vertical, y_offset=0, **vertical_text_props_short)
         p.add_layout(l_avg_short)
-    if np.isfinite(mx_perc_val):
-        l_max_short = Label(name='l_max_short', x=mx_perc_val, y=vertical_label_y_pos, text="max",
+    if np.isfinite(mx_mm_val):
+        l_max_short = Label(name='l_max_short', x=mx_mm_val, y=vertical_label_y_pos, text="max",
                             x_offset=label_x_offset_vertical, y_offset=0, **vertical_text_props_short)
         p.add_layout(l_max_short)
-    if np.isfinite(p95_perc_val):
-        l_p95_short = Label(name='l_p95_short', x=p95_perc_val, y=vertical_label_y_pos, text="95th",
+    if np.isfinite(p95_mm_val):
+        l_p95_short = Label(name='l_p95_short', x=p95_mm_val, y=vertical_label_y_pos, text="95th",
                             x_offset=label_x_offset_vertical, y_offset=0, **vertical_text_props_short)
         p.add_layout(l_p95_short)
 
     col1_width = 6
-    col2_width = 7
-    col3_width = 10
-    line1 = f"{'Avg:':<{col1_width}}{f'{avg_perc_val:.1f}%' if np.isfinite(avg_perc_val) else 'N/A':<{col2_width}} {f'({avg_mm_val:.1f} mm)' if np.isfinite(avg_mm_val) else '(N/A mm)':>{col3_width}}"
-    line2 = f"{'95th:':<{col1_width}}{f'{p95_perc_val:.1f}%' if np.isfinite(p95_perc_val) else 'N/A':<{col2_width}} {f'({p95_mm_val:.1f} mm)' if np.isfinite(p95_mm_val) else '(N/A mm)':>{col3_width}}"
-    line3 = f"{'Max:':<{col1_width}}{f'{mx_perc_val:.1f}%' if np.isfinite(mx_perc_val) else 'N/A':<{col2_width}} {f'({mx_mm_val:.1f} mm)' if np.isfinite(mx_mm_val) else '(N/A mm)':>{col3_width}}"
+    col2_width = 10
+    col3_width = 8
+    line1 = f"{'Avg:':<{col1_width}}{f'{avg_mm_val:.1f} mm' if np.isfinite(avg_mm_val) else 'N/A':<{col2_width}} {f'({avg_perc_val:.1f}%)' if np.isfinite(avg_perc_val) else '(N/A)':>{col3_width}}"
+    line2 = f"{'95th:':<{col1_width}}{f'{p95_mm_val:.1f} mm' if np.isfinite(p95_mm_val) else 'N/A':<{col2_width}} {f'({p95_perc_val:.1f}%)' if np.isfinite(p95_perc_val) else '(N/A)':>{col3_width}}"
+    line3 = f"{'Max:':<{col1_width}}{f'{mx_mm_val:.1f} mm' if np.isfinite(mx_mm_val) else 'N/A':<{col2_width}} {f'({mx_perc_val:.1f}%)' if np.isfinite(mx_perc_val) else '(N/A)':>{col3_width}}"
     empty_col3 = ' ' * (col3_width + 1)
     line4 = f"{'#BO:':<{col1_width}}{f'{bottomouts_count}':<{col2_width}}{empty_col3}"
     textbox_text = f"{line1}\n{line2}\n{line3}\n{line4}"
     textbox_y_center = (y_range_start + y_range_end) / 2.0
-    textbox_x_start = axis_max_travel_perc * 0.6
+    textbox_x_start = axis_max_travel_mm * 0.6
     
     stats_textbox = Label(
         name='stats_textbox',
@@ -205,31 +205,33 @@ def travel_histogram_figure(
     
     y_range_top = HISTOGRAM_RANGE_MULTIPLIER * (current_max_time_perc if current_max_time_perc > 0 else 1.0)
     
+    mm_tick_interval = max(5, int(np.ceil(linkage_max_travel_mm / 10 / 5)) * 5)
+
     p = figure(
         title=title,
         min_height=300,
         min_border_left=70,
         min_border_right=50,
-        x_range=(0, 100),
+        x_range=(0, linkage_max_travel_mm),
         y_range=(0, y_range_top),
         sizing_mode="stretch_both",
-        x_axis_label="Travel (%)",
+        x_axis_label="Travel (mm)",
         y_axis_label="Time (%)",
         toolbar_location='above',
         tools='xpan,xwheel_zoom,reset',
         active_drag='xpan',
         output_backend='webgl')
     
-    p.xaxis.ticker = np.arange(0, 101, 10)
+    p.xaxis.ticker = np.arange(0, linkage_max_travel_mm + mm_tick_interval, mm_tick_interval)
     
-    if hist_data.get('travel_mids_perc') and len(hist_data['travel_mids_perc']) > 0 and \
-       hist_data.get('bin_widths_perc') and len(hist_data['bin_widths_perc']) == len(hist_data['travel_mids_perc']):
+    if hist_data.get('travel_mids_mm') and len(hist_data['travel_mids_mm']) > 0 and \
+       hist_data.get('bin_widths_mm') and len(hist_data['bin_widths_mm']) == len(hist_data['travel_mids_mm']):
         source_data = {
-            'travel_mids_perc': hist_data['travel_mids_perc'],
+            'travel_mids_mm': hist_data['travel_mids_mm'],
             'time_perc': hist_data['time_perc'],
-            'bar_widths_perc': hist_data['bin_widths_perc']
+            'bar_widths_mm': hist_data['bin_widths_mm']
         }
-        p.vbar(x='travel_mids_perc', width='bar_widths_perc', top='time_perc', bottom=0,
+        p.vbar(x='travel_mids_mm', width='bar_widths_mm', top='time_perc', bottom=0,
                source=ColumnDataSource(name='ds_hist', data=source_data),
                line_width=2, color=color, fill_alpha=0.4)
                
@@ -248,7 +250,7 @@ def travel_histogram_figure(
         avg_mm_val, mx_mm_val, p95_mm_val,
         avg_perc_val, mx_perc_val, p95_perc_val,
         bottomouts_count,
-        100.0, 
+        linkage_max_travel_mm, 
         y_start, y_end, p
     )
     
@@ -278,32 +280,44 @@ def update_travel_histogram(
         selection_start_abs_index
     )
     
-    # Adjusted column widths and formatting to match _add_travel_stat_labels_stats
+    # Format stats textbox: mm first, % in parentheses (aligned with original sst)
     col1_width = 6
-    col2_width = 7
-    col3_width = 10
-    empty_col3 = ' ' * (col3_width + 1) # Ensure this aligns with col3_width for spacing
+    col2_width = 10
+    col3_width = 8
+    empty_col3 = ' ' * (col3_width + 1)
 
-    line1 = f"{'Avg:':<{col1_width}}{f'{avg_perc:.1f}%' if np.isfinite(avg_perc) else 'N/A':<{col2_width}} {f'({avg_mm:.1f} mm)' if np.isfinite(avg_mm) else '(N/A mm)':>{col3_width}}"
-    line2 = f"{'95th:':<{col1_width}}{f'{p95_perc:.1f}%' if np.isfinite(p95_perc) else 'N/A':<{col2_width}} {f'({p95_mm:.1f} mm)' if np.isfinite(p95_mm) else '(N/A mm)':>{col3_width}}"
-    line3 = f"{'Max:':<{col1_width}}{f'{mx_perc:.1f}%' if np.isfinite(mx_perc) else 'N/A':<{col2_width}} {f'({mx_mm:.1f} mm)' if np.isfinite(mx_mm) else '(N/A mm)':>{col3_width}}"
-    # Changed "Bottomouts:" to "#BO:" and ensured `bottomouts` (which is an int) is formatted correctly within col2_width
+    line1 = f"{'Avg:':<{col1_width}}{f'{avg_mm:.1f} mm' if np.isfinite(avg_mm) else 'N/A':<{col2_width}} {f'({avg_perc:.1f}%)' if np.isfinite(avg_perc) else '(N/A)':>{col3_width}}"
+    line2 = f"{'95th:':<{col1_width}}{f'{p95_mm:.1f} mm' if np.isfinite(p95_mm) else 'N/A':<{col2_width}} {f'({p95_perc:.1f}%)' if np.isfinite(p95_perc) else '(N/A)':>{col3_width}}"
+    line3 = f"{'Max:':<{col1_width}}{f'{mx_mm:.1f} mm' if np.isfinite(mx_mm) else 'N/A':<{col2_width}} {f'({mx_perc:.1f}%)' if np.isfinite(mx_perc) else '(N/A)':>{col3_width}}"
     line4 = f"{'#BO:':<{col1_width}}{f'{bottomouts}':<{col2_width}}{empty_col3}"
     full_textbox_text = f"{line1}\n{line2}\n{line3}\n{line4}"
     
-    source_update_data = {
-        'travel_mids_perc': hist_data_selected['travel_mids_perc'],
+    # Data for individual histogram (mm-based x-axis)
+    data = {
+        'travel_mids_mm': hist_data_selected['travel_mids_mm'],
         'time_perc': hist_data_selected['time_perc'],
-        'bar_widths_perc': hist_data_selected['bin_widths_perc']
+        'bar_widths_mm': hist_data_selected['bin_widths_mm']
+    }
+    
+    # Data for comparison chart (needs both mm and perc columns + x/w glyph columns)
+    comp_data = {
+        'x': hist_data_selected['travel_mids_perc'],
+        'w': hist_data_selected['bin_widths_perc'],
+        'time_perc': hist_data_selected['time_perc'],
+        'travel_mids_perc': hist_data_selected['travel_mids_perc'],
+        'travel_mids_mm': hist_data_selected['travel_mids_mm'],
+        'bar_widths_perc': hist_data_selected['bin_widths_perc'],
+        'bar_widths_mm': hist_data_selected['bin_widths_mm'],
     }
     
     update_dict = dict(
-        source_data=source_update_data,
+        data=data,
+        comp_data=comp_data,
         range_end=range_end_val,
-        avg=avg_perc,
-        mx=mx_perc,
-        p95=p95_perc,
-        stats_textbox_text=full_textbox_text # Use the new formatted text
+        avg=avg_mm,
+        mx=mx_mm,
+        p95=p95_mm,
+        stats_textbox_text=full_textbox_text,
     )
     return update_dict
 
