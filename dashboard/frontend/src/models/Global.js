@@ -61,7 +61,7 @@ var SST = {
       SST.update.balance(cbalance, u.balance.compression);
       SST.update.balance(rbalance, u.balance.rebound);
       if (thist_comp) {
-        SST.update.thist_comp(thist_comp, u.front.thist, u.rear.thist, u.front.fft, u.rear.fft);
+        SST.update.thist_comp(thist_comp, u.front.thist, u.rear.thist, u.front.fft, u.rear.fft, u.balance);
       }
     },
     process_single_json: function(u) {
@@ -180,8 +180,9 @@ var SST = {
       p.select_one("ds_r").data = u.r_data;
       p.x_range.end = u.range_end;
     },
-    thist_comp: function(p, front_u, rear_u, front_fft_u, rear_fft_u) {
-      const hist_fig = p.children[0];
+    thist_comp: function(p, front_u, rear_u, front_fft_u, rear_fft_u, balance_u) {
+      const left_col = p.children[0];
+      const hist_fig = left_col.children[0];
       const ds_front = hist_fig.select_one("ds_hist_front_comp");
       const ds_rear = hist_fig.select_one("ds_hist_rear_comp");
 
@@ -216,11 +217,50 @@ var SST = {
 
       // Update FFT comparison
       if (front_fft_u && rear_fft_u) {
-        const fft_fig = p.children[1];
+        const fft_fig = left_col.children[1];
         const ds_fft_front = fft_fig.select_one("ds_fft_front_comp");
         const ds_fft_rear = fft_fig.select_one("ds_fft_rear_comp");
         if (ds_fft_front) ds_fft_front.data = front_fft_u.data;
         if (ds_fft_rear) ds_fft_rear.data = rear_fft_u.data;
+      }
+
+      // Update velocity balance comparison
+      if (balance_u) {
+        const vel_bal_fig = p.children[1];
+        const ds_vc_f = vel_bal_fig.select_one("ds_vc_f");
+        const ds_vc_r = vel_bal_fig.select_one("ds_vc_r");
+        const ds_vr_f = vel_bal_fig.select_one("ds_vr_f");
+        const ds_vr_r = vel_bal_fig.select_one("ds_vr_r");
+        if (ds_vc_f && balance_u.compression && balance_u.compression.f_data) {
+          ds_vc_f.data = { travel: balance_u.compression.f_data.travel,
+                           trend: balance_u.compression.f_data.trend };
+        }
+        if (ds_vc_r && balance_u.compression && balance_u.compression.r_data) {
+          ds_vc_r.data = { travel: balance_u.compression.r_data.travel,
+                           trend: balance_u.compression.r_data.trend };
+        }
+        if (ds_vr_f && balance_u.rebound && balance_u.rebound.f_data) {
+          ds_vr_f.data = { travel: balance_u.rebound.f_data.travel,
+                           trend: balance_u.rebound.f_data.trend };
+        }
+        if (ds_vr_r && balance_u.rebound && balance_u.rebound.r_data) {
+          ds_vr_r.data = { travel: balance_u.rebound.r_data.travel,
+                           trend: balance_u.rebound.r_data.trend };
+        }
+        // Update symmetric y_range
+        const comp_f = balance_u.compression && balance_u.compression.f_data ? balance_u.compression.f_data.trend : [];
+        const comp_r = balance_u.compression && balance_u.compression.r_data ? balance_u.compression.r_data.trend : [];
+        const reb_f = balance_u.rebound && balance_u.rebound.f_data ? balance_u.rebound.f_data.trend : [];
+        const reb_r = balance_u.rebound && balance_u.rebound.r_data ? balance_u.rebound.r_data.trend : [];
+        const all_trends = [...comp_f, ...comp_r, ...reb_f, ...reb_r]
+          .filter(v => v != null && isFinite(v));
+        if (all_trends.length > 0) {
+          const max_vel = Math.max(...all_trends.map(Math.abs));
+          if (max_vel > 0) {
+            vel_bal_fig.y_range.start = -max_vel * 1.3;
+            vel_bal_fig.y_range.end = max_vel * 1.3;
+          }
+        }
       }
     },
     map: function(full_track, session_track) {

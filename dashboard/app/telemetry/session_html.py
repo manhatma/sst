@@ -14,7 +14,7 @@ from flask import current_app
 from app.extensions import db
 from app.models.session import Session
 from app.models.session_html import SessionHtml
-from app.telemetry.balance import balance_figure
+from app.telemetry.balance import balance_figure, velocity_balance_comparison_figure
 from app.telemetry.fft import fft_comparison_figure, fft_figure
 from app.telemetry.leverage import leverage_ratio_figure, shock_wheel_figure
 from app.telemetry.map import map_figure
@@ -211,10 +211,21 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
             front_color,
             rear_color,
         )
-        p_thist_comp = column(
-            name='thist_comp',
+        p_vel_balance_comp = velocity_balance_comparison_figure(
+            telemetry.Front.Strokes,
+            telemetry.Rear.Strokes,
+            telemetry.Linkage.MaxFrontTravel,
+            telemetry.Linkage.MaxRearTravel,
+            front_color,
+            rear_color,
+        )
+        p_left_col = column(
             sizing_mode='stretch_both',
             children=[p_thist_comp_fig, p_fft_comp])
+        p_thist_comp = row(
+            name='thist_comp',
+            sizing_mode='stretch_both',
+            children=[p_left_col, p_vel_balance_comp])
         document.add_root(p_thist_comp)
         columns.append('thist_comp')
 

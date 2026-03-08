@@ -2,10 +2,10 @@ import numpy as np
 from typing import Any, List
 from flask import current_app
 
-from bokeh.models import ColumnDataSource, FixedTicker, Label
+from bokeh.models import ColumnDataSource, FixedTicker, Label, Span
 from bokeh.plotting import figure
 
-from app.telemetry.psst import Stroke
+from app.telemetry.psst import Stroke, Strokes
 
 
 def _travel_velocity(strokes: List[Stroke], travel_max: float) -> (np.array, np.array):
@@ -263,3 +263,126 @@ def update_balance(front_strokes: List[Stroke], rear_strokes: List[Stroke],
         r_slope=r_data.get('slope'),
         range_end=range_end_val
     )
+
+
+def velocity_balance_comparison_figure(
+    front_strokes: Strokes,
+    rear_strokes: Strokes,
+    front_max: float,
+    rear_max: float,
+    front_color,
+    rear_color,
+) -> figure:
+    """Combined compression + rebound velocity trendlines in a single chart.
+
+    Compression trendlines sit above the y=0 line (positive velocity),
+    rebound trendlines sit below it (negated to negative velocity).
+    Lines only, no scatter dots.
+    """
+    cf, cr = _balance_data(
+        front_strokes.Compressions, rear_strokes.Compressions,
+        front_max, rear_max)
+    rf, rr = _balance_data(
+        front_strokes.Rebounds, rear_strokes.Rebounds,
+        front_max, rear_max)
+
+    # x_range: max travel across all datasets + padding
+    all_travel = (cf.get('travel', []) + cr.get('travel', []) +
+                  rf.get('travel', []) + rr.get('travel', []))
+    x_range_end = 105.0
+    if all_travel:
+        finite_travel = [v for v in all_travel if np.isfinite(v) and v > 0]
+        if finite_travel:
+            x_range_end = max(max(finite_travel) + 5, 105.0)
+
+    # Symmetric y_range based on max absolute trendline value
+    # Rebound MaxVelocity is already negative, so trendlines sit below y=0 naturally
+    all_trends = (cf.get('trend', []) + cr.get('trend', []) +
+                  rf.get('trend', []) + rr.get('trend', []))
+    finite_trends = [v for v in all_trends if np.isfinite(v)]
+    max_trend = max(abs(v) for v in finite_trends) if finite_trends else 500.0
+    y_pad = max(max_trend * 1.3, 100.0)
+
+    vc_f_source = ColumnDataSource(name='ds_vc_f', data={
+        'travel': cf.get('travel', []),
+        'trend': cf.get('trend', []),
+    })
+    vc_r_source = ColumnDataSource(name='ds_vc_r', data={
+        'travel': cr.get('travel', []),
+        'trend': cr.get('trend', []),
+    })
+    vr_f_source = ColumnDataSource(name='ds_vr_f', data={
+        'travel': rf.get('travel', []),
+        'trend': rf.get('trend', []),
+    })
+    vr_r_source = ColumnDataSource(name='ds_vr_r', data={
+        'travel': rr.get('travel', []),
+        'trend': rr.get('trend', []),
+    })
+
+    p = figure(
+        name='velocity_balance_comp',
+        title="Velocity balance comparison",
+        height=600,
+        x_range=(0, x_range_end),
+        y_range=(-y_pad, y_pad),
+        sizing_mode='stretch_both',
+        toolbar_location=None,
+        tools='',
+        x_axis_label="Travel (%)",
+        y_axis_label="Velocity (mm/s)",
+        output_backend='webgl')
+
+    p.xaxis.ticker = FixedTicker(ticks=list(range(0, 110, 10)))
+
+    # Horizontal zero-line separating compression (above) from rebound (below)
+    p.add_layout(Span(location=0, dimension='width',
+                      line_color='#888888', line_dash='dashed', line_width=1))
+
+    front_color_str = get_valid_color(front_color)
+    rear_color_str = get_valid_color(rear_color)
+
+    # Compression trendlines (positive side)
+    p.line('travel', 'trend', line_width=2, color=front_color,
+           legend_label="Front", source=vc_f_source)
+    p.line('travel', 'trend', line_width=2, color=rear_color,
+           legend_label="Rear", source=vc_r_source)
+    # Rebound trendlines (negative side)
+    p.line('travel', 'trend', line_width=2, color=front_color,
+           legend_label="Front", source=vr_f_source)
+    p.line('travel', 'trend', line_width=2, color=rear_color,
+           legend_label="Rear", source=vr_r_source)
+
+    p.legend.location = 'top_left'
+    p.legend.click_policy = 'hide'
+
+    def _slope_label(travel_list, trend_list, slope, color_str, y_offset):
+        if not travel_list or not trend_list or slope is None:
+            return
+        last_t = travel_list[-1]
+        last_v = trend_list[-1]
+        if not np.isfinite(last_v) or not np.isfinite(last_t):
+            return
+        p.add_layout(Label(
+            x=last_t, y=last_v,
+            x_offset=10, y_offset=y_offset,
+            text=f"{slope:.1f}",
+            text_font_size="11pt",
+            text_color=color_str,
+            text_baseline="middle",
+            text_align="left",
+            background_fill_color="#282828",
+            background_fill_alpha=0.9,
+            border_line_color=None,
+        ))
+
+    _slope_label(cf.get('travel', []), cf.get('trend', []),
+                 cf.get('slope'), front_color_str, 10)
+    _slope_label(cr.get('travel', []), cr.get('trend', []),
+                 cr.get('slope'), rear_color_str, -10)
+    _slope_label(rf.get('travel', []), rf.get('trend', []),
+                 rf.get('slope'), front_color_str, -10)
+    _slope_label(rr.get('travel', []), rr.get('trend', []),
+                 rr.get('slope'), rear_color_str, 10)
+
+    return p
