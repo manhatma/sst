@@ -219,6 +219,30 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
             front_color,
             rear_color,
         )
+        p_thist_comp_fig.sizing_mode = 'stretch_both'
+        p_thist_comp_fig.min_height = 260
+        p_fft_comp.sizing_mode = 'stretch_both'
+        p_fft_comp.min_height = 220
+        p_vel_balance_comp.sizing_mode = 'stretch_both'
+
+        # Keep x-axis labels visible by deriving bottom padding from current plot height.
+        dynamic_bottom_padding_code = '''
+            const innerH = cb_obj.inner_height;
+            const outerH = cb_obj.height;
+            const h = Number.isFinite(innerH) && innerH > 0 ? innerH : outerH;
+            if (!Number.isFinite(h) || h <= 0) {
+                return;
+            }
+            const dynamicPadding = Math.max(18, Math.round(h * 0.12));
+            if (cb_obj.min_border_bottom !== dynamicPadding) {
+                cb_obj.min_border_bottom = dynamicPadding;
+            }
+        '''
+        p_fft_comp.js_on_change('inner_height', CustomJS(code=dynamic_bottom_padding_code))
+        p_fft_comp.js_on_change('height', CustomJS(code=dynamic_bottom_padding_code))
+        p_vel_balance_comp.js_on_change('inner_height', CustomJS(code=dynamic_bottom_padding_code))
+        p_vel_balance_comp.js_on_change('height', CustomJS(code=dynamic_bottom_padding_code))
+
         p_left_col = column(
             sizing_mode='stretch_both',
             children=[p_thist_comp_fig, p_fft_comp])

@@ -323,7 +323,7 @@ def velocity_balance_comparison_figure(
     p = figure(
         name='velocity_balance_comp',
         title="Velocity balance comparison",
-        height=600,
+        min_height=420,
         x_range=(0, x_range_end),
         y_range=(-y_pad, y_pad),
         sizing_mode='stretch_both',
