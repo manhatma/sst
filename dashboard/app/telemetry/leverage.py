@@ -8,9 +8,9 @@ def shock_wheel_figure(coeffs, max_stroke, color) -> figure:
     p = figure(
         name='sw',
         title="Shock - Wheel displacement",
-        height=255,
         width=300,
-        sizing_mode='stretch_width',
+        min_height=255,
+        sizing_mode='stretch_both',
         toolbar_location=None,
         active_drag=None,
         active_scroll=None,
@@ -32,9 +32,9 @@ def leverage_ratio_figure(wtlr, color) -> figure:
     p = figure(
         name='lr',
         title="Leverage Ratio",
-        height=255,
         width=300,
-        sizing_mode='stretch_width',
+        min_height=255,
+        sizing_mode='stretch_both',
         toolbar_location=None,
         active_drag=None,
         active_scroll=None,

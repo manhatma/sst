@@ -275,9 +275,21 @@ input[type="file"]::file-selector-button:hover {
   flex-direction: column;
   gap: 0px;
   display: flex;
-  min-height: 340px;
+  min-height: 0;
+  height: 100%;
   background: #15191c;
   padding-bottom: 10px;
+}
+
+.lr,
+.sw,
+.description {
+  height: 100%;
+}
+
+.lr > .bk-root,
+.sw > .bk-root {
+  height: 100%;
 }
 
 .description-title {
