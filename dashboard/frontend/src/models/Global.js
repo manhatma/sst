@@ -61,7 +61,7 @@ var SST = {
       SST.update.balance(cbalance, u.balance.compression);
       SST.update.balance(rbalance, u.balance.rebound);
       if (thist_comp) {
-        SST.update.thist_comp(thist_comp, u.front.thist, u.rear.thist);
+        SST.update.thist_comp(thist_comp, u.front.thist, u.rear.thist, u.front.fft, u.rear.fft);
       }
     },
     process_single_json: function(u) {
@@ -180,14 +180,15 @@ var SST = {
       p.select_one("ds_r").data = u.r_data;
       p.x_range.end = u.range_end;
     },
-    thist_comp: function(p, front_u, rear_u) {
-      const ds_front = p.select_one("ds_hist_front_comp");
-      const ds_rear = p.select_one("ds_hist_rear_comp");
+    thist_comp: function(p, front_u, rear_u, front_fft_u, rear_fft_u) {
+      const hist_fig = p.children[0];
+      const ds_front = hist_fig.select_one("ds_hist_front_comp");
+      const ds_rear = hist_fig.select_one("ds_hist_rear_comp");
 
       // Determine current toggle state from x-axis label
-      const is_mm = p.below && p.below.length > 0 &&
-                    p.below[0].axis_label &&
-                    p.below[0].axis_label.includes('mm');
+      const is_mm = hist_fig.below && hist_fig.below.length > 0 &&
+                    hist_fig.below[0].axis_label &&
+                    hist_fig.below[0].axis_label.includes('mm');
       const key_mids = is_mm ? 'travel_mids_mm' : 'travel_mids_perc';
       const key_widths = is_mm ? 'bar_widths_mm' : 'bar_widths_perc';
 
@@ -211,7 +212,16 @@ var SST = {
       if (rear_u && rear_u.comp_data && rear_u.comp_data.time_perc) {
         max_y = Math.max(max_y, Math.max.apply(null, rear_u.comp_data.time_perc));
       }
-      p.y_range.end = max_y * 1.3;
+      hist_fig.y_range.end = max_y * 1.3;
+
+      // Update FFT comparison
+      if (front_fft_u && rear_fft_u) {
+        const fft_fig = p.children[1];
+        const ds_fft_front = fft_fig.select_one("ds_fft_front_comp");
+        const ds_fft_rear = fft_fig.select_one("ds_fft_rear_comp");
+        if (ds_fft_front) ds_fft_front.data = front_fft_u.data;
+        if (ds_fft_rear) ds_fft_rear.data = rear_fft_u.data;
+      }
     },
     map: function(full_track, session_track) {
       const map = Bokeh.documents[0].get_model_by_name("map");

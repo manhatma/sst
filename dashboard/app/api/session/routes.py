@@ -268,6 +268,13 @@ def put_processed():
 @jwt_required()
 def patch(id: uuid.UUID):
     data = request.json
+
+    def _non_negative_int(value):
+        try:
+            return max(0, int(value))
+        except (TypeError, ValueError):
+            return 0
+
     db.session.execute(db.update(Session).filter_by(id=id).values(
         name=data.get('name'),
         description=data.get('desc'),
@@ -281,6 +288,8 @@ def patch(id: uuid.UUID):
         rear_lsr=data.get('rear_lsr'),
         front_hsr=data.get('front_hsr'),
         rear_hsr=data.get('rear_hsr'),
+        front_volspc=_non_negative_int(data.get('front_volspc')),
+        rear_volspc=_non_negative_int(data.get('rear_volspc')),
     ))
     db.session.commit()
     return '', status.NO_CONTENT
@@ -318,6 +327,12 @@ def generate_bokeh(id: uuid.UUID):
 @bp.route('/last/bokeh', methods=['GET'], defaults={'session_id': None})
 @bp.route('/<uuid:session_id>/bokeh', methods=['GET'])
 def session_html(session_id: uuid.UUID):
+    def _non_negative_int(value):
+        try:
+            return max(0, int(value))
+        except (TypeError, ValueError):
+            return 0
+
     try:
         verify_jwt_in_request()
         full_access = True
@@ -375,6 +390,8 @@ def session_html(session_id: uuid.UUID):
         rear_lsr=session.rear_lsr,
         front_hsr=session.front_hsr,
         rear_hsr=session.rear_hsr,
+        front_volspc=_non_negative_int(session.front_volspc),
+        rear_volspc=_non_negative_int(session.rear_volspc),
         start_time=start_time,
         end_time=end_time,
         suspension_count=suspension_count,

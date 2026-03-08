@@ -40,6 +40,61 @@ var SuspensionSetup = {
           ]),
         ]),
         m("tr", [
+          m("td.notes-columnheader", "VolSpc:"),
+          m("td.notes-setting", [
+            m("input", {
+              type: "number",
+              min: "0",
+              step: "1",
+              placeholder: "0",
+              value: Notes.suspension_settings.front_volspc,
+              disabled: !Session.current.full_access,
+              onbeforeinput: (event) => {
+                if (event.data === "-") {
+                  event.preventDefault()
+                }
+              },
+              onkeydown: (event) => {
+                if (event.key === "-") {
+                  event.preventDefault()
+                }
+              },
+              oninput: (event) => {
+                const v = Math.max(0, parseInt(event.target.value || "0", 10) || 0)
+                event.target.value = v
+                Notes.suspension_settings.front_volspc = v
+                Notes.dirty = Notes.is_dirty()
+              },
+            }),
+          ]),
+          m("td.notes-setting", [
+            m("input", {
+              type: "number",
+              min: "0",
+              step: "1",
+              placeholder: "0",
+              value: Notes.suspension_settings.rear_volspc,
+              disabled: !Session.current.full_access,
+              onbeforeinput: (event) => {
+                if (event.data === "-") {
+                  event.preventDefault()
+                }
+              },
+              onkeydown: (event) => {
+                if (event.key === "-") {
+                  event.preventDefault()
+                }
+              },
+              oninput: (event) => {
+                const v = Math.max(0, parseInt(event.target.value || "0", 10) || 0)
+                event.target.value = v
+                Notes.suspension_settings.rear_volspc = v
+                Notes.dirty = Notes.is_dirty()
+              },
+            }),
+          ]),
+        ]),
+        m("tr", [
           m("td.notes-columnheader", "HSC:"),
           m("td.notes-setting", [
             m("input", {
@@ -151,6 +206,8 @@ var Notes = {
   suspension_settings: null,
 
   oninit: function() {
+    const nonNegativeInt = (v) => Math.max(0, parseInt(v ?? 0, 10) || 0)
+
     Notes.name = Session.current.name
     Notes.desc = Session.current.description
     Notes.suspension_settings = {
@@ -164,6 +221,8 @@ var Notes = {
       rear_lsr: Session.current.rear_lsr,
       front_hsr: Session.current.front_hsr,
       rear_hsr: Session.current.rear_hsr,
+      front_volspc: nonNegativeInt(Session.current.front_volspc),
+      rear_volspc: nonNegativeInt(Session.current.rear_volspc),
     }
 
     Notes.dirty = false
@@ -192,7 +251,9 @@ var Notes = {
       Notes.suspension_settings.front_lsr != Session.current.front_lsr ||
       Notes.suspension_settings.rear_lsr != Session.current.rear_lsr ||
       Notes.suspension_settings.front_hsr != Session.current.front_hsr ||
-      Notes.suspension_settings.rear_hsr != Session.current.rear_hsr)
+      Notes.suspension_settings.rear_hsr != Session.current.rear_hsr ||
+      Notes.suspension_settings.front_volspc != Session.current.front_volspc ||
+      Notes.suspension_settings.rear_volspc != Session.current.rear_volspc)
   },
   view: function(vnode) {
     return m(".description-box", [

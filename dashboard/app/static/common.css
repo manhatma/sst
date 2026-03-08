@@ -98,6 +98,7 @@ button:hover {
   top: 0px;
   left: 0px;
   gap: 2px;
+  align-content: start;
   background-color: rgb(64,64,64);
 }
 

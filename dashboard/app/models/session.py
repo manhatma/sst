@@ -30,6 +30,8 @@ class Session(db.Model, Synchronizable):
     rear_lsr: int = db.Column(db.Integer)
     front_hsr: int = db.Column(db.Integer)
     rear_hsr: int = db.Column(db.Integer)
+    front_volspc: int = db.Column(db.Integer)
+    rear_volspc: int = db.Column(db.Integer)
 
     @property
     def psst(self) -> bytes:

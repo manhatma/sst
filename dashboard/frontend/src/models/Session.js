@@ -93,6 +93,8 @@ var Session = {
     Session.current.rear_lsr = suspension_settings.rear_lsr
     Session.current.front_hsr = suspension_settings.front_hsr
     Session.current.rear_hsr = suspension_settings.rear_hsr
+    Session.current.front_volspc = suspension_settings.front_volspc
+    Session.current.rear_volspc = suspension_settings.rear_volspc
     m.redraw()
   },
   current: {loaded: false},

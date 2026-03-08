@@ -275,7 +275,7 @@ def velocity_histogram_figure(strokes: Optional[Strokes], velocity_data: list[fl
     source_lowspeed = ColumnDataSource(name='ds_hist_lowspeed', data=sd_lowspeed)
 
     y_range_main = (HISTOGRAM_RANGE_HIGH, HISTOGRAM_RANGE_LOW)
-    y_range_lowspeed_abs = hst + 100
+    y_range_lowspeed_abs = hst + 50
     y_range_lowspeed = (y_range_lowspeed_abs, -y_range_lowspeed_abs)
 
     p = figure(

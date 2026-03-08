@@ -5,7 +5,7 @@ import uuid
 from bokeh.document import Document
 from bokeh.events import DocumentReady
 from bokeh.embed import components
-from bokeh.layouts import row
+from bokeh.layouts import column, row
 from bokeh.models.callbacks import CustomJS
 from bokeh.palettes import Spectral11
 from bokeh.themes import built_in_themes, DARK_MINIMAL
@@ -15,7 +15,7 @@ from app.extensions import db
 from app.models.session import Session
 from app.models.session_html import SessionHtml
 from app.telemetry.balance import balance_figure
-from app.telemetry.fft import fft_figure
+from app.telemetry.fft import fft_comparison_figure, fft_figure
 from app.telemetry.leverage import leverage_ratio_figure, shock_wheel_figure
 from app.telemetry.map import map_figure
 from app.telemetry.psst import Telemetry, dataclass_from_dict
@@ -196,7 +196,7 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
         document.add_root(p_balance_rebound)
         columns.extend(['cbalance', 'rbalance'])
 
-        p_thist_comp = travel_histogram_comparison_figure(
+        p_thist_comp_fig = travel_histogram_comparison_figure(
             telemetry.Front,
             telemetry.Rear,
             telemetry.Linkage.MaxFrontTravel,
@@ -204,7 +204,17 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
             front_color,
             rear_color,
         )
-        p_thist_comp.name = 'thist_comp'
+        p_fft_comp = fft_comparison_figure(
+            telemetry.Front.Travel,
+            telemetry.Rear.Travel,
+            tick,
+            front_color,
+            rear_color,
+        )
+        p_thist_comp = column(
+            name='thist_comp',
+            sizing_mode='stretch_both',
+            children=[p_thist_comp_fig, p_fft_comp])
         document.add_root(p_thist_comp)
         columns.append('thist_comp')
 
