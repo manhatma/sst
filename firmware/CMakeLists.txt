@@ -28,6 +28,7 @@ pico_sdk_init()
 
 add_executable(sufni-suspension-telemetry
     src/fw/main.c
+    src/fw/buzzer.c
     src/fs/microsd.c
     src/msc/msc_disk.c
     src/msc/sst_usb_descriptors.c
@@ -76,6 +77,8 @@ target_include_directories(sufni-suspension-telemetry PUBLIC
 
 target_link_libraries(sufni-suspension-telemetry
     pico_stdlib
+    hardware_pwm
+    hardware_clocks
     pico_multicore
     pico_cyw43_arch_lwip_threadsafe_background
     pico_lwip_sntp
