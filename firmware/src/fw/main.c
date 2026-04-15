@@ -208,8 +208,8 @@ static int setup_storage() {
     pico_get_unique_board_id_string(board_id_str, 2 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES + 1);
     FIL f;
     uint btw;
-    fr = f_open(&f, "BOARDID", FA_OPEN_ALWAYS | FA_WRITE);
-    if (fr == FR_OK || fr == FR_EXIST) {
+    fr = f_open(&f, "BOARDID", FA_CREATE_NEW | FA_WRITE);
+    if (fr == FR_OK) {
         f_write(&f, board_id_str, 2*PICO_UNIQUE_BOARD_ID_SIZE_BYTES, &btw);
     }
     f_close(&f);
@@ -548,6 +548,10 @@ static void on_idle() {
 }
 
 static void on_sleep() {
+    // Play sleep sound blocking — must complete before clock reconfiguration,
+    // otherwise the silence alarm is lost and PWM runs forever after wake.
+    buzzer_sound_sleep();
+
     sleep_run_from_xosc();
     display_message(&disp, "SLEEP.");
 
@@ -572,6 +576,8 @@ static void on_waking() {
     clocks_hw->sleep_en0 = clock0_orig;
     clocks_hw->sleep_en1 = clock1_orig;
     runtime_init_clocks();
+    buzzer_init();
+    buzzer_sound_wake();
 
     ssd1306_poweron(&disp);
     enable_button(BUTTON_LEFT);
@@ -657,10 +663,10 @@ static void on_left_longpress(void *user_data) {
 static void on_right_press(void *user_data) {
     switch(state) {
         case IDLE:
-            buzzer_sound_sleep();
             state = SLEEP;
             break;
         case SERVE_TCP:
+            buzzer_sound_confirm();
             tcpserver_finish(&server);
             state = IDLE;
             break;
@@ -672,6 +678,7 @@ static void on_right_press(void *user_data) {
 static void on_right_longpress(void *user_data) {
     switch(state) {
         case IDLE:
+            buzzer_sound_confirm();
             state = SERVE_TCP;
             break;
         default:
@@ -685,6 +692,7 @@ static void on_right_longpress(void *user_data) {
 int main() {
     board_init();
     buzzer_init();
+    buzzer_sound_wake();
     tusb_init();
     rtc_init();
     adc_init();

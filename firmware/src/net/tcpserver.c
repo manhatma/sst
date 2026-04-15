@@ -446,8 +446,34 @@ static void mdns_srv_txt(struct mdns_service *service, void *txt_userdata) {
 // ----------------------------------------------------------------------------
 // "Public" functions
 
+static void load_board_id() {
+    FIL f;
+    FRESULT fr = f_open(&f, "BOARDID", FA_READ);
+    if (fr != FR_OK) {
+        pico_get_unique_board_id(&board_id);
+        return;
+    }
+    char hex[2 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES + 1];
+    UINT br;
+    fr = f_read(&f, hex, 2 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES, &br);
+    f_close(&f);
+    if (fr != FR_OK || br != 2 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES) {
+        pico_get_unique_board_id(&board_id);
+        return;
+    }
+    for (int i = 0; i < PICO_UNIQUE_BOARD_ID_SIZE_BYTES; i++) {
+        unsigned int byte;
+        char tmp[3] = { hex[2 * i], hex[2 * i + 1], '\0' };
+        if (sscanf(tmp, "%02x", &byte) != 1) {
+            pico_get_unique_board_id(&board_id);
+            return;
+        }
+        board_id.id[i] = (uint8_t)byte;
+    }
+}
+
 bool tcpserver_init(struct tcpserver *server) {
-    pico_get_unique_board_id(&board_id);
+    load_board_id();
 
     if (server->mdns_initialized) {
         mdns_resp_restart(netif_default);

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define BUZZER_PIN 7
+#define BUZZER_PIN 22
 
 void buzzer_init(void);
 void buzzer_beep(uint32_t freq_hz, uint32_t duration_ms);
@@ -14,5 +14,7 @@ void buzzer_sound_stop(void);      // descending 2-tone (REC STOP)
 void buzzer_sound_cal(void);       // single mid-tone (calibration step)
 void buzzer_sound_error(void);     // low double-tone (error)
 void buzzer_sound_sleep(void);     // falling tone (before sleep)
+void buzzer_sound_wake(void);      // rising tone (after wake)
+void buzzer_silence(void);         // immediately stop any sound
 
 #endif /* _BUZZER_H */
