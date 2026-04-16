@@ -2,6 +2,8 @@ import uuid
 
 from dataclasses import dataclass
 
+CURRENT_PROCESSING_VERSION = 1
+
 
 @dataclass
 class Linkage:

@@ -92,8 +92,9 @@ func digitizeVelocity(v []float64, step float64) (bins []float64, data []int) {
 	minVal := floats.Min(v)
 	maxVal := floats.Max(v)
 
-	mn := (math.Floor(minVal/step) - 0.5) * step
-	mx := (math.Floor(maxVal/step) + 1.5) * step
+	// 0 lies on a bin edge — negative and positive velocities get separate bins
+	mn := math.Floor(minVal/step) * step
+	mx := (math.Floor(maxVal/step) + 1) * step
 	if mx <= mn {
 		mx = mn + step
 	}

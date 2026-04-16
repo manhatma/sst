@@ -40,3 +40,13 @@ var InsertSession = `
 	INSERT
 	INTO session (id, name, timestamp, description, setup_id, data, updated)
 	VALUES (?, ?, ?, ?, ?, ?, ?)`
+
+var SessionBlob = `
+	SELECT data
+	FROM session
+	WHERE id = ? AND deleted IS NULL`
+
+var UpdateSessionBlob = `
+	UPDATE session
+	SET data = ?, updated = ?
+	WHERE id = ? AND deleted IS NULL`

@@ -226,6 +226,34 @@ func (this *RequestHandler) PutNormalizedSession(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": newUuid})
 }
 
+func (this *RequestHandler) ReprocessSession(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid session id"})
+		return
+	}
+
+	blob, err := common.GetSessionBlob(this.Db, id)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "session not found"})
+		return
+	}
+
+	updated, err := psst.ReprocessVelocityFromBlob(blob)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := common.UpdateSessionBlob(this.Db, id, updated); err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "reprocessed"})
+}
+
 func main() {
 	var opts struct {
 		DatabaseFile string `short:"d" long:"database" description:"SQLite3 database file path" required:"true"`
@@ -250,6 +278,7 @@ func main() {
 
 	router.PUT("/api/internal/session", rh.PutSession)
 	router.PUT("/api/internal/session/normalized", rh.PutNormalizedSession)
+	router.POST("/api/internal/session/:id/reprocess", rh.ReprocessSession)
 
 	router.Run(opts.Host + ":" + opts.Port)
 }

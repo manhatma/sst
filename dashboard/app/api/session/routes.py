@@ -36,6 +36,30 @@ from app.telemetry.velocity import (
     update_velocity_histogram
 )
 
+CURRENT_PROCESSING_VERSION = 1
+
+
+def _ensure_reprocessed(session):
+    """Trigger reprocessing via gosst-http if session blob is outdated.
+    Returns the (possibly refreshed) session and unpacked dict."""
+    d = msgpack.unpackb(session.data)
+    if d.get('ProcessingVersion', 0) < CURRENT_PROCESSING_VERSION:
+        try:
+            api_server = current_app.config['GOSST_HTTP_API']
+            resp = requests.post(
+                f'{api_server}/api/internal/session/{session.id}/reprocess')
+            if resp.status_code == 200:
+                session = Session.get(session.id)
+                d = msgpack.unpackb(session.data)
+                # Invalidate cached Bokeh HTML so it gets regenerated
+                db.session.execute(
+                    db.delete(SessionHtml).filter_by(session_id=session.id))
+                db.session.commit()
+                id_queue.put(session.id)
+        except Exception as e:
+            current_app.logger.warning(f'Reprocess failed for {session.id}: {e}')
+    return session, d
+
 def _filter_strokes(strokes, start, end):
     if start is None or end is None:
         return strokes
@@ -148,6 +172,8 @@ def filter(id: uuid.UUID):
         return jsonify(msg="Session does not exist!"), status.NOT_FOUND
 
     d = msgpack.unpackb(entity.data)
+    if d.get('ProcessingVersion', 0) < CURRENT_PROCESSING_VERSION:
+        entity, d = _ensure_reprocessed(entity)
     t = dataclass_from_dict(Telemetry, d)
 
     start, end = _extract_range(t.SampleRate)
@@ -363,6 +389,20 @@ def session_html(session_id: uuid.UUID):
 
     track = Track.get(session.track)
     d = msgpack.unpackb(session.data)
+    if d.get('ProcessingVersion', 0) < CURRENT_PROCESSING_VERSION:
+        session, d = _ensure_reprocessed(session)
+        # Re-fetch Bokeh HTML since it was invalidated and re-queued
+        session_html_entry = db.session.execute(
+            db.select(SessionHtml).filter_by(session_id=session.id)
+        ).scalar_one_or_none()
+        if not session_html_entry:
+            return jsonify(msg=f"Bokeh HTML for session {session.id} is being regenerated."), status.ACCEPTED
+        components_script = Markup(
+            session_html_entry.script
+                .replace('<script type="text/javascript">', '')
+                .replace('</script>', '')
+        )
+        components_divs = [Markup(d_html) for d_html in session_html_entry.divs]
     t = dataclass_from_dict(Telemetry, d)
 
     suspension_count = int(t.Front.Present) + int(t.Rear.Present)

@@ -148,3 +148,19 @@ func InsertSession(db *sql.DB, newUuid uuid.UUID, pd *psst.Processed, server, na
 
 	return nil
 }
+
+func GetSessionBlob(db *sql.DB, id uuid.UUID) ([]byte, error) {
+	sessionId := strings.ReplaceAll(id.String(), "-", "")
+	var data []byte
+	err := db.QueryRow(queries.SessionBlob, sessionId).Scan(&data)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func UpdateSessionBlob(db *sql.DB, id uuid.UUID, data []byte) error {
+	sessionId := strings.ReplaceAll(id.String(), "-", "")
+	_, err := db.Exec(queries.UpdateSessionBlob, data, time.Now().Unix(), sessionId)
+	return err
+}

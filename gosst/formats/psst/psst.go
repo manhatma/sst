@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"reflect"
 	"strings"
 
 	"github.com/SeanJxie/polygo"
 	"github.com/google/uuid"
 	"github.com/openacid/slimarray/polyfit"
+	"github.com/ugorji/go/codec"
 	"gonum.org/v1/gonum/floats"
 	"golang.org/x/exp/constraints"
 )
@@ -29,6 +31,8 @@ const (
 	VELOCITY_HIST_STEP                  = 100.0	// (mm/s) step between velocity histogram bins
 	VELOCITY_HIST_STEP_FINE             = 10 	// (mm/s) step between fine-grained velocity histogram bins
 	BOTTOMOUT_THRESHOLD                 = 2.5	// (mm) bottomouts are regions where travel > max_travel - this value
+
+	CurrentProcessingVersion            = 1
 
 	// Whittaker-Henderson Smoother specific parameters:  
 	// Schmid, M., Rath, D., & Diebold, U. (2022). 
@@ -58,12 +62,11 @@ const (
 	// 35.0 Hz	          100	  18 Samples
 	// 37.5 Hz	           75	  17 Samples
 	// 40.0 Hz	           60	  16 Samples
-	WH_LAMBDA = 260
+	WH_LAMBDA = 5
 
-	// Suspension dynamics are in the 0–10 Hz band. 
-	// Using a cutoff near 2.5-3× (27.5 Hz) maintains signal integrity 
-	// while providing sufficient attenuation of high-frequency noise.
-	// Balances fidelity and noise suppression without over-filtering.
+	// ~40 Hz cutoff preserves high-frequency impacts (rocks, square edges)
+	// that the previous 27.5 Hz setting attenuated by >80%.
+	// Safe at 14.7-bit effective ADC resolution with typical 860-1000 SPS.
 )
 
 // calculateDerivative computes the derivative using central differences for interior points,
@@ -158,6 +161,7 @@ type SetupData struct {
 
 type Processed struct {
 	Meta
+	ProcessingVersion int
 	Front    suspension
 	Rear     suspension
 	Linkage  Linkage
@@ -394,5 +398,114 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 	}
 
 	pd.airtimes()
+	pd.ProcessingVersion = CurrentProcessingVersion
 	return &pd, nil
+}
+
+// reprocessSuspension recomputes velocity, bins, strokes and histograms
+// from the stored Travel array using current smoothing parameters.
+func reprocessSuspension(s *suspension, sampleRate uint16, maxTravel float64) {
+	n := len(s.Travel)
+	if n == 0 || !s.Present {
+		return
+	}
+
+	// Travel bins
+	var dt []int
+	if maxTravel > 0 {
+		tbins := linspace(0, maxTravel, TRAVEL_HIST_BINS+1)
+		dt = digitize(s.Travel, tbins)
+		s.TravelBins = tbins
+	} else {
+		s.TravelBins = []float64{}
+		dt = make([]int, n)
+	}
+
+	// Smooth + differentiate
+	minPointsForWH := WH_ORDER + 1
+	if n >= minPointsForWH && sampleRate > 0 {
+		whs, err := NewWhittakerHendersonSmoother(n, WH_ORDER, WH_LAMBDA)
+		if err == nil {
+			smoothed, err := whs.Smooth(s.Travel)
+			if err == nil {
+				vel, err := calculateDerivative(smoothed, sampleRate)
+				if err == nil {
+					s.Velocity = vel
+				} else {
+					s.Velocity = make([]float64, n)
+				}
+			} else {
+				s.Velocity = make([]float64, n)
+			}
+		} else {
+			s.Velocity = make([]float64, n)
+		}
+	} else {
+		s.Velocity = make([]float64, n)
+	}
+
+	// Digitize velocity
+	vbins, dv := digitizeVelocity(s.Velocity, VELOCITY_HIST_STEP)
+	s.VelocityBins = vbins
+	vbinsFine, dvFine := digitizeVelocity(s.Velocity, VELOCITY_HIST_STEP_FINE)
+	s.FineVelocityBins = vbinsFine
+
+	// Strokes
+	currentStrokes := filterStrokes(s.Velocity, s.Travel, maxTravel, sampleRate)
+	s.Strokes.categorize(currentStrokes, s.Travel, maxTravel)
+	if len(s.Strokes.Compressions) == 0 && len(s.Strokes.Rebounds) == 0 {
+		s.Present = false
+	} else {
+		s.Strokes.digitize(dt, dv, dvFine)
+	}
+}
+
+type UuidExt struct{}
+
+func (x UuidExt) WriteExt(v interface{}) []byte {
+	v2 := v.(*uuid.UUID)
+	return []byte(v2.String())
+}
+
+func (x UuidExt) ReadExt(dst interface{}, src []byte) {
+	tt := dst.(*uuid.UUID)
+	*tt = uuid.MustParse(string(src))
+}
+
+func newMsgpackHandle() *codec.MsgpackHandle {
+	var h codec.MsgpackHandle
+	h.SetBytesExt(reflect.TypeOf(uuid.UUID{}), 1, UuidExt{})
+	return &h
+}
+
+// ReprocessVelocityFromBlob deserializes an existing Processed blob,
+// recomputes velocity-dependent data if needed, and returns the updated blob.
+func ReprocessVelocityFromBlob(raw []byte) ([]byte, error) {
+	h := newMsgpackHandle()
+
+	var pd Processed
+	dec := codec.NewDecoderBytes(raw, h)
+	if err := dec.Decode(&pd); err != nil {
+		return nil, fmt.Errorf("decode session blob: %w", err)
+	}
+
+	if pd.ProcessingVersion >= CurrentProcessingVersion {
+		return raw, nil
+	}
+
+	if pd.Front.Present {
+		reprocessSuspension(&pd.Front, pd.SampleRate, pd.Linkage.MaxFrontTravel)
+	}
+	if pd.Rear.Present {
+		reprocessSuspension(&pd.Rear, pd.SampleRate, pd.Linkage.MaxRearTravel)
+	}
+	pd.airtimes()
+	pd.ProcessingVersion = CurrentProcessingVersion
+
+	var out []byte
+	enc := codec.NewEncoderBytes(&out, h)
+	if err := enc.Encode(&pd); err != nil {
+		return nil, fmt.Errorf("encode session blob: %w", err)
+	}
+	return out, nil
 }
