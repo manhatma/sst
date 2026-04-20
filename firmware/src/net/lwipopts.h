@@ -91,6 +91,12 @@
 #define SNTP_STARTUP_DELAY 0
 #define SNTP_COMP_ROUNDTRIP 1
 
+// Forward-declare the time hooks implemented in ntp.c so that lwIP's sntp.c
+// compiles cleanly with gcc 14+ (implicit function declarations are errors).
+#include <stdint.h>
+uint64_t get_system_time_us(void);
+void set_system_time_us(uint32_t sec, uint32_t us);
+
 #define SNTP_GET_SYSTEM_TIME(sec, us) \
     do{uint64_t time = get_system_time_us();\
        (sec) = time / 1000000;\
