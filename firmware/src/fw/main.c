@@ -33,6 +33,7 @@
 #include "../sensor/sensor.h"
 
 #include "hardware_config.h"
+#include "buzzer.h"
 
 static volatile enum state state;
 
@@ -368,6 +369,7 @@ static void on_cal_exp() {
 
     if (fork_sensor.baseline == 0xffff && shock_sensor.baseline == 0xffff) {
         display_message(&disp, "CAL ERR");
+        buzzer_sound_error();
         sleep_ms(1000);
         state = CAL_IDLE_1;
         return;
@@ -384,6 +386,7 @@ static void on_cal_comp() {
     FRESULT fr = f_open(&calibration_fil, "CALIBRATION", FA_OPEN_ALWAYS | FA_WRITE);
     if (!(fr == FR_OK || fr == FR_EXIST)) {
         display_message(&disp, "CAL ERR");
+        buzzer_sound_error();
         sleep_ms(1000);
         state = CAL_IDLE_2;
         return;
@@ -417,6 +420,7 @@ static void on_rec_start() {
     char msg[8];
     sprintf(msg, "REC:%s|%s", fork_sensor.available ? "F" : ".", shock_sensor.available ? "S" : ".");
     display_message(&disp, msg);
+    buzzer_sound_start();
 
     multicore_fifo_push_blocking(OPEN);
     int index = (int)multicore_fifo_pop_blocking();
@@ -436,6 +440,7 @@ static void on_rec_stop() {
     state = IDLE;
     display_message(&disp, "IDLE");
     cancel_repeating_timer(&data_acquisition_timer);
+    buzzer_sound_stop();
 
     multicore_fifo_push_blocking(FINISH);
     multicore_fifo_push_blocking(count);
@@ -620,12 +625,15 @@ static void (*state_handlers[STATES_COUNT])() = {
 static void on_left_press(void *user_data) {
     switch(state) {
         case CAL_IDLE_1:
+            buzzer_sound_cal();
             state = CAL_EXP;
             break;
         case CAL_IDLE_2:
+            buzzer_sound_cal();
             state = CAL_COMP;
             break;
         case IDLE:
+            buzzer_sound_confirm();
             state = REC_START;
             break;
         case RECORD:
@@ -649,6 +657,7 @@ static void on_left_longpress(void *user_data) {
 static void on_right_press(void *user_data) {
     switch(state) {
         case IDLE:
+            buzzer_sound_sleep();
             state = SLEEP;
             break;
         case SERVE_TCP:
@@ -675,6 +684,7 @@ static void on_right_longpress(void *user_data) {
 
 int main() {
     board_init();
+    buzzer_init();
     tusb_init();
     rtc_init();
     adc_init();
