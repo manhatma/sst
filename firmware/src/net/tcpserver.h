@@ -1,6 +1,7 @@
 #ifndef _TCPSERVER_H
 #define _TCPSERVER_H
 
+#include <time.h>
 #include "pico/cyw43_arch.h"
 #include "lwip/tcp.h"
 
@@ -9,6 +10,7 @@ struct tcpserver {
     struct tcp_pcb *client_pcb;
     int status;
     int requested_file;
+    int64_t requested_time;
     int data_len;
     int sent_len;
     s8_t mdns_slot;

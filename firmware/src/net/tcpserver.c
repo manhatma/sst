@@ -9,10 +9,17 @@
 #include "ff.h"
 
 #include "../util/list.h"
+#include "../ntp/ntp.h"
 
 #define READ_BUF_LEN (10 * 1024)
 #define TCP_PORT 1557
 #define POLL_TIME_S 5
+
+// Protocol version advertised via mDNS TXT record.
+// Bump when adding/changing wire-level status codes.
+// v1: file transfer + trash
+// v2: adds STATUS_TIME_SYNC
+#define SST_PROTO_VERSION "2"
 
 #define STATUS_INITIALIZED      1
 #define STATUS_CLIENT_CONNECTED 2
@@ -20,7 +27,9 @@
 #define STATUS_HEADER_OK        4
 #define STATUS_FILE_RECEIVED    5
 #define STATUS_FINISHED         6
+#define STATUS_TIME_SYNC        7
 #define STATUS_FILE_TRASHED    10
+#define STATUS_TIME_SYNCED     11
 
 static pico_unique_board_id_t board_id;
 
@@ -58,6 +67,11 @@ err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err
             int id;
             pbuf_copy_partial(p, &id, 4, 4);
             server->requested_file = id;
+            server->status = s;
+        } else if (s == STATUS_TIME_SYNC) {
+            int64_t epoch;
+            pbuf_copy_partial(p, &epoch, 8, 4);
+            server->requested_time = epoch;
             server->status = s;
         } else {
             server->status = s;
@@ -410,7 +424,32 @@ static bool process_sst_file_trash(struct tcpserver *server) {
     return true;
 }
 
+// ----------------------------------------------------------------------------
+// Time sync handler
+
+static bool process_time_sync(struct tcpserver *server) {
+    set_system_time_us((uint32_t)server->requested_time, 0);
+
+    static int status = STATUS_TIME_SYNCED;
+    cyw43_arch_lwip_begin();
+    tcp_write(server->client_pcb, &status, sizeof(int), TCP_WRITE_FLAG_COPY);
+    tcp_output(server->client_pcb);
+    cyw43_arch_lwip_end();
+
+    while (server->status != STATUS_FILE_RECEIVED) {
+        if (server->status < 0) {
+            return false;
+        }
+        sleep_ms(1);
+    }
+
+    return true;
+}
+
 static bool tcpserver_process(struct tcpserver *server) {
+    if (server->status == STATUS_TIME_SYNC) {
+        return process_time_sync(server);
+    }
     if (server->requested_file == 0) {
         return process_dirinfo_request(server);
     } else if (server->requested_file < 0) {
@@ -438,8 +477,9 @@ static void tcpserver_teardown(struct tcpserver *server) {
 static void mdns_srv_txt(struct mdns_service *service, void *txt_userdata) {
     err_t res;
     LWIP_UNUSED_ARG(txt_userdata);
-    
-    res = mdns_resp_add_service_txtitem(service, NULL, 0);
+
+    static const char proto_txt[] = "proto=" SST_PROTO_VERSION;
+    res = mdns_resp_add_service_txtitem(service, proto_txt, sizeof(proto_txt) - 1);
     LWIP_ERROR("mdns add service txt failed\n", (res == ERR_OK), return);
 }
 
@@ -498,7 +538,8 @@ bool tcpserver_init(struct tcpserver *server) {
 
 bool tcpserver_serve(struct tcpserver *server) {
     while (server->status != STATUS_FINISHED) {
-        if (server->status == STATUS_FILE_REQUESTED) {
+        if (server->status == STATUS_FILE_REQUESTED ||
+            server->status == STATUS_TIME_SYNC) {
             tcpserver_process(server);
         }
         sleep_ms(1);
