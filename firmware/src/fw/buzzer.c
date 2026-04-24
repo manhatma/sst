@@ -60,10 +60,10 @@ void buzzer_silence(void) {
 
 // --- Sound functions (frequencies tuned toward 4 kHz PS1240P02BT resonance) ---
 
-// Short ascending double-tone — called from button callback (alarm context).
+// Single short tone — called from button callback (alarm IRQ context).
+// Must not call sleep_ms: blocking on the default alarm pool from within an
+// alarm callback deadlocks the pool.
 void buzzer_sound_confirm(void) {
-    buzzer_beep(3000, 60);
-    sleep_ms(15);
     buzzer_beep(4000, 80);
 }
 
