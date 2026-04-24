@@ -49,46 +49,66 @@ void buzzer_beep(uint32_t freq_hz, uint32_t duration_ms) {
     silence_alarm = add_alarm_in_ms(duration_ms, silence_callback, NULL, false);
 }
 
+// Immediately cancel any pending silence alarm and stop PWM output.
+void buzzer_silence(void) {
+    if (silence_alarm >= 0) {
+        cancel_alarm(silence_alarm);
+        silence_alarm = -1;
+    }
+    pwm_set_chan_level(slice_num, channel, 0);
+}
+
+// --- Sound functions (frequencies tuned toward 4 kHz PS1240P02BT resonance) ---
+
 // Short ascending double-tone — called from button callback (alarm context).
-// Uses sleep_ms < 20 ms between tones; acquisition timer is not running in IDLE.
 void buzzer_sound_confirm(void) {
-    buzzer_beep(1500, 60);
+    buzzer_beep(3000, 60);
     sleep_ms(15);
-    buzzer_beep(2000, 80);
+    buzzer_beep(4000, 80);
 }
 
-// Ascending 3-tone chirp — called from on_rec_start(), acquisition timer not yet active.
+// Ascending 3-tone chirp — called from on_rec_start(), blocking safe.
 void buzzer_sound_start(void) {
-    buzzer_beep(1000, 100);
+    buzzer_beep(2500, 100);
     sleep_ms(120);
-    buzzer_beep(1500, 100);
+    buzzer_beep(3500, 100);
     sleep_ms(120);
-    buzzer_beep(2000, 150);
+    buzzer_beep(4500, 150);
 }
 
-// Descending 2-tone — called from on_rec_stop() after cancel_repeating_timer().
+// Descending 2-tone — called from on_rec_stop(), blocking safe.
 void buzzer_sound_stop(void) {
-    buzzer_beep(1500, 100);
+    buzzer_beep(4000, 100);
     sleep_ms(120);
-    buzzer_beep(1000, 150);
+    buzzer_beep(2500, 150);
 }
 
 // Single mid-tone — called from button callback in CAL states (non-blocking).
 void buzzer_sound_cal(void) {
-    buzzer_beep(1200, 80);
+    buzzer_beep(3500, 80);
 }
 
-// Low double-tone — called from state handlers in CAL states, sleep_ms safe.
+// Low double-tone — called from state handlers in CAL states, blocking safe.
 void buzzer_sound_error(void) {
-    buzzer_beep(400, 150);
+    buzzer_beep(1500, 150);
     sleep_ms(180);
-    buzzer_beep(400, 150);
+    buzzer_beep(1500, 150);
 }
 
-// Falling tone — called from button callback in IDLE (alarm context).
-// Uses sleep_ms < 20 ms between tones; acquisition timer is not running.
+// Rising tone — called from on_waking() / startup, blocking.
+void buzzer_sound_wake(void) {
+    buzzer_beep(2000, 100);
+    sleep_ms(120);
+    buzzer_beep(3500, 150);
+    sleep_ms(170);
+    buzzer_silence();
+}
+
+// Falling tone — called from on_sleep() state handler, blocking.
 void buzzer_sound_sleep(void) {
-    buzzer_beep(1000, 80);
-    sleep_ms(15);
-    buzzer_beep(600, 100);
+    buzzer_beep(3500, 100);
+    sleep_ms(120);
+    buzzer_beep(2000, 150);
+    sleep_ms(170);
+    buzzer_silence();
 }
