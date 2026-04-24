@@ -1,0 +1,129 @@
+#include "boardid.h"
+
+#include <string.h>
+#include <stdio.h>
+
+#include "ff.h"
+
+static char current_suffix[BOARDID_TEMPLATE_NAME_LENGTH] = {0};
+
+void boardid_scan(struct boardid_menu *m) {
+    m->count = 0;
+    m->selected = 0;
+    m->top = 0;
+
+    DIR dj;
+    FILINFO fno;
+    FRESULT fr = f_findfirst(&dj, &fno, "", "BOARDID.*");
+    while (fr == FR_OK && fno.fname[0] && m->count < BOARDID_MAX_TEMPLATES) {
+        const char *ext = strchr(fno.fname, '.');
+        if (ext) {
+            // Skip reserved marker file BOARDID.CUR used for persistence.
+            if (strcmp(ext, ".CUR") != 0) {
+                strncpy(m->templates[m->count], ext, BOARDID_TEMPLATE_NAME_LENGTH - 1);
+                m->templates[m->count][BOARDID_TEMPLATE_NAME_LENGTH - 1] = '\0';
+                m->count++;
+            }
+        }
+        fr = f_findnext(&dj, &fno);
+    }
+    f_closedir(&dj);
+}
+
+bool boardid_templates_available(void) {
+    DIR dj;
+    FILINFO fno;
+    bool found = false;
+    FRESULT fr = f_findfirst(&dj, &fno, "", "BOARDID.*");
+    while (fr == FR_OK && fno.fname[0]) {
+        const char *ext = strchr(fno.fname, '.');
+        if (ext && strcmp(ext, ".CUR") != 0) {
+            found = true;
+            break;
+        }
+        fr = f_findnext(&dj, &fno);
+    }
+    f_closedir(&dj);
+    return found;
+}
+
+void boardid_render(ssd1306_t *disp, struct boardid_menu *m) {
+    ssd1306_clear(disp);
+    ssd1306_draw_string(disp, 0, 0, 2, "BOARDID");
+
+    int y[BOARDID_PAGE_SIZE] = {24, 34, 44};
+    for (int i = 0; i < BOARDID_PAGE_SIZE; i++) {
+        int idx = m->top + i;
+        if (idx >= m->count) break;
+        char line[BOARDID_TEMPLATE_NAME_LENGTH + 3];
+        snprintf(line, sizeof(line), "%s %s",
+                 idx == m->selected ? ">" : " ",
+                 m->templates[idx]);
+        ssd1306_draw_string(disp, 0, y[i], 1, line);
+    }
+
+    ssd1306_draw_string(disp, 0, 56, 1, "L:next R:ok");
+    ssd1306_show(disp);
+}
+
+int boardid_apply(const char *extension) {
+    if (!extension || !extension[0]) return -1;
+
+    char src[BOARDID_TEMPLATE_NAME_LENGTH + 8];
+    snprintf(src, sizeof(src), "BOARDID%s", extension);
+
+    FIL fi, fo;
+    FRESULT fr = f_open(&fi, src, FA_OPEN_EXISTING | FA_READ);
+    if (fr != FR_OK) return -1;
+
+    fr = f_open(&fo, "BOARDID", FA_CREATE_ALWAYS | FA_WRITE);
+    if (fr != FR_OK) {
+        f_close(&fi);
+        return -1;
+    }
+
+    char buf[64];
+    UINT br, bw;
+    while (f_read(&fi, buf, sizeof(buf), &br) == FR_OK && br > 0) {
+        f_write(&fo, buf, br, &bw);
+    }
+    f_close(&fi);
+    f_close(&fo);
+
+    // Persist suffix (without leading dot) to BOARDID.CUR for IDLE-screen display.
+    const char *suf = extension[0] == '.' ? extension + 1 : extension;
+    FIL fc;
+    fr = f_open(&fc, "BOARDID.CUR", FA_CREATE_ALWAYS | FA_WRITE);
+    if (fr == FR_OK) {
+        UINT cw;
+        f_write(&fc, suf, strlen(suf), &cw);
+        f_close(&fc);
+    }
+
+    strncpy(current_suffix, suf, BOARDID_TEMPLATE_NAME_LENGTH - 1);
+    current_suffix[BOARDID_TEMPLATE_NAME_LENGTH - 1] = '\0';
+    return 0;
+}
+
+const char *boardid_current_suffix(void) {
+    return current_suffix;
+}
+
+void boardid_load_current_suffix(void) {
+    FIL f;
+    FRESULT fr = f_open(&f, "BOARDID.CUR", FA_OPEN_EXISTING | FA_READ);
+    if (fr != FR_OK) {
+        current_suffix[0] = '\0';
+        return;
+    }
+    UINT br;
+    f_read(&f, current_suffix, BOARDID_TEMPLATE_NAME_LENGTH - 1, &br);
+    current_suffix[br] = '\0';
+    for (UINT i = 0; i < br; i++) {
+        if (current_suffix[i] == '\n' || current_suffix[i] == '\r') {
+            current_suffix[i] = '\0';
+            break;
+        }
+    }
+    f_close(&f);
+}

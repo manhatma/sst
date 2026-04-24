@@ -22,10 +22,9 @@ enum state {
     MSC,
     CAL_IDLE_1,
     CAL_EXP,
-    CAL_IDLE_2,
-    CAL_COMP,
+    BOARDID_SELECT,
 };
-#define STATES_COUNT 13
+#define STATES_COUNT 12
 
 struct header {
     char magic[3];
@@ -48,4 +47,5 @@ enum command {
 #define BUFFER_SIZE 2048
 #define FILENAME_LENGTH 10 // filename is always in 00000.SST format,
                            // so length is always 10.
+#define BOARDID_TEMPLATE_NAME_LENGTH 20
 #endif /* _SST_H */

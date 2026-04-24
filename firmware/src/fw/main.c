@@ -34,6 +34,7 @@
 
 #include "hardware_config.h"
 #include "buzzer.h"
+#include "boardid.h"
 
 static volatile enum state state;
 
@@ -352,7 +353,7 @@ static void on_cal_idle() {
 
         ssd1306_clear(&disp);
         ssd1306_draw_string(&disp, 96,  0, 1, battery_str);
-        ssd1306_draw_string(&disp,   0, 0, 2, state == CAL_IDLE_1 ? "CAL EXP" : "CAL COMP");
+        ssd1306_draw_string(&disp,   0, 0, 2, "CAL EXP");
         if (fork_sensor.check_availability(&fork_sensor)) {
             ssd1306_draw_string(&disp,  0, 24, 1, "fork");
         }
@@ -375,20 +376,13 @@ static void on_cal_exp() {
         return;
     }
 
-    state = CAL_IDLE_2;
-}
-
-static void on_cal_comp() {
-    fork_sensor.calibrate_compressed(&fork_sensor);
-    shock_sensor.calibrate_compressed(&shock_sensor);
-
     FIL calibration_fil;
-    FRESULT fr = f_open(&calibration_fil, "CALIBRATION", FA_OPEN_ALWAYS | FA_WRITE);
+    FRESULT fr = f_open(&calibration_fil, "CALIBRATION", FA_CREATE_ALWAYS | FA_WRITE);
     if (!(fr == FR_OK || fr == FR_EXIST)) {
         display_message(&disp, "CAL ERR");
         buzzer_sound_error();
         sleep_ms(1000);
-        state = CAL_IDLE_2;
+        state = CAL_IDLE_1;
         return;
     }
 
@@ -399,7 +393,7 @@ static void on_cal_comp() {
     f_write(&calibration_fil, (const void *)&shock_sensor.inverted, sizeof(bool), &bw);
     f_close(&calibration_fil);
 
-    state = IDLE;
+    state = boardid_templates_available() ? BOARDID_SELECT : IDLE;
 }
 
 static void on_rec_start() {
@@ -543,6 +537,10 @@ static void on_idle() {
         if (shock_sensor.check_availability(&shock_sensor)) {
             ssd1306_draw_string(&disp, 40, 24, 1, "shock");
         }
+        const char *suf = boardid_current_suffix();
+        if (suf && suf[0]) {
+            ssd1306_draw_string(&disp, 0, 56, 1, (char *)suf);
+        }
         ssd1306_show(&disp);
     }
 }
@@ -609,6 +607,25 @@ static void on_serve_tcp() {
     state = IDLE;
 }
 
+static struct boardid_menu boardid_menu_state;
+static bool boardid_menu_entered = false;
+
+static void on_boardid_select() {
+    if (!boardid_menu_entered) {
+        boardid_scan(&boardid_menu_state);
+        if (boardid_menu_state.count == 0) {
+            display_message(&disp, "NO TPL");
+            buzzer_sound_error();
+            sleep_ms(1000);
+            state = IDLE;
+            return;
+        }
+        boardid_render(&disp, &boardid_menu_state);
+        boardid_menu_entered = true;
+    }
+    tight_loop_contents();
+}
+
 static void (*state_handlers[STATES_COUNT])() = {
     on_idle,      /* IDLE */
     on_sleep,     /* SLEEP */
@@ -619,10 +636,9 @@ static void (*state_handlers[STATES_COUNT])() = {
     on_sync_data, /* SYNC_DATA */
     on_serve_tcp, /* SERVE_TCP */
     on_msc,       /* MSC */
-    on_cal_idle,  /* CAL_IDLE_1 */
-    on_cal_exp,   /* CAL_EXP */
-    on_cal_idle,  /* CAL_IDLE_2 */
-    on_cal_comp,  /* CAL_COMP */
+    on_cal_idle,       /* CAL_IDLE_1 */
+    on_cal_exp,        /* CAL_EXP */
+    on_boardid_select, /* BOARDID_SELECT */
 };
 
 // ----------------------------------------------------------------------------
@@ -634,16 +650,25 @@ static void on_left_press(void *user_data) {
             buzzer_sound_cal();
             state = CAL_EXP;
             break;
-        case CAL_IDLE_2:
-            buzzer_sound_cal();
-            state = CAL_COMP;
-            break;
         case IDLE:
             buzzer_sound_confirm();
             state = REC_START;
             break;
         case RECORD:
             state = REC_STOP;
+            break;
+        case BOARDID_SELECT:
+            if (boardid_menu_state.count > 0) {
+                boardid_menu_state.selected = (boardid_menu_state.selected + 1) % boardid_menu_state.count;
+                int top = boardid_menu_state.top;
+                int sel = boardid_menu_state.selected;
+                if (sel < top) top = sel;
+                else if (sel >= top + BOARDID_PAGE_SIZE) top = sel - BOARDID_PAGE_SIZE + 1;
+                if (sel == 0) top = 0;
+                boardid_menu_state.top = top;
+                boardid_render(&disp, &boardid_menu_state);
+                buzzer_sound_confirm();
+            }
             break;
         default:
             break;
@@ -670,6 +695,14 @@ static void on_right_press(void *user_data) {
             tcpserver_finish(&server);
             state = IDLE;
             break;
+        case BOARDID_SELECT:
+            if (boardid_menu_state.count > 0) {
+                boardid_apply(boardid_menu_state.templates[boardid_menu_state.selected]);
+                buzzer_sound_confirm();
+            }
+            boardid_menu_entered = false;
+            state = IDLE;
+            break;
         default:
             break;
     }
@@ -680,6 +713,10 @@ static void on_right_longpress(void *user_data) {
         case IDLE:
             buzzer_sound_confirm();
             state = SERVE_TCP;
+            break;
+        case BOARDID_SELECT:
+            boardid_menu_entered = false;
+            state = IDLE;
             break;
         default:
             break;
@@ -740,6 +777,8 @@ int main() {
         scb_orig = scb_hw->scr;
         clock0_orig = clocks_hw->sleep_en0;
         clock1_orig = clocks_hw->sleep_en1;
+
+        boardid_load_current_suffix();
 
         calibrate_if_needed();
 
