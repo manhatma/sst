@@ -32,7 +32,7 @@ const (
 	VELOCITY_HIST_STEP_FINE             = 10 	// (mm/s) step between fine-grained velocity histogram bins
 	BOTTOMOUT_THRESHOLD                 = 2.5	// (mm) bottomouts are regions where travel > max_travel - this value
 
-	CurrentProcessingVersion            = 1
+	CurrentProcessingVersion            = 2
 
 	// Whittaker-Henderson Smoother specific parameters:  
 	// Schmid, M., Rath, D., & Diebold, U. (2022). 
@@ -204,6 +204,10 @@ func (this *Linkage) Process(records []LinkageRecord) {
 	f := polyfit.NewFit(st, wt, 3)
 	this.LeverageRatio = wtlr
 	this.ShockWheelCoeffs = f.Solve()
+	// Force the shock→wheel polynomial through (0,0): unconstrained least-squares
+	// leaves a non-zero constant term that biases every rear-travel sample, so the
+	// signal never returns to 0 even when the shock is fully extended (airtime).
+	this.ShockWheelCoeffs[0] = 0
 	this.polynomial, _ = polygo.NewRealPolynomial(this.ShockWheelCoeffs)
 	this.MaxRearTravel = this.polynomial.At(this.MaxRearStroke)
 	this.MaxFrontTravel = math.Sin(this.HeadAngle*math.Pi/180.0) * this.MaxFrontStroke
