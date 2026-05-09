@@ -32,45 +32,52 @@ const (
 	VELOCITY_HIST_STEP_FINE             = 10 	// (mm/s) step between fine-grained velocity histogram bins
 	BOTTOMOUT_THRESHOLD                 = 2.5	// (mm) bottomouts are regions where travel > max_travel - this value
 
-	CurrentProcessingVersion            = 2
+	CurrentProcessingVersion = 3
 
-	// Whittaker-Henderson Smoother specific parameters:  
-	// Schmid, M., Rath, D., & Diebold, U. (2022). 
-	// Why and How Savitzky-Golay Filters Should Be Replaced.
-	// ACS Measurement Science Au, 2, 185-196.
-	// Chapter 2.4. Replacing SG Filters, Eq. 14    
-	//
-	// ~27 Hz -3dB cutoff based on original Savitzky-Golay filter parameters (51, 1, 3) at 1 kHz sample rate.
-	// Translates to: WH_ORDER = 2, WH_LAMBDA = 272 for equivalent smoothing characteristics.
-
-	WH_ORDER  = 2
-
-	// f_cutoff    WH_LAMBDA	 FWHM for 95%	 
-	//  (-3dB)                     fidelity
-	//                              @860SPS	
-	// 10.0 Hz	       14.600	  65 Samples
-	// 12.5 Hz	        5.900	  52 Samples
-	// 15.0 Hz	        2.900	  43 Samples
-	// 17.5 Hz	        1.550	  37 Samples
-	// 20.0 Hz	          920	  32 Samples
-	// 22.5 Hz	          580	  29 Samples
-	// 25.0 Hz	          380	  26 Samples
-	// 27.1 Hz	          272	  24 Samples	<-- ~original SG-Filter
-	// 27.5 Hz	          260	  23 Samples
-	// 30.0 Hz	          185	  21 Samples
-	// 32.5 Hz	          130	  20 Samples
-	// 35.0 Hz	          100	  18 Samples
-	// 37.5 Hz	           75	  17 Samples
-	// 40.0 Hz	           60	  16 Samples
-	WH_LAMBDA = 5
-
-	// ~40 Hz cutoff preserves high-frequency impacts (rocks, square edges)
-	// that the previous 27.5 Hz setting attenuated by >80%.
-	// Safe at 14.7-bit effective ADC resolution with typical 860-1000 SPS.
+	// Whittaker-Henderson smoother for travel→velocity differentiation.
+	// Setup: ADS1115 PGA 4.096 V, sensor swing 0–3.3 V → 26400 usable codes (log2 = 14.6883).
+	// VLP200 fork:    7.58 µm/LSB, sub-LSB threshold 6.5 mm/s.
+	// ELPM75 shock:   2.84 µm/LSB on shock travel, 2.4 mm/s sub-LSB threshold (rear pipeline
+	//                 smooths shock travel before the leverage polynomial to keep this finer
+	//                 quantisation; see SmoothedRearWheelTravel).
+	// f_c/f_s ≈ (1/2π)·λ^(−1/2p): order 3, λ 11 → −3 dB at ~91 Hz @ 860 SPS, steeper roll-off
+	// than the previous (2, 5) at the same cutoff so the central-difference noise gain
+	// above f_s/4 is suppressed without sacrificing impulse fidelity on rock/square-edge hits.
+	WH_ORDER  = 3
+	WH_LAMBDA = 11
 )
 
-// calculateDerivative computes the derivative using central differences for interior points,
-// and forward/backward differences for boundary points.
+// smoothedRearWheelTravel smooths the rear shock-travel signal with WH (where ADS1115
+// quantisation is ~2.84 µm/LSB for an ELPM75 versus ~7 µm/LSB after the leverage
+// polynomial), then maps the smoothed shock signal through the polynomial to obtain
+// wheel travel for differentiation. Compared to smoothing already-mapped wheel travel,
+// this gives the WH filter ~2.5× finer input resolution.
+func smoothedRearWheelTravel(shockTravel []float64, smoother *WhittakerHendersonSmoother, linkage *Linkage) ([]float64, error) {
+	smoothedShock, err := smoother.Smooth(shockTravel)
+	if err != nil {
+		return nil, err
+	}
+	n := len(smoothedShock)
+	smoothedWheel := make([]float64, n)
+	maxRear := linkage.MaxRearTravel
+	for i := 0; i < n; i++ {
+		w := linkage.polynomial.At(smoothedShock[i])
+		if w < 0 {
+			w = 0
+		}
+		if w > maxRear {
+			w = maxRear
+		}
+		smoothedWheel[i] = w
+	}
+	return smoothedWheel, nil
+}
+
+// calculateDerivative computes the derivative with a 5-tap central difference for interior
+// samples (4th-order accurate), falling back to 3-tap one sample in from each edge and
+// forward/backward differences at the boundary. The wider aperture bridges the LSB plateaus
+// that occur during slow motion (< ~6 mm/s on the wheel-travel side) where consecutive
+// samples sit on the same ADC code and the 3-tap derivative would emit zeros.
 func calculateDerivative(data []float64, sampleRate uint16) ([]float64, error) {
 	n := len(data)
 	if n == 0 {
@@ -79,31 +86,30 @@ func calculateDerivative(data []float64, sampleRate uint16) ([]float64, error) {
 	if sampleRate == 0 {
 		return nil, errors.New("SampleRate darf für die Ableitungsberechnung nicht Null sein")
 	}
-	if n < 2 && n > 0 {
-		derivative := make([]float64, n)
+
+	fs := float64(sampleRate)
+	derivative := make([]float64, n)
+
+	if n == 1 {
 		derivative[0] = 0
 		return derivative, nil
 	}
-	if n < 1 { // Sollte bereits durch n==0 abgedeckt sein
-		return []float64{}, nil
+
+	// Forward at start, 3-tap one sample in, 5-tap interior, 3-tap one before end, backward at end.
+	// 5-tap central difference: v[i] = (-x[i-2] - 8 x[i-1] + 8 x[i+1] + x[i+2]) / (12 dt).
+	derivative[0] = (data[1] - data[0]) * fs
+	if n >= 3 {
+		derivative[1] = (data[2] - data[0]) * fs / 2.0
 	}
 
-	dt := 1.0 / float64(sampleRate)
-	derivative := make([]float64, n)
-
-	// Sicherstellen, dass data[1] existiert
-	if n > 1 {
-		derivative[0] = (data[1] - data[0]) / dt
-	} else { // Nur ein Punkt, Ableitung ist 0
-		derivative[0] = 0
-		return derivative, nil // Frühzeitiger Ausstieg, da keine weiteren Berechnungen möglich
+	for i := 2; i < n-2; i++ {
+		derivative[i] = (-data[i-2] - 8.0*data[i-1] + 8.0*data[i+1] + data[i+2]) * fs / 12.0
 	}
 
-	for i := 1; i < n-1; i++ {
-		derivative[i] = (data[i+1] - data[i-1]) / (2 * dt)
+	if n >= 3 {
+		derivative[n-2] = (data[n-1] - data[n-3]) * fs / 2.0
 	}
-	// Sicherstellen, dass data[n-2] existiert (n > 1 bereits geprüft)
-	derivative[n-1] = (data[n-1] - data[n-2]) / dt
+	derivative[n-1] = (data[n-1] - data[n-2]) * fs
 
 	return derivative, nil
 }
@@ -140,6 +146,12 @@ type suspension struct {
 	GlobalMaxTravelAllData float64
 	GlobalP95TravelAllData float64
 	GlobalAvgTravelAllData float64
+	// Raw shock/damper travel before the leverage polynomial. Only populated for the rear
+	// suspension; nil for front (where the head-angle factor is linear). Used to smooth on
+	// the finer-quantised shock signal (~2.84 µm/LSB) instead of the polynomial-mapped wheel
+	// travel (~7 µm/LSB). Older blobs deserialise it as nil; reprocessSuspension reconstructs
+	// it via wheelToDamperTravel.
+	ShockTravel []float64
 }
 
 type Number interface {
@@ -211,6 +223,35 @@ func (this *Linkage) Process(records []LinkageRecord) {
 	this.polynomial, _ = polygo.NewRealPolynomial(this.ShockWheelCoeffs)
 	this.MaxRearTravel = this.polynomial.At(this.MaxRearStroke)
 	this.MaxFrontTravel = math.Sin(this.HeadAngle*math.Pi/180.0) * this.MaxFrontStroke
+}
+
+// WheelToDamperTravel converts a wheel-travel sample (mm) back to damper/shock travel (mm)
+// by numerically inverting the shock→wheel polynomial via binary search. The polynomial is
+// monotonically increasing on [0, MaxRearStroke] for a real linkage, so 50 iterations
+// converge to machine precision.
+func (this *Linkage) WheelToDamperTravel(wheelTravel float64) float64 {
+	maxShock := this.MaxRearStroke
+	if maxShock <= 0 || this.polynomial == nil {
+		return 0
+	}
+	lo := 0.0
+	hi := maxShock
+	for i := 0; i < 50; i++ {
+		mid := (lo + hi) / 2.0
+		if this.polynomial.At(mid) < wheelTravel {
+			lo = mid
+		} else {
+			hi = mid
+		}
+	}
+	mid := (lo + hi) / 2.0
+	if mid < 0 {
+		return 0
+	}
+	if mid > maxShock {
+		return maxShock
+	}
+	return mid
 }
 
 func linspace(min, max float64, num int) []float64 {
@@ -330,9 +371,11 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 
 	if pd.Rear.Present {
 		pd.Rear.Travel = make([]float64, rc)
+		pd.Rear.ShockTravel = make([]float64, rc)
 		for idx, value := range rear {
-			out, _ := pd.Rear.Calibration.Evaluate(float64(value))
-			x := pd.Linkage.polynomial.At(out)
+			shock, _ := pd.Rear.Calibration.Evaluate(float64(value))
+			pd.Rear.ShockTravel[idx] = shock
+			x := pd.Linkage.polynomial.At(shock)
 			x = math.Max(0, x)
 			x = math.Min(x, pd.Linkage.MaxRearTravel)
 			pd.Rear.Travel[idx] = x
@@ -359,9 +402,9 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 		if rc >= minPointsForWH && pd.Meta.SampleRate > 0 {
 			whsRear, errWhs := NewWhittakerHendersonSmoother(rc, WH_ORDER, WH_LAMBDA)
 			if errWhs == nil {
-				smoothedTravel, errSmooth := whsRear.Smooth(pd.Rear.Travel)
+				smoothedWheel, errSmooth := smoothedRearWheelTravel(pd.Rear.ShockTravel, whsRear, &pd.Linkage)
 				if errSmooth == nil {
-					velocity, errVel := calculateDerivative(smoothedTravel, pd.Meta.SampleRate)
+					velocity, errVel := calculateDerivative(smoothedWheel, pd.Meta.SampleRate)
 					if errVel == nil {
 						pd.Rear.Velocity = velocity
 					} else {
@@ -369,7 +412,7 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 						pd.Rear.Velocity = make([]float64, rc)
 					}
 				} else {
-					fmt.Printf("Warning: Error smoothing rear travel data: %v. Using zero velocity instead.\n", errSmooth)
+					fmt.Printf("Warning: Error smoothing rear shock-travel data: %v. Using zero velocity instead.\n", errSmooth)
 					pd.Rear.Velocity = make([]float64, rc)
 				}
 			} else {
@@ -408,7 +451,12 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 
 // reprocessSuspension recomputes velocity, bins, strokes and histograms
 // from the stored Travel array using current smoothing parameters.
-func reprocessSuspension(s *suspension, sampleRate uint16, maxTravel float64) {
+// For rear suspension (linkage != nil), the smoother is applied to the
+// finer-quantised shock-travel signal and the result is mapped back through
+// the leverage polynomial. ShockTravel is reconstructed from the stored
+// Travel via Linkage.WheelToDamperTravel for sessions imported before the
+// field existed.
+func reprocessSuspension(s *suspension, sampleRate uint16, maxTravel float64, linkage *Linkage) {
 	n := len(s.Travel)
 	if n == 0 || !s.Present {
 		return
@@ -430,9 +478,23 @@ func reprocessSuspension(s *suspension, sampleRate uint16, maxTravel float64) {
 	if n >= minPointsForWH && sampleRate > 0 {
 		whs, err := NewWhittakerHendersonSmoother(n, WH_ORDER, WH_LAMBDA)
 		if err == nil {
-			smoothed, err := whs.Smooth(s.Travel)
-			if err == nil {
-				vel, err := calculateDerivative(smoothed, sampleRate)
+			var smoothedWheel []float64
+			var smoothErr error
+			if linkage != nil && linkage.polynomial != nil {
+				// Rear: smooth on shock-travel for finer LSB resolution.
+				if len(s.ShockTravel) != n {
+					s.ShockTravel = make([]float64, n)
+					for i := 0; i < n; i++ {
+						s.ShockTravel[i] = linkage.WheelToDamperTravel(s.Travel[i])
+					}
+				}
+				smoothedWheel, smoothErr = smoothedRearWheelTravel(s.ShockTravel, whs, linkage)
+			} else {
+				// Front: smooth wheel-travel directly (head-angle factor is linear).
+				smoothedWheel, smoothErr = whs.Smooth(s.Travel)
+			}
+			if smoothErr == nil {
+				vel, err := calculateDerivative(smoothedWheel, sampleRate)
 				if err == nil {
 					s.Velocity = vel
 				} else {
@@ -497,11 +559,17 @@ func ReprocessVelocityFromBlob(raw []byte) ([]byte, error) {
 		return raw, nil
 	}
 
+	// Reprocess decoded a stored Linkage that has the polynomial coefficients but not
+	// the *polygo.RealPolynomial instance — rebuild it from the coefficients first.
+	if len(pd.Linkage.ShockWheelCoeffs) > 0 && pd.Linkage.polynomial == nil {
+		pd.Linkage.polynomial, _ = polygo.NewRealPolynomial(pd.Linkage.ShockWheelCoeffs)
+	}
+
 	if pd.Front.Present {
-		reprocessSuspension(&pd.Front, pd.SampleRate, pd.Linkage.MaxFrontTravel)
+		reprocessSuspension(&pd.Front, pd.SampleRate, pd.Linkage.MaxFrontTravel, nil)
 	}
 	if pd.Rear.Present {
-		reprocessSuspension(&pd.Rear, pd.SampleRate, pd.Linkage.MaxRearTravel)
+		reprocessSuspension(&pd.Rear, pd.SampleRate, pd.Linkage.MaxRearTravel, &pd.Linkage)
 	}
 	pd.airtimes()
 	pd.ProcessingVersion = CurrentProcessingVersion
