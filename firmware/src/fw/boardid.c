@@ -4,8 +4,20 @@
 #include <stdio.h>
 
 #include "ff.h"
+#include "pico/unique_id.h"
 
 static char current_suffix[BOARDID_TEMPLATE_NAME_LENGTH] = {0};
+static char current_id[2 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES + 1] = {0};
+
+static void load_current_id(void) {
+    current_id[0] = '\0';
+    FIL f;
+    if (f_open(&f, "BOARDID", FA_OPEN_EXISTING | FA_READ) != FR_OK) return;
+    UINT br;
+    f_read(&f, current_id, 2 * PICO_UNIQUE_BOARD_ID_SIZE_BYTES, &br);
+    current_id[br] = '\0';
+    f_close(&f);
+}
 
 void boardid_scan(struct boardid_menu *m) {
     m->count = 0;
@@ -102,11 +114,16 @@ int boardid_apply(const char *extension) {
 
     strncpy(current_suffix, suf, BOARDID_TEMPLATE_NAME_LENGTH - 1);
     current_suffix[BOARDID_TEMPLATE_NAME_LENGTH - 1] = '\0';
+    load_current_id();
     return 0;
 }
 
 const char *boardid_current_suffix(void) {
     return current_suffix;
+}
+
+const char *boardid_current_id(void) {
+    return current_id;
 }
 
 void boardid_load_current_suffix(void) {
@@ -126,4 +143,5 @@ void boardid_load_current_suffix(void) {
         }
     }
     f_close(&f);
+    load_current_id();
 }

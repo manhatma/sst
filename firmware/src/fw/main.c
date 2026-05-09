@@ -539,7 +539,11 @@ static void on_idle() {
         }
         const char *suf = boardid_current_suffix();
         if (suf && suf[0]) {
-            ssd1306_draw_string(&disp, 0, 56, 1, (char *)suf);
+            ssd1306_draw_string(&disp, 0, 46, 1, (char *)suf);
+        }
+        const char *bid = boardid_current_id();
+        if (bid && bid[0]) {
+            ssd1306_draw_string(&disp, 0, 56, 1, (char *)bid);
         }
         ssd1306_show(&disp);
     }
@@ -602,6 +606,13 @@ static void on_serve_tcp() {
     } else if (tcpserver_init(&server)) {
         display_message(&disp, "SERVER ON");
         tcpserver_serve(&server);
+        // Auto-exit (client sent STATUS_FINISHED) leaves state == SERVE_TCP;
+        // the right-button path sets state = IDLE before tcpserver_serve returns.
+        if (state == SERVE_TCP) {
+            buzzer_sound_confirm();
+            display_message(&disp, "DONE");
+            sleep_ms(800);
+        }
     }
     wifi_disconnect();
     state = IDLE;

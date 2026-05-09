@@ -21,5 +21,6 @@ int  boardid_apply(const char *extension); // extension WITH leading dot, e.g. "
 bool boardid_templates_available(void);
 const char *boardid_current_suffix(void);
 void boardid_load_current_suffix(void);
+const char *boardid_current_id(void);
 
 #endif /* _BOARDID_H */
