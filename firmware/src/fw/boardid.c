@@ -32,7 +32,9 @@ void boardid_scan(struct boardid_menu *m) {
         if (ext) {
             // Skip reserved marker file BOARDID.CUR used for persistence.
             if (strcmp(ext, ".CUR") != 0) {
-                strncpy(m->templates[m->count], ext, BOARDID_TEMPLATE_NAME_LENGTH - 1);
+                // Store suffix without the leading dot — the dot is only a
+                // filename separator, not part of the displayed/persisted name.
+                strncpy(m->templates[m->count], ext + 1, BOARDID_TEMPLATE_NAME_LENGTH - 1);
                 m->templates[m->count][BOARDID_TEMPLATE_NAME_LENGTH - 1] = '\0';
                 m->count++;
             }
@@ -78,11 +80,16 @@ void boardid_render(ssd1306_t *disp, struct boardid_menu *m) {
     ssd1306_show(disp);
 }
 
-int boardid_apply(const char *extension) {
-    if (!extension || !extension[0]) return -1;
+int boardid_apply(const char *suffix) {
+    if (!suffix || !suffix[0]) return -1;
 
+    // suffix is stored without the leading dot; rebuild the filename.
     char src[BOARDID_TEMPLATE_NAME_LENGTH + 8];
-    snprintf(src, sizeof(src), "BOARDID%s", extension);
+    if (suffix[0] == '.') {
+        snprintf(src, sizeof(src), "BOARDID%s", suffix);
+    } else {
+        snprintf(src, sizeof(src), "BOARDID.%s", suffix);
+    }
 
     FIL fi, fo;
     FRESULT fr = f_open(&fi, src, FA_OPEN_EXISTING | FA_READ);
@@ -103,7 +110,7 @@ int boardid_apply(const char *extension) {
     f_close(&fo);
 
     // Persist suffix (without leading dot) to BOARDID.CUR for IDLE-screen display.
-    const char *suf = extension[0] == '.' ? extension + 1 : extension;
+    const char *suf = suffix[0] == '.' ? suffix + 1 : suffix;
     FIL fc;
     fr = f_open(&fc, "BOARDID.CUR", FA_CREATE_ALWAYS | FA_WRITE);
     if (fr == FR_OK) {
@@ -141,6 +148,10 @@ void boardid_load_current_suffix(void) {
             current_suffix[i] = '\0';
             break;
         }
+    }
+    // Tolerate older BOARDID.CUR files that were written with the leading dot.
+    if (current_suffix[0] == '.') {
+        memmove(current_suffix, current_suffix + 1, strlen(current_suffix));
     }
     f_close(&f);
     load_current_id();
