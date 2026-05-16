@@ -58,8 +58,12 @@ err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err
         tcp_recved(tpcb, p->tot_len);
         
         if (s < 0 || s == STATUS_FINISHED) {
-            // close the server
-            tcp_server_result(arg, s);
+            // Don't close from within the recv callback — closing client_pcb
+            // from its own callback while p != NULL leaves lwIP in an
+            // inconsistent state and the subsequent mdns teardown can hang.
+            // Just flag the status; tcpserver_serve()'s teardown will close
+            // both pcbs cleanly from main context.
+            server->status = s;
         } else if (s == STATUS_FILE_RECEIVED) {
             // close the client connection
             tcp_server_result(arg, s);

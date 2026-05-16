@@ -599,6 +599,7 @@ static void dummy() {
 }
 
 static void on_serve_tcp() {
+    bool auto_exit = false;
     display_message(&disp, "CONNECT");
     if (!wifi_connect(true)) {
         display_message(&disp, "CONN ERR");
@@ -608,13 +609,16 @@ static void on_serve_tcp() {
         tcpserver_serve(&server);
         // Auto-exit (client sent STATUS_FINISHED) leaves state == SERVE_TCP;
         // the right-button path sets state = IDLE before tcpserver_serve returns.
-        if (state == SERVE_TCP) {
-            buzzer_sound_confirm();
-            display_message(&disp, "DONE");
-            sleep_ms(800);
-        }
+        auto_exit = (state == SERVE_TCP);
     }
+    // Disconnect WiFi before the audible/visual confirmation so a stall in
+    // cyw43/lwIP teardown can't keep the buzzer's silence alarm from firing.
     wifi_disconnect();
+    if (auto_exit) {
+        buzzer_sound_confirm();
+        display_message(&disp, "DONE");
+        sleep_ms(800);
+    }
     state = IDLE;
 }
 
