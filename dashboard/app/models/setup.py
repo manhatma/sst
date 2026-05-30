@@ -16,6 +16,9 @@ class Setup(db.Model, Synchronizable):
         db.Uuid(), db.ForeignKey('calibration.id'))
     rear_calibration_id: uuid.UUID = db.Column(
         db.Uuid(), db.ForeignKey('calibration.id'))
+    # Riding discipline drives the FFT low/mid split and the balance-metric
+    # target bands. One of 'xc' | 'enduro' | 'downhill'; defaults to 'enduro'.
+    discipline: str = db.Column(db.String, nullable=True, default='enduro')
 
     def validate(self) -> bool:
         return self.linkage_id and (

@@ -278,3 +278,60 @@ def test_upload_gpx_input_validation(client, auth, id, status):
 
     response = client.put(f'/api/session/{id}/gpx', data=track_gpx)
     assert response.status_code == status
+
+
+# --- Bokeh cache: new analysis columns (Phases 1-3) + discipline -----------
+
+# divs index map for a dual-suspension session (order = `columns` in
+# session_html.create_cache, minus session_id/script).
+_DUAL_DIV_COLUMNS = [
+    'travel', 'velocity', 'map', 'lr', 'sw',
+    'f_thist', 'f_fft', 'f_vhist', 'r_thist', 'r_fft', 'r_vhist',
+    'cbalance', 'rbalance', 'thist_comp', 'balance_metrics',
+    'pv_front', 'pv_rear', 'pv_comp', 'accel_front', 'accel_rear', 'fr_scatter',
+]
+
+
+def test_create_cache_populates_new_columns(app):
+    from app.models.session_html import SessionHtml
+    from app.telemetry.session_html import create_cache
+
+    with app.app_context():
+        create_cache(DB_IDS['session'], 5, 200)
+        sh = db.session.execute(
+            db.select(SessionHtml).filter_by(session_id=DB_IDS['session'])
+        ).scalar_one_or_none()
+        assert sh is not None
+        # All Phase 1-3 columns present for a dual-suspension session.
+        for col in ('balance_metrics', 'pv_front', 'pv_rear', 'pv_comp',
+                    'accel_front', 'accel_rear', 'fr_scatter'):
+            assert getattr(sh, col), f"missing column {col}"
+        # Div indices must stay stable (incremental append, no reorder).
+        divs = list(sh.divs)
+        assert len(divs) == len(_DUAL_DIV_COLUMNS)
+        assert divs[13] and divs[14] and divs[15]  # comp / metrics / misc tabs
+
+
+def test_create_cache_balance_metrics_table_content(app):
+    from app.models.session_html import SessionHtml
+    from app.telemetry.session_html import create_cache
+
+    with app.app_context():
+        create_cache(DB_IDS['session'], 5, 200)
+        sh = db.session.execute(
+            db.select(SessionHtml).filter_by(session_id=DB_IDS['session'])
+        ).scalar_one_or_none()
+        # The balance-metrics div is rendered into the document script (Bokeh
+        # embeds Div text in the script payload, not the placeholder div).
+        assert 'balance_metrics' in sh.balance_metrics or sh.balance_metrics
+        assert 'Balance metrics' in sh.script
+        assert 'Front SAG' in sh.script
+
+
+def test_setup_discipline_defaults_to_enduro(app):
+    from app.models.setup import Setup
+
+    with app.app_context():
+        setup = Setup.get(DB_IDS['setup'])
+        # Column default applied on insert (conftest creates without discipline).
+        assert setup.discipline == 'enduro'

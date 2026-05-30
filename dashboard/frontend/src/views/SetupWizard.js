@@ -15,6 +15,7 @@ var GeneralForm = {
   name: null,
   boardId: null,
   description: null,
+  discipline: "enduro",
   oninit: Setup.loadList,
   validateName: (value) => {
     return value ? "" : "Required"
@@ -23,6 +24,7 @@ var GeneralForm = {
   reset: () => {
     GeneralForm.name = null
     GeneralForm.boardId = null
+    GeneralForm.discipline = "enduro"
   },
   onselect: (value) => {
     GeneralForm.boardId = value
@@ -53,6 +55,18 @@ var GeneralForm = {
         m(".board", [
           m(BoardList, {selected: GeneralForm.boardId, onselect: GeneralForm.onselect}),
           GeneralForm.description ? m(".list-description", GeneralForm.description) : null,
+        ]),
+      ]),
+      m(".input-field", [
+        m("label", {for: "discipline"}, "Discipline"),
+        m("select", {
+          id: "discipline",
+          value: GeneralForm.discipline,
+          onchange: (e) => (GeneralForm.discipline = e.target.value),
+        }, [
+          m("option", {value: "xc"}, "Cross-country"),
+          m("option", {value: "enduro"}, "Enduro"),
+          m("option", {value: "downhill"}, "Downhill"),
         ]),
       ]),
     ]);
@@ -176,6 +190,7 @@ var SetupWizard = {
 
     var combined = {
       name: GeneralForm.name,
+      discipline: GeneralForm.discipline,
       linkage: linkageBody,
       front_calibration: frontCalibrationBody,
       rear_calibration: rearCalibrationBody,

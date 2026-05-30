@@ -203,7 +203,7 @@ def filter(id: uuid.UUID):
             travel_data_for_hist_and_fft,
             actual_selection_start_index_front
         )
-        updated_data['front']['fft'] = update_fft(travel_data_for_hist_and_fft, tick)
+        updated_data['front']['fft'] = update_fft(travel_data_for_hist_and_fft, t.SampleRate)
 
     if t.Rear.Present:
         if start is not None and end is not None:
@@ -221,7 +221,7 @@ def filter(id: uuid.UUID):
             travel_data_for_hist_and_fft_rear,
             actual_selection_start_index_rear
         )
-        updated_data['rear']['fft'] = update_fft(travel_data_for_hist_and_fft_rear, tick)
+        updated_data['rear']['fft'] = update_fft(travel_data_for_hist_and_fft_rear, t.SampleRate)
 
     if t.Front.Present and t.Rear.Present:
         f_balance_strokes = _filter_strokes(t.Front.Strokes, start, end)

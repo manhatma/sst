@@ -14,10 +14,18 @@ from flask import current_app
 from app.extensions import db
 from app.models.session import Session
 from app.models.session_html import SessionHtml
+from app.models.setup import Setup
 from app.telemetry.balance import balance_figure, velocity_balance_comparison_figure
+from app.telemetry.balance_metrics import balance_metrics_figure
 from app.telemetry.fft import fft_comparison_figure, fft_figure
 from app.telemetry.leverage import leverage_ratio_figure, shock_wheel_figure
 from app.telemetry.map import map_figure
+from app.telemetry.misc_plots import (
+    acceleration_figure,
+    front_rear_scatter_figure,
+    position_velocity_comparison_figure,
+    position_velocity_figure,
+)
 from app.telemetry.psst import Telemetry, dataclass_from_dict
 from app.telemetry.travel import travel_figure, travel_histogram_figure, travel_histogram_comparison_figure
 from app.telemetry.velocity import velocity_figure
@@ -27,12 +35,27 @@ from app.telemetry.velocity import (
 )
 
 
+def _session_discipline(session) -> str:
+    """Riding discipline from the session's setup; defaults to 'enduro'."""
+    try:
+        if session.setup:
+            setup = Setup.get(session.setup)
+            if setup and setup.discipline:
+                return setup.discipline
+    except Exception:
+        current_app.logger.warning(
+            "could not resolve discipline for session %s", session.id)
+    return 'enduro'
+
+
 def create_cache(session_id: uuid.UUID, lod: int, hst: int):
     front_color, rear_color = Spectral11[1], Spectral11[2]
 
     session = Session.get(session_id)
     if not session:
         return None
+
+    discipline = _session_discipline(session)
 
     d = msgpack.unpackb(session.data)
     telemetry = dataclass_from_dict(Telemetry, d)
@@ -60,7 +83,7 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
             hst)
         p_front_fft = fft_figure(
             telemetry.Front.Travel,
-            tick,
+            telemetry.SampleRate,
             front_color,
             "Frequency (front)")
 
@@ -85,7 +108,7 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
             hst)
         p_rear_fft = fft_figure(
             telemetry.Rear.Travel,
-            tick,
+            telemetry.SampleRate,
             rear_color,
             "Frequency (rear)")
 
@@ -207,7 +230,7 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
         p_fft_comp = fft_comparison_figure(
             telemetry.Front.Travel,
             telemetry.Rear.Travel,
-            tick,
+            telemetry.SampleRate,
             front_color,
             rear_color,
         )
@@ -252,6 +275,32 @@ def create_cache(session_id: uuid.UUID, lod: int, hst: int):
             children=[p_left_col, p_vel_balance_comp])
         document.add_root(p_thist_comp)
         columns.append('thist_comp')
+
+        # Phase 2: discipline-aware balance-metrics table (dual suspension only).
+        p_balance_metrics = balance_metrics_figure(telemetry, discipline)
+        document.add_root(p_balance_metrics)
+        columns.append('balance_metrics')
+
+        # Phase 3: Misc tab — phase portraits, acceleration, front/rear scatter.
+        p_pv_front = position_velocity_figure(telemetry, 'front', front_color)
+        p_pv_rear = position_velocity_figure(telemetry, 'rear', rear_color)
+        p_pv_comp = position_velocity_comparison_figure(
+            telemetry, front_color, rear_color)
+        p_accel_front = acceleration_figure(
+            telemetry.Front, telemetry.SampleRate, front_color,
+            "Front acceleration over time", "Front")
+        p_accel_rear = acceleration_figure(
+            telemetry.Rear, telemetry.SampleRate, rear_color,
+            "Rear acceleration over time", "Rear")
+        p_fr_scatter = front_rear_scatter_figure(telemetry, rear_color)
+        document.add_root(p_pv_front)
+        document.add_root(p_pv_rear)
+        document.add_root(p_pv_comp)
+        document.add_root(p_accel_front)
+        document.add_root(p_accel_rear)
+        document.add_root(p_fr_scatter)
+        columns.extend(['pv_front', 'pv_rear', 'pv_comp',
+                        'accel_front', 'accel_rear', 'fr_scatter'])
 
     document.js_on_event(DocumentReady, CustomJS(
         args=dict(), code='SST.init_models();'))

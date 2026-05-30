@@ -29,7 +29,12 @@ var DualSuspensionTabs = {
   },
   view: function() {
     var hasCompTab = !!Session.current.divs[13];
-    var tabsClass = (Session.current.session_track || VideoPlayer.loaded ? "tabs" : "tabs novidmap") + (hasCompTab ? "" : " no-comp-tab");
+    var hasMetricsTab = !!Session.current.divs[14];
+    var hasMiscTab = !!Session.current.divs[15];
+    var tabsClass = (Session.current.session_track || VideoPlayer.loaded ? "tabs" : "tabs novidmap")
+      + (!hasCompTab ? " no-comp-tab"
+        : (!hasMetricsTab ? " no-metrics-tab"
+          : (!hasMiscTab ? " no-misc-tab" : "")));
     return m("div", {class: tabsClass}, [
       m("input.radiotab", {name: "tabs", tabindex: "1", type: "radio", id: "tabone"}),
       m("label.label", {style: "grid-column: 1", for: "tabone"}, "Spring rate"),
@@ -55,6 +60,21 @@ var DualSuspensionTabs = {
       Session.current.divs[13] ? m("label.label", {style: "grid-column: 4", for: "tabfour"}, "Travel hist. comp.") : null,
       Session.current.divs[13] ? m(".panel thist-comp", {tabindex: "1"}, [
         m(".thist-comp-chart", m.trust(Session.current.divs[13])),
+      ]) : null,
+      Session.current.divs[14] ? m("input.radiotab", {name: "tabs", tabindex: "1", type: "radio", id: "tabfive"}) : null,
+      Session.current.divs[14] ? m("label.label", {style: "grid-column: 5", for: "tabfive"}, "Balance metrics") : null,
+      Session.current.divs[14] ? m(".panel balance-metrics-tab", {tabindex: "1"}, [
+        m(".balance-metrics-chart", m.trust(Session.current.divs[14])),
+      ]) : null,
+      Session.current.divs[15] ? m("input.radiotab", {name: "tabs", tabindex: "1", type: "radio", id: "tabsix"}) : null,
+      Session.current.divs[15] ? m("label.label", {style: "grid-column: 6", for: "tabsix"}, "Misc") : null,
+      Session.current.divs[15] ? m(".panel misc", {tabindex: "1"}, [
+        m(".pv-front", m.trust(Session.current.divs[15])),
+        m(".pv-rear", m.trust(Session.current.divs[16])),
+        m(".accel-front", m.trust(Session.current.divs[17])),
+        m(".accel-rear", m.trust(Session.current.divs[18])),
+        m(".pv-comp", m.trust(Session.current.divs[19])),
+        m(".fr-scatter", m.trust(Session.current.divs[20])),
       ]) : null,
     ])
   }

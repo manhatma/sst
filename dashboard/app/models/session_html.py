@@ -24,6 +24,13 @@ class SessionHtml(db.Model):
     cbalance: str = db.Column(db.String)
     rbalance: str = db.Column(db.String)
     thist_comp: str = db.Column(db.String)
+    balance_metrics: str = db.Column(db.String)
+    pv_front: str = db.Column(db.String)
+    pv_rear: str = db.Column(db.String)
+    pv_comp: str = db.Column(db.String)
+    accel_front: str = db.Column(db.String)
+    accel_rear: str = db.Column(db.String)
+    fr_scatter: str = db.Column(db.String)
 
     def _get_divs(self) -> list[str]:
         d = asdict(self)

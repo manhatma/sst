@@ -29,15 +29,17 @@ class Calibration:
 
 @dataclass
 class StrokeStat:
-    SumTravel: float
-    MaxTravel: float
-    P95Travel: float
-    SumVelocity: float
-    MaxVelocity: float
-    P95VelocityCompression: float
-    P95VelocityRebound: float
-    Bottomouts: int
-    Count: int
+    # Defaults keep conversion tolerant of blobs that omit a field (e.g. the
+    # P95* stats are unused by the dashboard and absent from older gosst output).
+    SumTravel: float = 0.0
+    MaxTravel: float = 0.0
+    P95Travel: float = 0.0
+    SumVelocity: float = 0.0
+    MaxVelocity: float = 0.0
+    P95VelocityCompression: float = 0.0
+    P95VelocityRebound: float = 0.0
+    Bottomouts: int = 0
+    Count: int = 0
 
 
 @dataclass

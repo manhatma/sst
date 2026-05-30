@@ -72,9 +72,14 @@ def put_combined():
     if not front_calibration and not rear_calibration:
         return jsonify(msg="No calibration given"), status.BAD_REQUEST
 
+    discipline = request.json.get('discipline') or 'enduro'
+    if discipline not in ('xc', 'enduro', 'downhill'):
+        discipline = 'enduro'
+
     setup = Setup(
         id=uuid.uuid4(),
         name=request.json['name'],
+        discipline=discipline,
     )
     try:
         with db.session.begin_nested():

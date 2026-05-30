@@ -96,8 +96,10 @@ var SST = {
       })
     },
     fft: function(p, u) {
+      // b_fft is a log-log Welch line; only the curve data refreshes on
+      // box-select. The body-resonance peak marker stays at its cache-time
+      // position (consistent with the other static cache-time plots).
       p.select_one("ds_fft").data = u.data;
-      p.select_one("b_fft").glyph.width = 4.9 / u.data.freqs.length
     },
     thist: function(p, u) {
       p.select_one("ds_hist").data = u.data;
