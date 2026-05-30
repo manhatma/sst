@@ -444,3 +444,53 @@ def session_html(session_id: uuid.UUID):
     if not full_access:
         unset_jwt_cookies(response)
     return response
+
+
+@bp.route('/compare', methods=['GET'])
+def compare():
+    """Overlay comparison plots for >=2 sessions (?ids=uuid1,uuid2,...).
+
+    Computed on demand (no caching — combinations are unbounded), mirroring the
+    Sufni.Bridge Compare* plots. Returns the Bokeh script + per-figure divs.
+    """
+    from app.telemetry.compare import (
+        COMPARE_PALETTE, CompareSession, build_comparison)
+
+    ids_param = request.args.get('ids', '')
+    raw_ids = [x.strip() for x in ids_param.split(',') if x.strip()]
+    if len(raw_ids) < 2:
+        return jsonify(msg="Provide at least two session ids."), status.BAD_REQUEST
+    if len(raw_ids) > len(COMPARE_PALETTE):
+        return (jsonify(msg=f"At most {len(COMPARE_PALETTE)} sessions."),
+                status.BAD_REQUEST)
+
+    sessions = []
+    color_idx = 0
+    for sid in raw_ids:
+        try:
+            session = Session.get(uuid.UUID(sid))
+        except (ValueError, AttributeError):
+            session = None
+        if not session or not session.data:
+            continue
+        d = msgpack.unpackb(session.data)
+        telemetry = dataclass_from_dict(Telemetry, d)
+        sessions.append(CompareSession(
+            telemetry=telemetry,
+            color=COMPARE_PALETTE[color_idx % len(COMPARE_PALETTE)],
+            name=session.name or sid[:8]))
+        color_idx += 1
+
+    if len(sessions) < 2:
+        return jsonify(msg="Fewer than two valid sessions."), status.BAD_REQUEST
+
+    script, figures = build_comparison(sessions)
+    script = Markup(script
+                    .replace('<script type="text/javascript">', '')
+                    .replace('</script>', ''))
+    figures = [{'title': f['title'], 'div': Markup(f['div'])} for f in figures]
+
+    return jsonify(
+        script=script,
+        figures=figures,
+        sessions=[{'name': s.name, 'color': s.color} for s in sessions])

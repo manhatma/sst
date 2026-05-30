@@ -380,3 +380,101 @@ input[type="file"]::file-selector-button:hover {
 .toolbar-icon:hover {
   background-color: #40464B;
 }
+
+/* --- Multi-session comparison --- */
+
+.compare-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 5px 10px 5px;
+}
+
+.compare-button {
+  background: #2c3136;
+  color: #e0e0e0;
+  border: 1px solid #454b50;
+  border-radius: 5px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.compare-button:hover:not(:disabled) {
+  background: #3a4046;
+}
+
+.compare-button:disabled {
+  color: #6a6f74;
+  cursor: default;
+  border-color: #303438;
+}
+
+.compare-clear {
+  background: none;
+  color: #9aa0a6;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.compare-check {
+  cursor: pointer;
+  accent-color: #6CC44A;
+}
+
+.compare-container {
+  padding: 10px;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: auto;
+}
+
+.compare-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 10px;
+}
+
+.compare-legend-item {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.compare-cell {
+  background: #15191c;
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+}
+
+.compare-cell-title {
+  color: #d0d0d0;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 5px 8px;
+}
+
+.compare-cell-plot {
+  flex: 1 1 auto;
+  min-height: 320px;
+}
+
+.compare-error {
+  color: #E06A55;
+  font-size: 15px;
+  padding: 20px;
+}
+
+@media only screen and (max-width: 900px) {
+  .compare-grid {
+    grid-template-columns: 1fr;
+  }
+}

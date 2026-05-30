@@ -335,3 +335,30 @@ def test_setup_discipline_defaults_to_enduro(app):
         setup = Setup.get(DB_IDS['setup'])
         # Column default applied on insert (conftest creates without discipline).
         assert setup.discipline == 'enduro'
+
+
+# --- Phase 4: multi-session comparison route -------------------------------
+
+def test_compare_returns_overlay_figures(client):
+    id1 = str(DB_IDS['session'])
+    id2 = str(DB_IDS['session_html'])
+    response = client.get(f'/api/session/compare?ids={id1},{id2}')
+    assert response.status_code == status.OK
+    body = response.json
+    assert {'script', 'figures', 'sessions'} <= set(body.keys())
+    assert len(body['sessions']) == 2
+    titles = [f['title'] for f in body['figures']]
+    # Dual-suspension test sessions -> full front/rear set + balance + scatter.
+    assert 'Balance' in titles
+    assert 'Front vs rear travel' in titles
+    assert any('travel spectrum' in t for t in titles)
+    # Distinct per-session colours.
+    assert body['sessions'][0]['color'] != body['sessions'][1]['color']
+
+
+def test_compare_requires_two_sessions(client):
+    id1 = str(DB_IDS['session'])
+    assert client.get(f'/api/session/compare?ids={id1}').status_code == status.BAD_REQUEST
+    assert client.get('/api/session/compare').status_code == status.BAD_REQUEST
+    assert client.get(
+        f'/api/session/compare?ids={id1},not-a-uuid').status_code == status.BAD_REQUEST
