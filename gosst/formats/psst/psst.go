@@ -32,7 +32,15 @@ const (
 	VELOCITY_HIST_STEP_FINE             = 10 	// (mm/s) step between fine-grained velocity histogram bins
 	BOTTOMOUT_THRESHOLD                 = 2.5	// (mm) bottomouts are regions where travel > max_travel - this value
 
-	CurrentProcessingVersion = 3
+	// Single-sample velocity spike rejection (matches Sufni.Bridge
+	// Parameters.SpikeJerkLimit). After the central difference, an isolated
+	// outlier whose deviation from the linear interpolation of its neighbours
+	// implies a per-sample jerk above this bound is replaced by that
+	// interpolation. Catches isolated 1-sample ADC glitches without clipping
+	// real impact peaks.
+	SPIKE_JERK_LIMIT = 5.0e9	// (mm/s³)
+
+	CurrentProcessingVersion = 4
 
 	// Whittaker-Henderson smoother for travel→velocity differentiation.
 	// Setup: ADS1115 PGA 4.096 V, sensor swing 0–3.3 V → 26400 usable codes (log2 = 14.6883).
@@ -111,7 +119,28 @@ func calculateDerivative(data []float64, sampleRate uint16) ([]float64, error) {
 	}
 	derivative[n-1] = (data[n-1] - data[n-2]) * fs
 
+	rejectSingleSampleSpikes(derivative, sampleRate)
 	return derivative, nil
+}
+
+// rejectSingleSampleSpikes replaces isolated 1-sample velocity outliers with the
+// linear interpolation of their neighbours. Ported from Sufni.Bridge's
+// RejectSingleSampleSpikes: the Taylor expansion v[i]−½(v[i-1]+v[i+1]) ≈
+// −½·dt²·jerk, so a deviation above ½·dt²·SPIKE_JERK_LIMIT implies a non-physical
+// per-sample jerk. The local velocity gradient drops out, so legitimate fast
+// transitions pass untouched.
+func rejectSingleSampleSpikes(v []float64, sampleRate uint16) {
+	if len(v) < 3 {
+		return
+	}
+	dt := 1.0 / float64(sampleRate)
+	floor := 0.5 * SPIKE_JERK_LIMIT * dt * dt
+	for i := 1; i < len(v)-1; i++ {
+		expected := 0.5 * (v[i-1] + v[i+1])
+		if math.Abs(v[i]-expected) > floor {
+			v[i] = expected
+		}
+	}
 }
 
 type LinkageRecord struct {
