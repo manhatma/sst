@@ -126,7 +126,11 @@ func (this *stroke) overlaps(other *stroke) bool {
 	return float32(overlapDuration) >= AIRTIME_OVERLAP_THRESHOLD*float32(l)
 }
 
-func getPercentileValue(values []float64, percentile float64) float64 {
+// getPercentileValue matches MathNet.Numerics' Percentile/QuantileInplace (the
+// R-8 "median-unbiased" estimator h = (n + 1/3)*tau + 1/3 with linear
+// interpolation) so gosst's stored percentiles match Sufni.Bridge. tau is a
+// fraction in [0, 1].
+func getPercentileValue(values []float64, tau float64) float64 {
 	n := len(values)
 	if n == 0 {
 		return 0.0
@@ -135,23 +139,29 @@ func getPercentileValue(values []float64, percentile float64) float64 {
 	sortedValues := append([]float64(nil), values...)
 	sort.Float64s(sortedValues)
 
-	if percentile <= 0.0 {
+	if tau <= 0.0 || n == 1 {
 		return sortedValues[0]
 	}
-	if percentile >= 1.0 {
+	if tau >= 1.0 {
 		return sortedValues[n-1]
 	}
 
-	index := int(math.Ceil(percentile*float64(n))) - 1
-
-	if index < 0 {
-		index = 0
+	h := (float64(n)+1.0/3.0)*tau + 1.0/3.0
+	hf := int(math.Floor(h))
+	lo := hf - 1
+	if lo < 0 {
+		lo = 0
+	} else if lo > n-1 {
+		lo = n - 1
 	}
-	if index >= n {
-		index = n - 1
+	hi := hf
+	if hi < 0 {
+		hi = 0
+	} else if hi > n-1 {
+		hi = n - 1
 	}
 
-	return sortedValues[index]
+	return sortedValues[lo] + (h-float64(hf))*(sortedValues[hi]-sortedValues[lo])
 }
 
 func newStroke(start, end int, duration float64, travel, velocity []float64, maxTravel float64) *stroke {

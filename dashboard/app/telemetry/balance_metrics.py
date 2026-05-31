@@ -24,6 +24,7 @@ from app.telemetry.spectral import (
     welch_cross_spectrum,
     welch_spectrum,
 )
+from app.telemetry.stats import mathnet_percentile
 
 # Status colours (BalanceMetricRow.ValueBrush).
 COLOR_GOOD = '#6CC44A'
@@ -61,7 +62,8 @@ def _detailed_travel_stats(suspension):
     if not values:
         return 0.0, 0.0, 0.0, 0
     arr = np.asarray(values, dtype=np.float64)
-    return float(arr.max()), float(arr.mean()), float(np.percentile(arr, 95)), bottomouts
+    # MathNet R-8 percentile to match CalculateDetailedTravelStatistics exactly.
+    return float(arr.max()), float(arr.mean()), mathnet_percentile(arr, 95), bottomouts
 
 
 def _velocity_stats(suspension):

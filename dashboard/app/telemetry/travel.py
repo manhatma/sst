@@ -14,6 +14,7 @@ from bokeh.plotting import figure # type: ignore
 from bokeh.models.tickers import SingleIntervalTicker # type: ignore
 
 from app.telemetry.psst import Airtime, Strokes, Telemetry, Suspension
+from app.telemetry.stats import mathnet_percentile
 
 HISTOGRAM_RANGE_MULTIPLIER = 1.3
 
@@ -102,7 +103,8 @@ def _selection_travel_stats(
 
     avg_mm = np.mean(arr)
     mx_mm = np.max(arr)
-    p95_mm = np.percentile(arr, 95) if arr.size > 0 else 0.0
+    # MathNet R-8 percentile to match CalculateDetailedTravelStatistics exactly.
+    p95_mm = mathnet_percentile(arr, 95) if arr.size > 0 else 0.0
     
     avg_perc = to_percentage(avg_mm, linkage_max_travel_mm)
     mx_perc = to_percentage(mx_mm, linkage_max_travel_mm)
