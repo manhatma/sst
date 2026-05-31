@@ -4,7 +4,8 @@ from bokeh.plotting import figure
 
 
 def shock_wheel_figure(coeffs, max_stroke, color) -> figure:
-    f = np.poly1d(np.flip(coeffs))
+    f = np.poly1d(np.flip(coeffs)) if coeffs is not None and len(coeffs) > 0 \
+        else np.poly1d([0.0])
     p = figure(
         name='sw',
         title="Shock - Wheel displacement",
@@ -46,7 +47,6 @@ def leverage_ratio_figure(wtlr, color) -> figure:
         output_backend='webgl')
     p.hover.mode = 'vline'
 
-    x = wtlr[:, 0]
-    y = wtlr[:, 1]
-    p.line(x, y, line_width=2, color=color)
+    if wtlr is not None and getattr(wtlr, 'ndim', 0) == 2 and wtlr.shape[0] > 0:
+        p.line(wtlr[:, 0], wtlr[:, 1], line_width=2, color=color)
     return p

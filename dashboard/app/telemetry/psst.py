@@ -1,20 +1,63 @@
+import math
 import uuid
 
 from dataclasses import dataclass
 
+import numpy as np
+
 CURRENT_PROCESSING_VERSION = 1
+
+
+def _fit_shock_wheel(leverage_ratio) -> list[float]:
+    """Reconstruct the shock->wheel polynomial from [wheel, leverage] pairs.
+
+    Mirrors the C# ``Linkage.ShockWheelCoeffs`` getter: integrate shock travel
+    from the leverage ratio, fit a 3rd-order polynomial (wheel = f(shock)) and
+    force the constant term to 0 so the curve passes through the origin. Returns
+    ascending coefficients ``[c0, c1, c2, c3]``.
+    """
+    pairs = [p for p in leverage_ratio if p is not None and len(p) >= 2]
+    if len(pairs) < 4:
+        return []
+    wheel = [float(p[0]) for p in pairs]
+    lev = [float(p[1]) for p in pairs]
+    shock = [0.0]
+    for i in range(1, len(pairs)):
+        s = shock[-1]
+        if lev[i - 1] > 0:
+            s = shock[-1] + (wheel[i] - wheel[i - 1]) / lev[i - 1]
+        shock.append(s)
+    coeffs = np.polyfit(shock, wheel, 3)[::-1].copy()  # ascending
+    coeffs[0] = 0.0
+    return coeffs.tolist()
 
 
 @dataclass
 class Linkage:
-    Name: str
-    HeadAngle: float
-    MaxFrontStroke: float
-    MaxRearStroke: float
-    MaxFrontTravel: float
-    MaxRearTravel: float
-    LeverageRatio: list[float]
-    ShockWheelCoeffs: list[float]
+    # Newer app blobs omit the derived fields (MaxFrontTravel / MaxRearTravel /
+    # ShockWheelCoeffs are computed on the fly in the app); they are
+    # reconstructed in __post_init__ when absent so both old gosst output and
+    # current app-synced linkages parse. Wheelbase enables the effective
+    # head-angle metric when present.
+    Name: str = ""
+    HeadAngle: float = 0.0
+    MaxFrontStroke: float = 0.0
+    MaxRearStroke: float = 0.0
+    LeverageRatio: list = None
+    MaxFrontTravel: float = 0.0
+    MaxRearTravel: float = 0.0
+    ShockWheelCoeffs: list = None
+    Wheelbase: float = None
+
+    def __post_init__(self):
+        if not self.MaxFrontTravel and self.MaxFrontStroke:
+            self.MaxFrontTravel = (
+                math.sin(self.HeadAngle * math.pi / 180.0) * self.MaxFrontStroke)
+        if not self.ShockWheelCoeffs and self.LeverageRatio:
+            self.ShockWheelCoeffs = _fit_shock_wheel(self.LeverageRatio)
+        if not self.MaxRearTravel and self.ShockWheelCoeffs and self.MaxRearStroke:
+            poly = np.poly1d(np.flip(self.ShockWheelCoeffs))
+            self.MaxRearTravel = float(poly(self.MaxRearStroke))
 
 
 @dataclass
