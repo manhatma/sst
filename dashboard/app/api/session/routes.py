@@ -1,5 +1,6 @@
 import json
 import msgpack
+import re
 import requests
 import uuid
 
@@ -37,6 +38,15 @@ from app.telemetry.velocity import (
 )
 
 CURRENT_PROCESSING_VERSION = 1
+
+
+def _strip_script_tags(script: str) -> str:
+    """Strip the wrapping <script> tags so the body can be eval'd client-side.
+
+    Bokeh >= 3.6 emits a bare ``<script>``; older versions used
+    ``<script type="text/javascript">``. Match either (and the closing tag).
+    """
+    return re.sub(r'</?script[^>]*>', '', script)
 
 
 def _ensure_reprocessed(session):
@@ -380,11 +390,7 @@ def session_html(session_id: uuid.UUID):
     if not session_html_entry:
         return jsonify(msg=f"Bokeh HTML for session {session.id} not yet generated."), status.NOT_FOUND
 
-    components_script = Markup(
-        session_html_entry.script
-            .replace('<script type="text/javascript">', '')
-            .replace('</script>', '')
-    )
+    components_script = Markup(_strip_script_tags(session_html_entry.script))
     components_divs = [Markup(d) for d in session_html_entry.divs]
 
     track = Track.get(session.track)
@@ -397,11 +403,7 @@ def session_html(session_id: uuid.UUID):
         ).scalar_one_or_none()
         if not session_html_entry:
             return jsonify(msg=f"Bokeh HTML for session {session.id} is being regenerated."), status.ACCEPTED
-        components_script = Markup(
-            session_html_entry.script
-                .replace('<script type="text/javascript">', '')
-                .replace('</script>', '')
-        )
+        components_script = Markup(_strip_script_tags(session_html_entry.script))
         components_divs = [Markup(d_html) for d_html in session_html_entry.divs]
     t = dataclass_from_dict(Telemetry, d)
 
@@ -485,9 +487,7 @@ def compare():
         return jsonify(msg="Fewer than two valid sessions."), status.BAD_REQUEST
 
     script, figures = build_comparison(sessions)
-    script = Markup(script
-                    .replace('<script type="text/javascript">', '')
-                    .replace('</script>', ''))
+    script = Markup(_strip_script_tags(script))
     figures = [{'title': f['title'], 'div': Markup(f['div'])} for f in figures]
 
     return jsonify(

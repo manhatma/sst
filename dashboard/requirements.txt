@@ -1,5 +1,5 @@
 argon2-cffi==23.1.0
-bokeh==3.5.1
+bokeh==3.9.0
 cryptography==42.0.8
 gpxpy==1.6.2
 msgpack==1.0.8
