@@ -56,15 +56,25 @@ var Compare = {
     document.getElementById("layout-stylesheet").setAttribute("href", "");
   },
   view: function() {
+    // Root carries id="page-content" so the drawer's open-state layout rules
+    // (`#drawer-toggle:checked ~ #page-content`) apply here just like on the
+    // dashboard — otherwise the drawer is overlapped by the Bokeh canvases.
+    var backLink = m(m.route.Link, { class: "compare-back", href: "/dashboard" },
+      "← Back to dashboard");
     if (Compare.error) {
-      return m(".compare-container", m(".compare-error", Compare.error));
+      return m(".compare-container", { id: "page-content" },
+        [backLink, m(".compare-error", Compare.error)]);
     }
     if (!Compare.data) {
-      return m(".compare-container", "LOADING COMPARISON");
+      return m(".compare-container", { id: "page-content" },
+        [backLink, m("div", "LOADING COMPARISON")]);
     }
-    return m(".compare-container", [
-      m(".compare-legend", Compare.data.sessions.map((s) =>
-        m("span.compare-legend-item", { style: "color:" + s.color }, "■ " + s.name))),
+    return m(".compare-container", { id: "page-content" }, [
+      m(".compare-bar-top", [
+        backLink,
+        m(".compare-legend", Compare.data.sessions.map((s) =>
+          m("span.compare-legend-item", { style: "color:" + s.color }, "■ " + s.name))),
+      ]),
       m(".compare-grid", Compare.data.figures.map((f) =>
         m(".compare-cell", [
           m(".compare-cell-title", f.title),

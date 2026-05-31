@@ -52,7 +52,7 @@ var SessionListItem = {
   }
 }
 
-module.exports = {
+var SessionList = {
   selected: new Set(),
   toggle: function(id) {
     if (SessionList.selected.has(id)) {
@@ -86,3 +86,5 @@ module.exports = {
     })))
   },
 }
+
+module.exports = SessionList

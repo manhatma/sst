@@ -423,18 +423,39 @@ input[type="file"]::file-selector-button:hover {
   accent-color: #6CC44A;
 }
 
+/* Root carries id="page-content"; sizing/scroll come from #page-content. */
 .compare-container {
-  padding: 10px;
-  height: 100%;
   box-sizing: border-box;
-  overflow: auto;
+}
+
+.compare-bar-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 10px;
+}
+
+.compare-back {
+  display: inline-block;
+  background: #2c3136;
+  color: #e0e0e0;
+  border: 1px solid #454b50;
+  border-radius: 5px;
+  padding: 5px 12px;
+  text-decoration: none;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.compare-back:hover {
+  background: #3a4046;
 }
 
 .compare-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 18px;
-  margin-bottom: 10px;
 }
 
 .compare-legend-item {
