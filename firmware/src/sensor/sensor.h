@@ -28,6 +28,7 @@ struct sensor {
     volatile bool available;
     uint16_t baseline;
     bool inverted;
+    uint16_t last_measurement;
     void (*init)(struct sensor *sensor);
     bool (*check_availability)(struct sensor *sensor);
     bool (*start)(struct sensor *sensor, uint16_t baseline, bool inverted);

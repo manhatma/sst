@@ -39,15 +39,15 @@ static bool rotational_sensor_start(struct sensor *sensor, uint16_t baseline, bo
 }
 
 static uint16_t rotational_sensor_measure(struct sensor *sensor) {
-    static uint16_t value = 0xffff;
     if (sensor->available) {
-        value = as5600_get_scaled_angle(sensor->comm.i2c.instance);
+        uint16_t value = as5600_get_scaled_angle(sensor->comm.i2c.instance);
         if (sensor->inverted) {
             value = 4096 - value;
         }
+        sensor->last_measurement = value;
     }
 
-    return value;
+    return sensor->last_measurement;
 }
 
 static void rotational_sensor_calibrate_expanded(struct sensor *sensor) {
@@ -75,6 +75,7 @@ static void rotational_sensor_calibrate_compressed(struct sensor *sensor) {
 #if !defined(EVOMINI_FORK_SENSOR) && !defined(FORK_LINEAR)
 struct sensor fork_sensor = {
     .comm.i2c = {FORK_I2C, FORK_PIN_SCL, FORK_PIN_SDA},
+    .last_measurement = 0xffff,
     .init = rotational_sensor_init,
     .check_availability = rotational_sensor_check_availability,
     .start = rotational_sensor_start,
@@ -87,6 +88,7 @@ struct sensor fork_sensor = {
 #if !defined(EVOMINI_SHOCK_SENSOR) && !defined(SHOCK_LINEAR)
 struct sensor shock_sensor = {
     .comm.i2c = {SHOCK_I2C, SHOCK_PIN_SCL, SHOCK_PIN_SDA},
+    .last_measurement = 0xffff,
     .init = rotational_sensor_init,
     .check_availability = rotational_sensor_check_availability,
     .start = rotational_sensor_start,

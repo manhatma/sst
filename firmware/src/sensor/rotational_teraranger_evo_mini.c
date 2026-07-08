@@ -65,7 +65,6 @@ static bool rotational_sensor_start(struct sensor *sensor, uint16_t baseline, bo
 
 // Reads the sensor value and maps it into a 12-bit output (0–4095).
 static uint16_t rotational_sensor_measure(struct sensor *sensor) {
-    static uint16_t value = 0xFFFF;  // Default error value
     if (sensor->available) {
         uint16_t raw = evomini_read_distance(sensor->comm.i2c.instance);
         struct evomini_calibration *cal = NULL;
@@ -75,15 +74,15 @@ static uint16_t rotational_sensor_measure(struct sensor *sensor) {
             cal = &shock_cal;
         }
         if (cal == NULL || cal->expanded <= cal->compressed) {
-            value = 0;
+            sensor->last_measurement = 0;
         } else {
             if (raw > cal->expanded) raw = cal->expanded;
             if (raw < cal->compressed) raw = cal->compressed;
-            value = ((uint32_t)(cal->expanded - raw) * ROTARY_SENSOR_MAX) /
-                    (cal->expanded - cal->compressed);
+            sensor->last_measurement = ((uint32_t)(cal->expanded - raw) * ROTARY_SENSOR_MAX) /
+                                       (cal->expanded - cal->compressed);
         }
     }
-    return value;
+    return sensor->last_measurement;
 }
 
 // Calibration: Record reading when fully extended.
@@ -117,6 +116,7 @@ static void rotational_sensor_calibrate_compressed(struct sensor *sensor) {
 #ifndef FORK_LINEAR
 struct sensor fork_sensor = {
     .comm.i2c = {FORK_I2C, FORK_PIN_SCL, FORK_PIN_SDA},
+    .last_measurement = 0xFFFF,
     .init = rotational_sensor_init,
     .check_availability = rotational_sensor_check_availability,
     .start = rotational_sensor_start,
@@ -129,6 +129,7 @@ struct sensor fork_sensor = {
 #ifndef SHOCK_LINEAR
 struct sensor shock_sensor = {
     .comm.i2c = {SHOCK_I2C, SHOCK_PIN_SCL, SHOCK_PIN_SDA},
+    .last_measurement = 0xFFFF,
     .init = rotational_sensor_init,
     .check_availability = rotational_sensor_check_availability,
     .start = rotational_sensor_start,
