@@ -254,7 +254,7 @@ func (this *strokes) categorize(strokes []*stroke, travel []float64, maxTravel f
 			currentStroke.duration >= IDLING_DURATION_THRESHOLD {
 
 			if i > 0 && i < len(strokes)-1 &&
-				currentStroke.Stat.MaxTravel <= STROKE_LENGTH_THRESHOLD*STROKE_LENGTH_THRESHOLD_FAC &&
+				currentStroke.Stat.MaxTravel <= AIRTIME_TRAVEL_THRESHOLD &&
 				currentStroke.duration >= AIRTIME_DURATION_THRESHOLD &&
 				strokes[i+1].Stat.MaxVelocity >= AIRTIME_VELOCITY_THRESHOLD {
 				currentStroke.airCandidate = true
@@ -312,18 +312,12 @@ func filterStrokes(velocity, travel []float64, maxTravel float64, rate uint16) (
 		}
 
 
-		if currentSegmentMaxTravel < STROKE_LENGTH_THRESHOLD &&
+		if currentSegmentMaxTravel < STROKE_LENGTH_THRESHOLD*STROKE_LENGTH_THRESHOLD_FAC &&
 			len(strokes) > 0 &&
-			strokes[len(strokes)-1].Stat.MaxTravel < STROKE_LENGTH_THRESHOLD &&
-			sign(velocity[startIndex]) == sign(velocity[strokes[len(strokes)-1].Start]) {
+			strokes[len(strokes)-1].Stat.MaxTravel < STROKE_LENGTH_THRESHOLD*STROKE_LENGTH_THRESHOLD_FAC {
 
-			strokes[len(strokes)-1].End = segmentEndIndex
-			strokes[len(strokes)-1].duration += d
-
-            if strokes[len(strokes)-1].length < STROKE_LENGTH_THRESHOLD && strokes[len(strokes)-1].length > -STROKE_LENGTH_THRESHOLD {
-                 strokes[len(strokes)-1].length = travel[segmentEndIndex] - travel[strokes[len(strokes)-1].Start]
-            }
-
+			prev := strokes[len(strokes)-1]
+			strokes[len(strokes)-1] = newStroke(prev.Start, segmentEndIndex, prev.duration+d, travel, velocity, maxTravel)
 
 		} else {
 			s := newStroke(startIndex, segmentEndIndex, d, travel, velocity, maxTravel)
