@@ -5,8 +5,6 @@ from dataclasses import dataclass
 
 import numpy as np
 
-CURRENT_PROCESSING_VERSION = 1
-
 
 def _fit_shock_wheel(leverage_ratio) -> list[float]:
     """Reconstruct the shock->wheel polynomial from [wheel, leverage] pairs.

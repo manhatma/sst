@@ -19,11 +19,11 @@ import (
 const (
 	VELOCITY_ZERO_THRESHOLD             = 0.02	// (mm/s) maximum velocity to be considered as zero
 	IDLING_DURATION_THRESHOLD           = 0.10	// (s) minimum duration to consider stroke an idle period
-	AIRTIME_TRAVEL_THRESHOLD            = 3		// (mm) maximum travel to consider stroke an airtime
-	AIRTIME_DURATION_THRESHOLD          = 0.20	// (s) minimum duration to consider stroke an airtime
-	AIRTIME_VELOCITY_THRESHOLD          = 500	// (mm/s) minimum velocity after stroke to consider it an airtime
-	AIRTIME_OVERLAP_THRESHOLD           = 0.5	// f&r airtime candidates must overlap at least this amount to be an airtime
-	AIRTIME_TRAVEL_MEAN_THRESHOLD_RATIO = 0.08	// stroke f&r mean travel must be below max*this to be an airtime
+	AIRTIME_TRAVEL_THRESHOLD            = 3		// (mm) maximum travel above top-out to consider stroke an airtime candidate
+	AIRTIME_DURATION_THRESHOLD          = 0.20	// (s) minimum duration to consider stroke an airtime candidate
+	AIRTIME_VELOCITY_THRESHOLD          = 500	// (mm/s) minimum velocity after stroke to consider it an airtime candidate
+	AIRTIME_OVERLAP_THRESHOLD           = 0.5	// f&r airtime candidates must overlap at least this fraction of the SHORTER one
+	AIRTIME_SETTLED_TRAVEL_RATIO        = 0.08	// each end must rest within maxTravel*this of ITS OWN top-out to confirm an airtime
 	STROKE_LENGTH_THRESHOLD             = 0.5 	// (mm) minimum length to consider stroke a compression/rebound
     STROKE_LENGTH_THRESHOLD_FAC         = 30 	// factor for airtime detection with respect to small stroke length threshold
 	TRAVEL_HIST_BINS                    = 20	// number of travel histogram bins
@@ -40,7 +40,60 @@ const (
 	// real impact peaks.
 	SPIKE_JERK_LIMIT = 5.0e9	// (mm/s³)
 
-	CurrentProcessingVersion = 4
+	// Airtime top-out and settling model (matches Sufni.Bridge Parameters).
+	// travel == 0 is not a reliable top-out reference: calibration offsets,
+	// coil preload, top-out bumpers and the shock->wheel polynomial shift the
+	// fully-extended reading by several mm (measured 0.3-6.3 mm across real
+	// bikes), so a fixed absolute travel gate can make a perfectly good shock
+	// structurally ineligible for the f&r overlap test. Instead each side's
+	// top-out is estimated per-session as a low travel quantile (capped as a
+	// fraction of max travel, in case the quantile lands on a genuine stroke
+	// rather than a flat rest) and every downstream airtime check is relative
+	// to that estimate.
+	TOP_OUT_QUANTILE  = 0.005	// travel quantile used as the top-out estimate
+	TOP_OUT_MAX_RATIO = 0.06	// cap the top-out estimate at maxTravel*this
+
+	// AIRTIME_TRAVEL_THRESHOLD_RATIO scales the top-out-relative airtime
+	// travel gate with suspension size, alongside the fixed
+	// AIRTIME_TRAVEL_THRESHOLD (the larger of the two applies).
+	AIRTIME_TRAVEL_THRESHOLD_RATIO = 0.025
+
+	// AIRTIME_CREEP_RATE and AIRTIME_DURATION_MAX bound the air-candidate
+	// test on stroke length. Stiction means a topped-out shock is not
+	// perfectly still: it creeps out under its own spring force at up to
+	// roughly 13 mm/s, so a hover held for the AIRTIME_DURATION_THRESHOLD
+	// window can accumulate several mm of length that a fixed
+	// STROKE_LENGTH_THRESHOLD alone would reject. The allowed length budget
+	// therefore grows with the stroke's own duration. AIRTIME_DURATION_MAX
+	// caps the other end: a bike leaning, hanging or being carried also
+	// reads as long, dead-still hover followed by a hard-set-down, and only
+	// duration tells the two apart (1.2 s of true hang time already implies
+	// a ~1.8 m vertical launch, well beyond anything seen in ridden data).
+	AIRTIME_CREEP_RATE   = 15.0	// (mm/s) stroke-length budget added per second of hover
+	AIRTIME_DURATION_MAX = 1.2	// (s) maximum duration still considered a single airtime candidate
+
+	// AIRTIME_SETTLE_FRACTION and AIRTIME_QUIESCENT_VELOCITY define what it
+	// means for a side to actually be "at rest" during a candidate airtime.
+	// Travel alone cannot separate a jump from a manual: an averaged or
+	// tail-sample check can be fooled by a topped-out fork masking a loaded
+	// shock (the classic manual false positive), and both ends of the bike
+	// are typically still moving right at a stroke's edges (the far end
+	// still unloading as the near end tops out, or touching back down while
+	// the near end is still airborne). What is unambiguous is a contiguous
+	// interior run where travel sits near top-out AND velocity is small: an
+	// airborne element merely creeps (a few mm/s to a few tens of mm/s)
+	// while a grounded one is driven by the terrain (hundreds to
+	// low-thousands of mm/s). AIRTIME_QUIESCENT_VELOCITY is the boundary
+	// between those two regimes; AIRTIME_SETTLE_FRACTION is the minimum
+	// share of the stroke that run must cover.
+	AIRTIME_SETTLE_FRACTION    = 0.25	// minimum contiguous fraction of the stroke that must be at rest
+	AIRTIME_QUIESCENT_VELOCITY = 150	// (mm/s) maximum |velocity| while resting at top-out
+
+	// CurrentProcessingVersion gates ReprocessVelocityFromBlob: a stored blob whose
+	// ProcessingVersion is already >= this is left untouched, so bumping it is
+	// required whenever a change here (like the airtime rework above) needs to be
+	// applied to existing sessions.
+	CurrentProcessingVersion = 5
 
 	// Whittaker-Henderson smoother for travel→velocity differentiation.
 	// Setup: ADS1115 PGA 4.096 V, sensor swing 0–3.3 V → 26400 usable codes (log2 = 14.6883).

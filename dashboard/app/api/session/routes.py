@@ -37,7 +37,11 @@ from app.telemetry.velocity import (
     update_velocity_histogram
 )
 
-CURRENT_PROCESSING_VERSION = 1
+# Must track gosst's psst.CurrentProcessingVersion. A stored session is
+# reprocessed (and its cached Bokeh HTML invalidated) only when its blob's
+# ProcessingVersion is below this, so a bump on the Go side that isn't mirrored
+# here leaves every existing session frozen on its old analysis.
+CURRENT_PROCESSING_VERSION = 5
 
 
 def _strip_script_tags(script: str) -> str:

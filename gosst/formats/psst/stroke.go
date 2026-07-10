@@ -35,6 +35,14 @@ type strokes struct {
 	Compressions []*stroke
 	Rebounds     []*stroke
 	idlings      []*stroke
+
+	// airCandidates and topOut are airtime-detection working state, unexported so
+	// the msgpack codec skips them (mirrors Sufni.Bridge's [IgnoreMember] on
+	// AirCandidates/TopOut) -- they are cheap to recompute from Compressions/
+	// Rebounds/idlings and travel on every categorize() call and have no business
+	// surviving a round-trip through storage.
+	airCandidates []*stroke
+	topOut        float64
 }
 
 type airtime struct {
@@ -112,18 +120,21 @@ func digitizeVelocity(v []float64, step float64) (bins []float64, data []int) {
 	return bins, data
 }
 
+// overlaps compares the shared span against the SHORTER of the two strokes, not the
+// longer one: a fork typically snaps to top-out while the shock creeps there over a
+// longer interval, so front and rear hover strokes for the same jump routinely differ
+// 2-3x in length. Gating on the longer stroke made such a pair fail to match, so the
+// same jump fell through to the single-sided fallback on each side and got reported
+// twice; coveredByAirtime() is the dedup guard that backs this up for the fallback path.
+// l == 0 is unreachable for real candidates: a 1-sample stroke can never reach
+// AIRTIME_DURATION_THRESHOLD, so no early-out for it is needed here (matching C#,
+// which has none and would return true for a degenerate zero-length pair).
 func (this *stroke) overlaps(other *stroke) bool {
-	l := max(this.End-this.Start, other.End-other.Start)
-	if l == 0 {
-		return false
-	}
+	l := float64(min(this.End-this.Start, other.End-other.Start))
 	s := max(this.Start, other.Start)
 	e := min(this.End, other.End)
-	overlapDuration := e - s
-	if overlapDuration < 0 {
-		overlapDuration = 0
-	}
-	return float32(overlapDuration) >= AIRTIME_OVERLAP_THRESHOLD*float32(l)
+	overlapDuration := float64(e - s)
+	return overlapDuration >= AIRTIME_OVERLAP_THRESHOLD*l
 }
 
 // getPercentileValue matches MathNet.Numerics' Percentile/QuantileInplace (the
@@ -244,21 +255,96 @@ func newStroke(start, end int, duration float64, travel, velocity []float64, max
 	return s
 }
 
+// estimateTopOut replaces the old fixed "travel == 0 is top-out" assumption. Calibration
+// offsets, coil preload, top-out bumpers and (for the rear) the shock->wheel polynomial
+// all shift the fully-extended reading away from zero -- measured as much as a few mm on
+// real bikes -- so a fixed absolute threshold made some perfectly normal shocks
+// structurally ineligible for airtime detection. Instead this takes a low quantile of the
+// travel distribution as the session's own top-out reading, which self-calibrates to
+// whatever offset that particular suspension actually rests at. The quantile is capped as
+// a fraction of maxTravel so a session with almost no genuine rest samples (e.g. a very
+// short, all-action clip) can't have the quantile land on a real stroke and be mistaken
+// for top-out.
+func estimateTopOut(travel []float64, maxTravel float64) float64 {
+	if len(travel) == 0 {
+		return 0
+	}
+
+	sorted := make([]float64, 0, len(travel))
+	for _, t := range travel {
+		if !math.IsNaN(t) {
+			sorted = append(sorted, t)
+		}
+	}
+	if len(sorted) == 0 {
+		return 0
+	}
+	sort.Float64s(sorted)
+
+	n := len(sorted)
+	idx := TOP_OUT_QUANTILE * float64(n-1)
+	if idx < 0 {
+		idx = 0
+	} else if idx > float64(n-1) {
+		idx = float64(n - 1)
+	}
+	index := int(idx)
+
+	v := sorted[index]
+	topOutCap := maxTravel * TOP_OUT_MAX_RATIO
+	// A degenerate linkage (negative MaxTravel) would make the cap negative and
+	// leak a negative top-out into every downstream threshold. C#'s Math.Clamp
+	// throws on min>max; here we keep the pipeline alive by pinning the cap to 0,
+	// which is a no-op for every physical (non-negative) MaxTravel.
+	if topOutCap < 0 {
+		topOutCap = 0
+	}
+	if v < 0 {
+		v = 0
+	} else if v > topOutCap {
+		v = topOutCap
+	}
+	return v
+}
+
 func (this *strokes) categorize(strokes []*stroke, travel []float64, maxTravel float64) {
 	this.Compressions = make([]*stroke, 0)
 	this.Rebounds = make([]*stroke, 0)
 	this.idlings = make([]*stroke, 0)
+	this.airCandidates = make([]*stroke, 0)
+
+	this.topOut = estimateTopOut(travel, maxTravel)
+
+	// Below this travel a stroke is close enough to topOut to be a plausible airtime
+	// hover; the fixed AIRTIME_TRAVEL_THRESHOLD and the maxTravel-relative
+	// AIRTIME_TRAVEL_THRESHOLD_RATIO are both present because a purely relative gate
+	// is too tight on small-travel setups and a purely fixed one is too tight on
+	// long-travel ones -- the larger of the two always applies.
+	airtimeTravelThreshold := this.topOut + math.Max(AIRTIME_TRAVEL_THRESHOLD, AIRTIME_TRAVEL_THRESHOLD_RATIO*maxTravel)
 
 	for i, currentStroke := range strokes {
+		// Air-candidate test: independent of, and evaluated before, the
+		// comp/rebound/idling split below -- a stroke can be a plausible airtime
+		// hover regardless of which of those three buckets it lands in.
+		// stroke.length alone can't distinguish a hover from stiction creep, so the
+		// allowed |length| grows with the stroke's own duration (AIRTIME_CREEP_RATE);
+		// AIRTIME_DURATION_MAX rejects hovers long enough to be a bike being carried
+		// or leaned rather than genuinely airborne; and the following stroke's peak
+		// velocity must show a real landing impact, not just quiet settling.
+		if i > 0 && i < len(strokes)-1 &&
+			currentStroke.duration >= AIRTIME_DURATION_THRESHOLD &&
+			currentStroke.duration <= AIRTIME_DURATION_MAX &&
+			math.Abs(currentStroke.length) <= STROKE_LENGTH_THRESHOLD+AIRTIME_CREEP_RATE*currentStroke.duration &&
+			currentStroke.Stat.SumTravel/float64(currentStroke.Stat.Count) <= airtimeTravelThreshold &&
+			strokes[i+1].Stat.MaxVelocity >= AIRTIME_VELOCITY_THRESHOLD {
+			currentStroke.airCandidate = true
+			this.airCandidates = append(this.airCandidates, currentStroke)
+		}
+
+		// Comp/rebound/idling classification: bit-for-bit unchanged, since damper
+		// histograms, HSC/LSC and balance figures all depend on it.
 		if math.Abs(currentStroke.length) < STROKE_LENGTH_THRESHOLD &&
 			currentStroke.duration >= IDLING_DURATION_THRESHOLD {
-
-			if i > 0 && i < len(strokes)-1 &&
-				currentStroke.Stat.MaxTravel <= AIRTIME_TRAVEL_THRESHOLD &&
-				currentStroke.duration >= AIRTIME_DURATION_THRESHOLD &&
-				strokes[i+1].Stat.MaxVelocity >= AIRTIME_VELOCITY_THRESHOLD {
-				currentStroke.airCandidate = true
-			}
 			this.idlings = append(this.idlings, currentStroke)
 		} else if currentStroke.length >= STROKE_LENGTH_THRESHOLD {
 			this.Compressions = append(this.Compressions, currentStroke)
