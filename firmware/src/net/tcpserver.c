@@ -48,6 +48,12 @@ static err_t tcp_server_sent(void *arg, struct tcp_pcb *tpcb, u16_t len) {
 err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
     struct tcpserver *server = (struct tcpserver*)arg;
     if (NULL == p) {
+        // If the client already signalled STATUS_FINISHED, its FIN can arrive
+        // before the main loop observes the flag. Don't let the closed-connection
+        // path overwrite it with an error, or the server never shuts down.
+        if (server->status == STATUS_FINISHED) {
+            return ERR_OK;
+        }
         return tcp_server_result(arg, -1);
     }
 
