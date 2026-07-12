@@ -35,6 +35,21 @@ static const uint16_t BLOCK_SIZE = 512; // hardcoded in FatFs_SPI/sd_driver/sd_c
 static sd_card_t *sd = NULL;
 static bool ejected = false;
 
+// Lazily (re)initialize the card. init() short-circuits when the card is
+// already up and otherwise runs the full init sequence again, so a card left
+// confused by a mid-transfer MCU reset recovers on the host's next poll.
+static bool sd_ready(void)
+{
+    if (sd == NULL) {
+        sd_init_driver();
+        sd = sd_get_by_num(0);
+        if (sd == NULL) {
+            return false;
+        }
+    }
+    return !(sd->init(sd) & (STA_NOINIT | STA_NODISK));
+}
+
 // Invoked when received SCSI_CMD_INQUIRY
 // Application fill vendor id, product id and revision with string up to 8, 16, 4 characters respectively
 void tud_msc_inquiry_cb(uint8_t lun, uint8_t vendor_id[8], uint8_t product_id[16], uint8_t product_rev[4])
@@ -56,7 +71,7 @@ bool tud_msc_test_unit_ready_cb(uint8_t lun)
 {
     (void) lun;
 
-    if (ejected) {
+    if (ejected || !sd_ready()) {
         tud_msc_set_sense(lun, SCSI_SENSE_NOT_READY, 0x3a, 0x00);
         return false;
     }
@@ -70,13 +85,8 @@ void tud_msc_capacity_cb(uint8_t lun, uint32_t* block_count, uint16_t* block_siz
 {
     (void) lun;
 
-    if (sd == NULL) {
-        sd_init_driver();
-        sd = sd_get_by_num(0);
-        sd->init(sd);
-    }
-    *block_count = sd->get_num_sectors(sd);
-    *block_size  = BLOCK_SIZE; 
+    *block_count = sd_ready() ? sd->get_num_sectors(sd) : 0;
+    *block_size  = BLOCK_SIZE;
 }
 
 // Invoked when received Start Stop Unit command
@@ -89,13 +99,9 @@ bool tud_msc_start_stop_cb(uint8_t lun, uint8_t power_condition, bool start, boo
 
     if ( load_eject ) {
         if (start) {
-            if (sd == NULL) {
-                sd_init_driver();
-                sd = sd_get_by_num(0);
-                return sd->init(sd);
-            } else {
-                return true;
-            }
+            // NB: init() returns a DSTATUS (0 = ready) — it must not be
+            // returned as a bool, that would report success exactly on failure.
+            return sd_ready();
         } else {
             // unload disk storage
             // XXX: not sure if this needs more handling...
@@ -123,25 +129,22 @@ int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buff
     (void) lun;
     (void) offset; // ignored because CFG_TUD_MSC_EP_BUFSIZE == BLOCK_SIZE
 
-    uint32_t block_count = bufsize / BLOCK_SIZE;
-    int status = sd->read_blocks(sd, buffer, lba, block_count);
-    if (status != SD_BLOCK_DEVICE_ERROR_NONE) {
-        return status;
+    if (!sd_ready()) {
+        tud_msc_set_sense(lun, SCSI_SENSE_NOT_READY, 0x3a, 0x00);
+        return -1;
     }
 
-    //XXX: Not sure if this is necessary. Can bufsize not be a multiple of block size?
-    uint32_t remainder = bufsize % BLOCK_SIZE;
-    if (remainder != 0) {
-        uint8_t block[BLOCK_SIZE];
-        status = sd->read_blocks(sd, block, lba + block_count, 1);
-        if (status != SD_BLOCK_DEVICE_ERROR_NONE) {
-            return status;
-        } else {
-            memcpy(buffer+(bufsize-remainder), block, remainder);
-        }
+    // bufsize is always a whole number of blocks: transfers are sector-sized
+    // and TinyUSB chunks them by CFG_TUD_MSC_EP_BUFSIZE == BLOCK_SIZE.
+    // The (positive) block_dev_err_t codes must not be returned here — TinyUSB
+    // treats any positive return as "bytes transferred" and would hand the
+    // host garbage sectors; errors have to take the -1 STALL path.
+    if (sd->read_blocks(sd, buffer, lba, bufsize / BLOCK_SIZE) != SD_BLOCK_DEVICE_ERROR_NONE) {
+        tud_msc_set_sense(lun, SCSI_SENSE_MEDIUM_ERROR, 0x11, 0x00); // unrecovered read error
+        return -1;
     }
 
-    return bufsize;
+    return (int32_t) bufsize;
 }
 
 // Invoked to check if device is writable as part of SCSI WRITE10
@@ -167,13 +170,19 @@ int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t* 
     (void) lun;
     (void) offset; // ignored because CFG_TUD_MSC_EP_BUFSIZE == BLOCK_SIZE
 
-    uint32_t block_count = bufsize / BLOCK_SIZE;
-    int status = sd->write_blocks(sd, buffer, lba, block_count);
-    if (status != SD_BLOCK_DEVICE_ERROR_NONE) {
-        return status;
+    if (!sd_ready()) {
+        tud_msc_set_sense(lun, SCSI_SENSE_NOT_READY, 0x3a, 0x00);
+        return -1;
     }
 
-    return bufsize;
+    // See tud_msc_read10_cb: positive SD error codes would be misread as a
+    // byte count and silently corrupt the write.
+    if (sd->write_blocks(sd, buffer, lba, bufsize / BLOCK_SIZE) != SD_BLOCK_DEVICE_ERROR_NONE) {
+        tud_msc_set_sense(lun, SCSI_SENSE_MEDIUM_ERROR, 0x0c, 0x00); // write error
+        return -1;
+    }
+
+    return (int32_t) bufsize;
 }
 
 // Callback invoked when received an SCSI command not in built-in list below

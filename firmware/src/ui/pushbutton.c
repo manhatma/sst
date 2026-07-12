@@ -52,6 +52,10 @@ static void gpio_callback(uint gpio, uint32_t events) {
 void create_button(uint gpio, void *user_data, void (*onpress)(void *), void (*onlongpress)(void *)) {
     gpio_init(gpio);
     gpio_pull_up(gpio);
+    // Let the pull-up charge the line before sampling it below. Reading right
+    // away yields 0, which desyncs the state machine and swallows the
+    // button's first press after boot.
+    busy_wait_us(100);
     gpio_set_irq_enabled_with_callback(gpio, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
 
     struct button *btn = malloc(sizeof(struct button)); // NOTE: we are never freeing them, but

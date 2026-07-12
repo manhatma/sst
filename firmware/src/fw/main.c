@@ -38,6 +38,10 @@
 
 static volatile enum state state;
 
+// Whether the wireless chip came up in the MSC boot path — VSYS can only be
+// read while it is powered (see on_msc).
+static bool msc_vsys_ok;
+
 static uint32_t scb_orig;
 static uint32_t clock0_orig;
 static uint32_t clock1_orig;
@@ -588,8 +592,27 @@ static void on_waking() {
 }
 
 static void on_msc() {
-    if (!msc_present()) {
-        soft_reset();
+    // A suspended bus must not reset the device: macOS parks an idle MSC
+    // device a few minutes after mounting (the volume stays mounted and the
+    // host resumes the device on the next access), and tud_task() handles
+    // resume and host reboots by itself. Unplugging is detected via VSYS
+    // instead — above ~4.4 V only happens on USB power, the battery tops out
+    // at ~4.2 V. The read must go through read_voltage(): on the Pico W the
+    // unpowered wireless chip clamps the shared ADC3/GPIO29 line to ~0 V, so
+    // main() brings it up before entering MSC state. (VBUS via
+    // cyw43_arch_gpio_get is no alternative either — the chip's power-save
+    // makes that report VBUS loss spuriously.)
+    static absolute_time_t vsys_check = {0};
+    static int vsys_low = 0;
+    if (msc_vsys_ok && absolute_time_diff_us(get_absolute_time(), vsys_check) < 0) {
+        vsys_check = make_timeout_time_ms(250);
+        if (read_voltage() < 4.4f) {
+            if (++vsys_low >= 3) {
+                soft_reset();
+            }
+        } else {
+            vsys_low = 0;
+        }
     }
     tud_task();
 }
@@ -768,6 +791,9 @@ int main() {
     setup_display(&disp);
 
     if (msc_present()) {
+        // The wireless chip has to be powered for the VSYS-based unplug
+        // detection in on_msc — see there.
+        msc_vsys_ok = cyw43_arch_init() == 0;
         state = MSC;
         display_message(&disp, "MSC MODE");
     } else {
