@@ -14,7 +14,7 @@ endif()
 # ====================================================================================
 cmake_minimum_required(VERSION 3.21.1)
 
-set(PICO_BOARD pico_w)
+set(PICO_BOARD pico_w CACHE STRING "Target Pico board")
 
 include(pico_sdk_import.cmake)
 include(pico_extras_import.cmake)
