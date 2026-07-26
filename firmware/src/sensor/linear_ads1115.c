@@ -12,7 +12,7 @@
 
 #define VREF			3.3
 #define PGA				4.096
-static const uint16_t MAX_ADC_3P3V = (uint16_t)(VREF/PGA)*32768.0f + 0.5f; // #define MAX_ADC_3P3V 	26400 
+static const uint16_t MAX_ADC_3P3V = (uint16_t)((VREF/PGA)*32768.0f + 0.5f); // #define MAX_ADC_3P3V 	26400 
 
 // Forward declarations --------------------------------------------------------
 #ifdef FORK_LINEAR
@@ -183,8 +183,9 @@ static void linear_sensor_ads1115_calibrate_expanded(struct sensor *sensor) {
     ads1115_adc_t* adc = get_ads1115(sensor);
     if (!adc) return;
 
-    uint16_t raw_value;
+    uint16_t raw_value = 0xFFFF;
     int ret = ads1115_read_adc_debug(&raw_value, adc);
+    if (ret != 0) return;
 
     sensor->baseline = raw_value;
 }
