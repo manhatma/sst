@@ -77,6 +77,7 @@ static bool on_battery() {
     return ret;
 }
 
+// The missing /3 for the sample sum and *3 for the VSYS/3 divider cancel deliberately.
 static float read_voltage() {
     cyw43_thread_enter();
     sleep_ms(1); // NOTE ADC3 readings are way too high without this sleep.
@@ -150,8 +151,8 @@ static const uint16_t SAMPLE_RATE = 860;
 
 struct record databuffer1[BUFFER_SIZE];
 struct record databuffer2[BUFFER_SIZE];
-struct record *active_buffer = databuffer1;
-uint16_t count = 0;
+struct record * volatile active_buffer = databuffer1;
+volatile uint16_t count = 0;
 
 static bool data_acquisition_cb(repeating_timer_t *rt) {
     if (count == BUFFER_SIZE) {
@@ -345,7 +346,10 @@ static void on_cal_idle() {
     if (absolute_time_diff_us(get_absolute_time(), timeout) < 0) {
         timeout = make_timeout_time_ms(1000);
 
-        uint8_t voltage_percentage = ((read_voltage() - BATTERY_MIN_V) / BATTERY_RANGE) * 100;
+        float voltage_percentage_float = ((read_voltage() - BATTERY_MIN_V) / BATTERY_RANGE) * 100;
+        if (voltage_percentage_float < 0) voltage_percentage_float = 0;
+        if (voltage_percentage_float > 100) voltage_percentage_float = 100;
+        uint8_t voltage_percentage = (uint8_t)voltage_percentage_float;
         static char battery_str[] = " PWR";
         if (battery) {
             if (voltage_percentage > 99) {
@@ -372,7 +376,7 @@ static void on_cal_exp() {
     fork_sensor.calibrate_expanded(&fork_sensor);
     shock_sensor.calibrate_expanded(&shock_sensor);
 
-    if (fork_sensor.baseline == 0xffff && shock_sensor.baseline == 0xffff) {
+    if (fork_sensor.baseline == 0xffff || shock_sensor.baseline == 0xffff) {
         display_message(&disp, "CAL ERR");
         buzzer_sound_error();
         sleep_ms(1000);
@@ -516,7 +520,10 @@ static void on_idle() {
     if (absolute_time_diff_us(get_absolute_time(), timeout) < 0) {
         timeout = make_timeout_time_ms(1000);
 
-        uint8_t voltage_percentage = ((read_voltage() - BATTERY_MIN_V) / BATTERY_RANGE) * 100;
+        float voltage_percentage_float = ((read_voltage() - BATTERY_MIN_V) / BATTERY_RANGE) * 100;
+        if (voltage_percentage_float < 0) voltage_percentage_float = 0;
+        if (voltage_percentage_float > 100) voltage_percentage_float = 100;
+        uint8_t voltage_percentage = (uint8_t)voltage_percentage_float;
         static char battery_str[] = " PWR";
         if (battery) {
             if (voltage_percentage > 99) {
