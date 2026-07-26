@@ -34,12 +34,12 @@ type stroke struct {
 type strokes struct {
 	Compressions []*stroke
 	Rebounds     []*stroke
-	idlings      []*stroke
+	Idlings      []*stroke
 
 	// airCandidates and topOut are airtime-detection working state, unexported so
 	// the msgpack codec skips them (mirrors Sufni.Bridge's [IgnoreMember] on
 	// AirCandidates/TopOut) -- they are cheap to recompute from Compressions/
-	// Rebounds/idlings and travel on every categorize() call and have no business
+	// Rebounds/Idlings and travel on every categorize() call and have no business
 	// surviving a round-trip through storage.
 	airCandidates []*stroke
 	topOut        float64
@@ -64,8 +64,8 @@ func max(a, b int) int {
 	return b
 }
 
-func sign(v float64) int8 {
-	if math.Abs(v) <= VELOCITY_ZERO_THRESHOLD {
+func sign(v, velocityZeroThreshold float64) int8 {
+	if math.Abs(v) <= velocityZeroThreshold {
 		return 0
 	} else if math.Signbit(v) {
 		return -1
@@ -310,7 +310,7 @@ func estimateTopOut(travel []float64, maxTravel float64) float64 {
 func (this *strokes) categorize(strokes []*stroke, travel []float64, maxTravel float64) {
 	this.Compressions = make([]*stroke, 0)
 	this.Rebounds = make([]*stroke, 0)
-	this.idlings = make([]*stroke, 0)
+	this.Idlings = make([]*stroke, 0)
 	this.airCandidates = make([]*stroke, 0)
 
 	this.topOut = estimateTopOut(travel, maxTravel)
@@ -341,14 +341,11 @@ func (this *strokes) categorize(strokes []*stroke, travel []float64, maxTravel f
 			this.airCandidates = append(this.airCandidates, currentStroke)
 		}
 
-		// Comp/rebound/idling classification: bit-for-bit unchanged, since damper
-		// histograms, HSC/LSC and balance figures all depend on it.
-		if math.Abs(currentStroke.length) < STROKE_LENGTH_THRESHOLD &&
-			currentStroke.duration >= IDLING_DURATION_THRESHOLD {
-			this.idlings = append(this.idlings, currentStroke)
+		if math.Abs(currentStroke.length) < STROKE_LENGTH_THRESHOLD {
+			this.Idlings = append(this.Idlings, currentStroke)
 		} else if currentStroke.length >= STROKE_LENGTH_THRESHOLD {
 			this.Compressions = append(this.Compressions, currentStroke)
-		} else if currentStroke.length <= -STROKE_LENGTH_THRESHOLD {
+		} else {
 			this.Rebounds = append(this.Rebounds, currentStroke)
 		}
 	}
@@ -369,9 +366,16 @@ func (this *strokes) digitize(dt, dv, dvFine []int) {
 			s.FineDigitizedVelocity = dvFine[s.Start : s.End+1]
 		}
 	}
+	for _, s := range this.Idlings {
+		if s.Start <= s.End && s.End < len(dt) && s.End < len(dv) && s.End < len(dvFine) {
+			s.DigitizedTravel = dt[s.Start : s.End+1]
+			s.DigitizedVelocity = dv[s.Start : s.End+1]
+			s.FineDigitizedVelocity = dvFine[s.Start : s.End+1]
+		}
+	}
 }
 
-func filterStrokes(velocity, travel []float64, maxTravel float64, rate uint16) (strokes []*stroke) {
+func filterStrokes(velocity, travel []float64, maxTravel float64, rate uint16, velocityZeroThreshold float64) (strokes []*stroke) {
 	if len(velocity) == 0 || float64(rate) == 0 {
 		return []*stroke{}
 	}
@@ -381,10 +385,15 @@ func filterStrokes(velocity, travel []float64, maxTravel float64, rate uint16) (
 
 	for i := 0; i < len(velocity); { 
 		startIndex = i
-		startSign = sign(velocity[i])
+		startSign = sign(velocity[i], velocityZeroThreshold)
 
 		segmentEndIndex := i
-		for ; segmentEndIndex < len(velocity)-1 && sign(velocity[segmentEndIndex+1]) == startSign; segmentEndIndex++ {
+		for segmentEndIndex < len(velocity)-1 {
+			nextSign := sign(velocity[segmentEndIndex+1], velocityZeroThreshold)
+			if nextSign != 0 && nextSign != startSign {
+				break
+			}
+			segmentEndIndex++
 		}
 
 		d := float64(segmentEndIndex-startIndex+1) / float64(rate)

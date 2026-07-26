@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	VELOCITY_ZERO_THRESHOLD             = 0.02	// (mm/s) maximum velocity to be considered as zero
+	FORK_TRAVEL_PER_LSB                  = 0.00758	// (mm/LSB) fork quantisation
+	SHOCK_TRAVEL_PER_LSB                 = 0.00284	// (mm/LSB) shock quantisation
 	IDLING_DURATION_THRESHOLD           = 0.10	// (s) minimum duration to consider stroke an idle period
 	AIRTIME_TRAVEL_THRESHOLD            = 3		// (mm) maximum travel above top-out to consider stroke an airtime candidate
 	AIRTIME_DURATION_THRESHOLD          = 0.20	// (s) minimum duration to consider stroke an airtime candidate
@@ -93,7 +94,7 @@ const (
 	// ProcessingVersion is already >= this is left untouched, so bumping it is
 	// required whenever a change here (like the airtime rework above) needs to be
 	// applied to existing sessions.
-	CurrentProcessingVersion = 5
+	CurrentProcessingVersion = 6
 
 	// Whittaker-Henderson smoother for travel→velocity differentiation.
 	// Setup: ADS1115 PGA 4.096 V, sensor swing 0–3.3 V → 26400 usable codes (log2 = 14.6883).
@@ -107,6 +108,17 @@ const (
 	WH_ORDER  = 3
 	WH_LAMBDA = 11
 )
+
+// (mm/s) velocity dead bands are the per-side LSB size multiplied by the actual sample rate.
+// At 860.58 Hz: fork = 0.00758 mm/LSB * 860.58 Hz = 6.52 mm/s;
+// shock = 0.00284 mm/LSB * 860.58 Hz = 2.44 mm/s.
+func forkVelocityZeroThreshold(sampleRate uint16) float64 {
+	return FORK_TRAVEL_PER_LSB * float64(sampleRate)
+}
+
+func shockVelocityZeroThreshold(sampleRate uint16) float64 {
+	return SHOCK_TRAVEL_PER_LSB * float64(sampleRate)
+}
 
 // smoothedRearWheelTravel smooths the rear shock-travel signal with WH (where ADS1115
 // quantisation is ~2.84 µm/LSB for an ELPM75 versus ~7 µm/LSB after the leverage
@@ -440,7 +452,8 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 		vbinsFine, dvFine := digitizeVelocity(pd.Front.Velocity, VELOCITY_HIST_STEP_FINE)
 		pd.Front.FineVelocityBins = vbinsFine
 
-		currentStrokes := filterStrokes(pd.Front.Velocity, pd.Front.Travel, pd.Linkage.MaxFrontTravel, pd.Meta.SampleRate)
+		currentStrokes := filterStrokes(pd.Front.Velocity, pd.Front.Travel, pd.Linkage.MaxFrontTravel, pd.Meta.SampleRate,
+			forkVelocityZeroThreshold(pd.Meta.SampleRate))
 		pd.Front.Strokes.categorize(currentStrokes, pd.Front.Travel, pd.Linkage.MaxFrontTravel)
 
 		if len(pd.Front.Strokes.Compressions) == 0 && len(pd.Front.Strokes.Rebounds) == 0 {
@@ -516,7 +529,8 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 		vbinsFine, dvFine := digitizeVelocity(pd.Rear.Velocity, VELOCITY_HIST_STEP_FINE)
 		pd.Rear.FineVelocityBins = vbinsFine
 
-		currentStrokes := filterStrokes(pd.Rear.Velocity, pd.Rear.Travel, pd.Linkage.MaxRearTravel, pd.Meta.SampleRate)
+		currentStrokes := filterStrokes(pd.Rear.Velocity, pd.Rear.Travel, pd.Linkage.MaxRearTravel, pd.Meta.SampleRate,
+			shockVelocityZeroThreshold(pd.Meta.SampleRate))
 		pd.Rear.Strokes.categorize(currentStrokes, pd.Rear.Travel, pd.Linkage.MaxRearTravel)
 		if len(pd.Rear.Strokes.Compressions) == 0 && len(pd.Rear.Strokes.Rebounds) == 0 {
 			pd.Rear.Present = false
@@ -538,7 +552,7 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 // the leverage polynomial. ShockTravel is reconstructed from the stored
 // Travel via Linkage.WheelToDamperTravel for sessions imported before the
 // field existed.
-func reprocessSuspension(s *suspension, sampleRate uint16, maxTravel float64, linkage *Linkage) {
+func reprocessSuspension(s *suspension, sampleRate uint16, maxTravel, velocityZeroThreshold float64, linkage *Linkage) {
 	n := len(s.Travel)
 	if n == 0 || !s.Present {
 		return
@@ -599,7 +613,7 @@ func reprocessSuspension(s *suspension, sampleRate uint16, maxTravel float64, li
 	s.FineVelocityBins = vbinsFine
 
 	// Strokes
-	currentStrokes := filterStrokes(s.Velocity, s.Travel, maxTravel, sampleRate)
+	currentStrokes := filterStrokes(s.Velocity, s.Travel, maxTravel, sampleRate, velocityZeroThreshold)
 	s.Strokes.categorize(currentStrokes, s.Travel, maxTravel)
 	if len(s.Strokes.Compressions) == 0 && len(s.Strokes.Rebounds) == 0 {
 		s.Present = false
@@ -648,10 +662,12 @@ func ReprocessVelocityFromBlob(raw []byte) ([]byte, error) {
 	}
 
 	if pd.Front.Present {
-		reprocessSuspension(&pd.Front, pd.SampleRate, pd.Linkage.MaxFrontTravel, nil)
+		reprocessSuspension(&pd.Front, pd.SampleRate, pd.Linkage.MaxFrontTravel,
+			forkVelocityZeroThreshold(pd.SampleRate), nil)
 	}
 	if pd.Rear.Present {
-		reprocessSuspension(&pd.Rear, pd.SampleRate, pd.Linkage.MaxRearTravel, &pd.Linkage)
+		reprocessSuspension(&pd.Rear, pd.SampleRate, pd.Linkage.MaxRearTravel,
+			shockVelocityZeroThreshold(pd.SampleRate), &pd.Linkage)
 	}
 	pd.airtimes()
 	pd.ProcessingVersion = CurrentProcessingVersion
