@@ -42,16 +42,26 @@ add_executable(sufni-suspension-telemetry
     src/util/config.c
     src/util/list.c
 #    src/sensor/rotational.c    	# Rotational sensor implementation (AS5600)
-    src/sensor/linear_ads1115.c # Linear sensor with external adc implementation
 #    src/sensor/evomini_debug.c  # Evomini debug/logging functions 
 )
+
+if("${ADS131_SENSORS}" STREQUAL "ON")
+    target_sources(sufni-suspension-telemetry PRIVATE src/sensor/linear_ads131m02.c)
+else()
+    if(FORK_LINEAR STREQUAL "ON" OR SHOCK_LINEAR STREQUAL "ON")
+        target_sources(sufni-suspension-telemetry PRIVATE src/sensor/linear_ads1115.c)
+    endif()
+    if(NOT FORK_LINEAR STREQUAL "ON" OR NOT SHOCK_LINEAR STREQUAL "ON")
+        target_sources(sufni-suspension-telemetry PRIVATE src/sensor/rotational.c)
+    endif()
+endif()
 
 pico_generate_pio_header(sufni-suspension-telemetry
     ${CMAKE_CURRENT_LIST_DIR}/src/pio_i2c/i2c.pio
 )
 
 add_subdirectory(external/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src firmware/external/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src)
-#add_subdirectory(external/pico-as5600 firmware/external/pico-as5600)
+add_subdirectory(external/pico-as5600 firmware/external/pico-as5600)
 add_subdirectory(external/pico-ssd1306 firmware/external/pico-ssd1306)
 add_subdirectory(external/pico-ads1115)
 
@@ -69,6 +79,10 @@ endif()
 
 if("${SHOCK_LINEAR}" STREQUAL "ON")
     target_compile_options(sufni-suspension-telemetry PUBLIC -DSHOCK_LINEAR)
+endif()
+
+if("${ADS131_SENSORS}" STREQUAL "ON")
+    target_compile_options(sufni-suspension-telemetry PUBLIC -DADS131_SENSORS)
 endif()
 
 target_include_directories(sufni-suspension-telemetry PUBLIC
@@ -100,8 +114,13 @@ if(FORK_LINEAR STREQUAL "ON" OR SHOCK_LINEAR STREQUAL "ON")
     target_link_libraries(sufni-suspension-telemetry pico-ads1115)
 endif()
 
-if(NOT (FORK_LINEAR STREQUAL "ON" OR SHOCK_LINEAR STREQUAL "ON"))
+if((NOT FORK_LINEAR STREQUAL "ON" OR NOT SHOCK_LINEAR STREQUAL "ON") AND
+   NOT ADS131_SENSORS STREQUAL "ON")
     target_link_libraries(sufni-suspension-telemetry as5600)
+endif()
+
+if("${ADS131_SENSORS}" STREQUAL "ON")
+    target_link_libraries(sufni-suspension-telemetry hardware_spi hardware_dma)
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

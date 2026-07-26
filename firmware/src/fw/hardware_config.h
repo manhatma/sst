@@ -64,6 +64,32 @@
 // ----------------------------------------------------------------------------
 // Fork and shock sensors
 
+#ifdef ADS131_SENSORS
+#ifdef SPI_DISPLAY
+#error "ADS131_SENSORS und SPI_DISPLAY teilen sich SPI1 (GPIO 10-13)"
+#endif
+#define ADS131_SPI       spi1
+#define ADS131_PIN_SCK   10
+#define ADS131_PIN_MOSI  11
+#define ADS131_PIN_MISO  12
+#define ADS131_PIN_CS    13
+#define ADS131_PIN_DRDY  20
+#define ADS131_PIN_RESET 7
+#endif
+
+#ifdef IMU_MPU6050
+#define IMU_BUS0_I2C     i2c0
+#define IMU_BUS0_SDA     8
+#define IMU_BUS0_SCL     9
+#define IMU_BUS1_I2C     i2c1
+#define IMU_BUS1_SDA     14
+#define IMU_BUS1_SCL     15
+#define IMU_INT_BUS0     27
+#define IMU_INT_BUS1     28
+#define MPU6050_ADDR_LO  0x68
+#define MPU6050_ADDR_HI  0x69
+#endif
+
 #ifdef FORK_LINEAR
 #define FORK_I2C         i2c0
 #define FORK_PIN_SDA     8

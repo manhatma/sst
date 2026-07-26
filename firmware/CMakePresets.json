@@ -117,6 +117,28 @@
                 "SPI_MICROSD": "ON",
                 "DISP_PROTO": "PIO_I2C"
             }
+        },
+        {
+            "name": "spi_card-i2c_disp-ads131_dual-mpu6050",
+            "displayName": "SPI MicroSD, I2C display, ADS131 dual sensor, MPU6050 IMUs",
+            "hidden": false,
+            "inherits": "base-release",
+            "cacheVariables": {
+                "ADS131_SENSORS": "ON",
+                "SPI_MICROSD": "ON",
+                "DISP_PROTO": "PIO_I2C"
+            }
+        },
+        {
+            "name": "spi_card-i2c_disp-ads131_dual-mpu6050-debug",
+            "displayName": "SPI MicroSD, I2C display, ADS131 dual sensor, MPU6050 IMUs (debug)",
+            "hidden": false,
+            "inherits": "base-debug",
+            "cacheVariables": {
+                "ADS131_SENSORS": "ON",
+                "SPI_MICROSD": "ON",
+                "DISP_PROTO": "PIO_I2C"
+            }
         }
     ],
     "buildPresets": [
@@ -159,6 +181,16 @@
             "name": "spi_card-i2c_disp-as5600_fork-as5600_shock-debug",
             "displayName": "SPI MicroSD, I2C display, AS5600 fork sensor, AS5600 shock sensor",
             "configurePreset": "spi_card-i2c_disp-as5600_fork-as5600_shock-debug"
+        },
+        {
+            "name": "spi_card-i2c_disp-ads131_dual-mpu6050",
+            "displayName": "SPI MicroSD, I2C display, ADS131 dual sensor, MPU6050 IMUs",
+            "configurePreset": "spi_card-i2c_disp-ads131_dual-mpu6050"
+        },
+        {
+            "name": "spi_card-i2c_disp-ads131_dual-mpu6050-debug",
+            "displayName": "SPI MicroSD, I2C display, ADS131 dual sensor, MPU6050 IMUs (debug)",
+            "configurePreset": "spi_card-i2c_disp-ads131_dual-mpu6050-debug"
         }     
     ]
 }

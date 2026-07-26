@@ -6,7 +6,7 @@
 #include "../net/tcpclient.h"
 #include "../ui/pushbutton.h"
 
-#if !defined(FORK_LINEAR) || !defined(SHOCK_LINEAR)
+#if (!defined(FORK_LINEAR) || !defined(SHOCK_LINEAR)) && !defined(ADS131_SENSORS)
 #include "as5600.h"
 #endif
 

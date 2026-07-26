@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 
 #include "cyw43_ll.h"
@@ -47,7 +48,9 @@ static uint32_t clock0_orig;
 static uint32_t clock1_orig;
 
 static ssd1306_t disp;
+#ifndef ADS131_SENSORS
 static repeating_timer_t data_acquisition_timer;
+#endif
 static FIL recording;
 static struct tcpserver server;
 
@@ -124,6 +127,24 @@ static void calibrate_if_needed() {
     gpio_pull_up(BUTTON_LEFT);
 
     FRESULT fr = f_stat("CALIBRATION", NULL);
+#ifdef ADS131_SENSORS
+    if (fr == FR_OK) {
+        static const uint8_t calibration_magic[] = {'C', 'A', 'L', 0x02};
+        uint8_t prefix[sizeof(calibration_magic)];
+        uint br = 0;
+        FIL calibration_fil;
+        fr = f_open(&calibration_fil, "CALIBRATION", FA_OPEN_EXISTING | FA_READ);
+        if (fr == FR_OK || fr == FR_EXIST) {
+            fr = f_read(&calibration_fil, prefix, sizeof(prefix), &br);
+            f_close(&calibration_fil);
+        }
+        if (fr != FR_OK || br != sizeof(prefix) ||
+            memcmp(prefix, calibration_magic, sizeof(prefix)) != 0) {
+            f_unlink("CALIBRATION");
+            fr = FR_NO_FILE;
+        }
+    }
+#endif
     if (fr != FR_OK || !gpio_get(BUTTON_LEFT)) {
         state = CAL_IDLE_1;
     } else {
@@ -134,7 +155,9 @@ static void calibrate_if_needed() {
 // ----------------------------------------------------------------------------
 // Data acquisition
 
+#ifndef ADS131_SENSORS
 static const uint16_t SAMPLE_RATE = 860;
+#endif
 
 // We are using two buffers. Data acquisition happens on core #1 into the active
 // buffer (referred to by the pointer active_buffer) and we dump to Micro SD card
@@ -154,6 +177,7 @@ struct record databuffer2[BUFFER_SIZE];
 struct record * volatile active_buffer = databuffer1;
 volatile uint16_t count = 0;
 
+#ifndef ADS131_SENSORS
 static bool data_acquisition_cb(repeating_timer_t *rt) {
     if (count == BUFFER_SIZE) {
         count = 0;
@@ -169,6 +193,7 @@ static bool data_acquisition_cb(repeating_timer_t *rt) {
 
     return state == RECORD; // keep repeating if we are still recording
 }
+#endif
 
 static bool start_sensors() {
     absolute_time_t timeout = make_timeout_time_ms(3000);
@@ -188,6 +213,17 @@ static bool start_sensors() {
     uint br;
     uint16_t baseline;
     bool inverted;
+#ifdef ADS131_SENSORS
+    static const uint8_t calibration_magic[] = {'C', 'A', 'L', 0x02};
+    uint8_t prefix[sizeof(calibration_magic)];
+    fr = f_read(&calibration_fil, prefix, sizeof(prefix), &br);
+    if (fr != FR_OK || br != sizeof(prefix) ||
+        memcmp(prefix, calibration_magic, sizeof(prefix)) != 0) {
+        f_close(&calibration_fil);
+        f_unlink("CALIBRATION");
+        return false;
+    }
+#endif
     f_read(&calibration_fil, &baseline, sizeof(uint16_t), &br);
     f_read(&calibration_fil, &inverted, sizeof(bool), &br);
     fork_sensor.start(&fork_sensor, baseline, inverted);
@@ -264,7 +300,13 @@ static int open_datafile() {
         return fr;
     }
 
-    struct header h = {"SST", 3, SAMPLE_RATE, rtc_timestamp()};
+    struct header h = {"SST", 3,
+#ifdef ADS131_SENSORS
+                       ads131_sample_rate(),
+#else
+                       SAMPLE_RATE,
+#endif
+                       rtc_timestamp()};
     f_write(&recording, &h, sizeof(struct header), NULL);
 
     return index;
@@ -289,9 +331,9 @@ static void data_storage_core1() {
                 break;
             case DUMP:
                 buffer = (struct record *)((uintptr_t)multicore_fifo_pop_blocking());
-                multicore_fifo_push_blocking((uintptr_t)buffer);
                 f_write(&recording, buffer, sizeof(struct record)*BUFFER_SIZE, NULL);
                 f_sync(&recording);
+                multicore_fifo_push_blocking((uintptr_t)buffer);
                 break;
             case FINISH:
                 size = (uint16_t)multicore_fifo_pop_blocking();
@@ -395,6 +437,10 @@ static void on_cal_exp() {
     }
 
     uint bw;
+#ifdef ADS131_SENSORS
+    static const uint8_t calibration_magic[] = {'C', 'A', 'L', 0x02};
+    f_write(&calibration_fil, calibration_magic, sizeof(calibration_magic), &bw);
+#endif
     f_write(&calibration_fil, &fork_sensor.baseline, sizeof(uint16_t), &bw);
     f_write(&calibration_fil, (const void *)&fork_sensor.inverted, sizeof(bool), &bw);
     f_write(&calibration_fil, &shock_sensor.baseline, sizeof(uint16_t), &bw);
@@ -431,17 +477,25 @@ static void on_rec_start() {
         while(true) { tight_loop_contents(); }
     }
 
+#ifdef ADS131_SENSORS
+    ads131_begin(&active_buffer, &count, BUFFER_SIZE);
+#else
     // Start data acquisition timer
     if (!add_repeating_timer_us(-1000000/SAMPLE_RATE, data_acquisition_cb, NULL, &data_acquisition_timer)) {
         display_message(&disp, "TIMER ERR");
         while(true) { tight_loop_contents(); }
     }
+#endif
 }
 
 static void on_rec_stop() {
     state = IDLE;
     display_message(&disp, "IDLE");
+#ifdef ADS131_SENSORS
+    ads131_end();
+#else
     cancel_repeating_timer(&data_acquisition_timer);
+#endif
     buzzer_sound_stop();
 
     multicore_fifo_push_blocking(FINISH);
@@ -565,6 +619,10 @@ static void on_sleep() {
     // otherwise the silence alarm is lost and PWM runs forever after wake.
     buzzer_sound_sleep();
 
+#ifdef ADS131_SENSORS
+    ads131_standby();
+#endif
+
     sleep_run_from_xosc();
     display_message(&disp, "SLEEP.");
 
@@ -575,7 +633,12 @@ static void on_sleep() {
     scb_hw->scr = scb_orig | M0PLUS_SCR_SLEEPDEEP_BITS;
     display_message(&disp, "SLEEP...");
 
-    disable_button(BUTTON_LEFT, false);
+    // Both buttons wake the device. disable_button()'s release_only flag masks
+    // the rising (release) edge only, leaving the falling (press) edge armed to
+    // raise the GPIO IRQ that brings the core out of __wfi() below. Masking the
+    // rising edge matters because the button that triggered sleep may still be
+    // settling, and its release must not wake the device straight away.
+    disable_button(BUTTON_LEFT, true);
     disable_button(BUTTON_RIGHT, true);
     ssd1306_poweroff(&disp);
     state = WAKING;
@@ -589,6 +652,9 @@ static void on_waking() {
     clocks_hw->sleep_en0 = clock0_orig;
     clocks_hw->sleep_en1 = clock1_orig;
     runtime_init_clocks();
+#ifdef ADS131_SENSORS
+    ads131_wake();
+#endif
     buzzer_init();
     buzzer_sound_wake();
 
@@ -840,4 +906,3 @@ int main() {
 
     return 0;
 }
-
