@@ -174,6 +174,8 @@ func (this *RequestHandler) PutNormalizedSession(c *gin.Context) {
 	method := psst.CalibrationMethod{Name: "fraction"}
 	method.Inputs = []string{}
 	method.Intermediates = map[string]string{}
+	// A one-unit finite difference spans the full stroke for normalized fractions, so the
+	// travel-per-LSB plausibility guard rejects it and retains the sensor-specific fallback.
 	method.Expression = "sample * MAX_STROKE"
 	fcal := &psst.Calibration{
 		Name:   "Fraction",

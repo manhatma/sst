@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/SeanJxie/polygo"
@@ -17,8 +18,8 @@ import (
 )
 
 const (
-	FORK_TRAVEL_PER_LSB                  = 0.00758	// (mm/LSB) fork quantisation
-	SHOCK_TRAVEL_PER_LSB                 = 0.00284	// (mm/LSB) shock quantisation
+	FORK_TRAVEL_PER_LSB_FALLBACK         = 0.00758	// (mm/LSB) fork quantisation fallback
+	SHOCK_TRAVEL_PER_LSB_FALLBACK        = 0.00284	// (mm/LSB) shock quantisation fallback
 	IDLING_DURATION_THRESHOLD           = 0.10	// (s) minimum duration to consider stroke an idle period
 	AIRTIME_TRAVEL_THRESHOLD            = 3		// (mm) maximum travel above top-out to consider stroke an airtime candidate
 	AIRTIME_DURATION_THRESHOLD          = 0.20	// (s) minimum duration to consider stroke an airtime candidate
@@ -94,14 +95,13 @@ const (
 	// ProcessingVersion is already >= this is left untouched, so bumping it is
 	// required whenever a change here (like the airtime rework above) needs to be
 	// applied to existing sessions.
-	CurrentProcessingVersion = 6
+	CurrentProcessingVersion = 7
 
-	// Whittaker-Henderson smoother for travel→velocity differentiation.
-	// Setup: ADS1115 PGA 4.096 V, sensor swing 0–3.3 V → 26400 usable codes (log2 = 14.6883).
-	// VLP200 fork:    7.58 µm/LSB, sub-LSB threshold 6.5 mm/s.
-	// ELPM75 shock:   2.84 µm/LSB on shock travel, 2.4 mm/s sub-LSB threshold (rear pipeline
-	//                 smooths shock travel before the leverage polynomial to keep this finer
-	//                 quantisation; see SmoothedRearWheelTravel).
+	// Whittaker-Henderson smoother for travel→velocity differentiation. The velocity dead
+	// band is derived from the calibration at the median raw sample. As a worked example,
+	// an ADS1115 with 26400 usable codes across a 200 mm fork / 75 mm shock reproduces
+	// 7.58 / 2.84 µm/LSB and 6.5 / 2.4 mm/s at 860.58 Hz. The rear pipeline smooths
+	// shock travel before the leverage polynomial to retain its finer quantisation.
 	// f_c/f_s ≈ (1/2π)·λ^(−1/2p): order 3, λ 11 → −3 dB at ~91 Hz @ 860 SPS, steeper roll-off
 	// than the previous (2, 5) at the same cutoff so the central-difference noise gain
 	// above f_s/4 is suppressed without sacrificing impulse fidelity on rock/square-edge hits.
@@ -109,15 +109,36 @@ const (
 	WH_LAMBDA = 11
 )
 
-// (mm/s) velocity dead bands are the per-side LSB size multiplied by the actual sample rate.
-// At 860.58 Hz: fork = 0.00758 mm/LSB * 860.58 Hz = 6.52 mm/s;
-// shock = 0.00284 mm/LSB * 860.58 Hz = 2.44 mm/s.
-func forkVelocityZeroThreshold(sampleRate uint16) float64 {
-	return FORK_TRAVEL_PER_LSB * float64(sampleRate)
+func travelPerLsbOrFallback(travelPerLsb, fallback float64) float64 {
+	if math.IsNaN(travelPerLsb) || math.IsInf(travelPerLsb, 0) || travelPerLsb <= 0 || travelPerLsb > 0.5 {
+		return fallback
+	}
+	return travelPerLsb
 }
 
-func shockVelocityZeroThreshold(sampleRate uint16) float64 {
-	return SHOCK_TRAVEL_PER_LSB * float64(sampleRate)
+func forkVelocityZeroThreshold(travelPerLsb float64, sampleRate uint16) float64 {
+	return travelPerLsbOrFallback(travelPerLsb, FORK_TRAVEL_PER_LSB_FALLBACK) * float64(sampleRate)
+}
+
+func shockVelocityZeroThreshold(travelPerLsb float64, sampleRate uint16) float64 {
+	return travelPerLsbOrFallback(travelPerLsb, SHOCK_TRAVEL_PER_LSB_FALLBACK) * float64(sampleRate)
+}
+
+func deriveTravelPerLsb[T Number](samples []T, calibration *Calibration, fallback float64) float64 {
+	if len(samples) == 0 || calibration == nil {
+		return fallback
+	}
+	sorted := make([]float64, len(samples))
+	for i, sample := range samples {
+		sorted[i] = float64(sample)
+	}
+	sort.Float64s(sorted)
+	reference := sorted[(len(sorted)-1)/2]
+	derived, err := calibration.TravelPerLsb(reference)
+	if err != nil {
+		return fallback
+	}
+	return travelPerLsbOrFallback(derived, fallback)
 }
 
 // smoothedRearWheelTravel smooths the rear shock-travel signal with WH (where ADS1115
@@ -230,6 +251,7 @@ type Linkage struct {
 
 type suspension struct {
 	Present                bool
+	TravelPerLsb           float64
 	Calibration            Calibration
 	Travel                 []float64
 	Velocity               []float64
@@ -389,6 +411,7 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 	}
 
 	if pd.Front.Present {
+		pd.Front.TravelPerLsb = deriveTravelPerLsb(front, &pd.Front.Calibration, FORK_TRAVEL_PER_LSB_FALLBACK)
 		pd.Front.Travel = make([]float64, fc)
 		front_coeff := math.Sin(pd.Linkage.HeadAngle * math.Pi / 180.0)
 		for idx, value := range front {
@@ -453,7 +476,7 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 		pd.Front.FineVelocityBins = vbinsFine
 
 		currentStrokes := filterStrokes(pd.Front.Velocity, pd.Front.Travel, pd.Linkage.MaxFrontTravel, pd.Meta.SampleRate,
-			forkVelocityZeroThreshold(pd.Meta.SampleRate))
+			forkVelocityZeroThreshold(pd.Front.TravelPerLsb, pd.Meta.SampleRate))
 		pd.Front.Strokes.categorize(currentStrokes, pd.Front.Travel, pd.Linkage.MaxFrontTravel)
 
 		if len(pd.Front.Strokes.Compressions) == 0 && len(pd.Front.Strokes.Rebounds) == 0 {
@@ -465,6 +488,7 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 	}
 
 	if pd.Rear.Present {
+		pd.Rear.TravelPerLsb = deriveTravelPerLsb(rear, &pd.Rear.Calibration, SHOCK_TRAVEL_PER_LSB_FALLBACK)
 		pd.Rear.Travel = make([]float64, rc)
 		pd.Rear.ShockTravel = make([]float64, rc)
 		for idx, value := range rear {
@@ -530,7 +554,7 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 		pd.Rear.FineVelocityBins = vbinsFine
 
 		currentStrokes := filterStrokes(pd.Rear.Velocity, pd.Rear.Travel, pd.Linkage.MaxRearTravel, pd.Meta.SampleRate,
-			shockVelocityZeroThreshold(pd.Meta.SampleRate))
+			shockVelocityZeroThreshold(pd.Rear.TravelPerLsb, pd.Meta.SampleRate))
 		pd.Rear.Strokes.categorize(currentStrokes, pd.Rear.Travel, pd.Linkage.MaxRearTravel)
 		if len(pd.Rear.Strokes.Compressions) == 0 && len(pd.Rear.Strokes.Rebounds) == 0 {
 			pd.Rear.Present = false
@@ -663,11 +687,11 @@ func ReprocessVelocityFromBlob(raw []byte) ([]byte, error) {
 
 	if pd.Front.Present {
 		reprocessSuspension(&pd.Front, pd.SampleRate, pd.Linkage.MaxFrontTravel,
-			forkVelocityZeroThreshold(pd.SampleRate), nil)
+			forkVelocityZeroThreshold(pd.Front.TravelPerLsb, pd.SampleRate), nil)
 	}
 	if pd.Rear.Present {
 		reprocessSuspension(&pd.Rear, pd.SampleRate, pd.Linkage.MaxRearTravel,
-			shockVelocityZeroThreshold(pd.SampleRate), &pd.Linkage)
+			shockVelocityZeroThreshold(pd.Rear.TravelPerLsb, pd.SampleRate), &pd.Linkage)
 	}
 	pd.airtimes()
 	pd.ProcessingVersion = CurrentProcessingVersion

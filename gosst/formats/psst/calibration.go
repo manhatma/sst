@@ -168,6 +168,18 @@ func (this *Calibration) Evaluate(sample float64) (float64, error) {
 	return out.(float64), nil
 }
 
+func (this *Calibration) TravelPerLsb(reference float64) (float64, error) {
+	atReference, err := this.Evaluate(reference)
+	if err != nil {
+		return math.NaN(), err
+	}
+	atNextCode, err := this.Evaluate(reference + 1.0)
+	if err != nil {
+		return math.NaN(), err
+	}
+	return math.Abs(atNextCode - atReference), nil
+}
+
 func LoadCalibrations(data []byte, linkage Linkage) (*Calibration, *Calibration, error) {
 	var cs calibrations
 	if err := json.Unmarshal(data, &cs); err != nil {
