@@ -101,9 +101,9 @@ const (
 
 	// CurrentProcessingVersion gates ReprocessVelocityFromBlob: a stored blob whose
 	// ProcessingVersion is already >= this is left untouched, so bumping it is
-	// required whenever a change here (like the airtime rework above) needs to be
-	// applied to existing sessions.
-	CurrentProcessingVersion = 8
+	// required whenever a change here (like the airtime rework above or rear
+	// wheel-domain dead-band conversion) needs to be applied to existing sessions.
+	CurrentProcessingVersion = 9
 
 	// Whittaker-Henderson smoother for travel→velocity differentiation. The velocity dead
 	// band is derived from the calibration at the median raw sample. As a worked example,
@@ -130,6 +130,49 @@ func forkVelocityZeroThreshold(travelPerLsb float64, sampleRate uint16) float64 
 
 func shockVelocityZeroThreshold(travelPerLsb float64, sampleRate uint16) float64 {
 	return travelPerLsbOrFallback(travelPerLsb, SHOCK_TRAVEL_PER_LSB_FALLBACK) * float64(sampleRate)
+}
+
+func rearWheelVelocityZeroThreshold(travelPerLsb float64, sampleRate uint16, linkage *Linkage, shockTravel, wheelTravel []float64) float64 {
+	shockDeadBand := shockVelocityZeroThreshold(travelPerLsb, sampleRate)
+	if linkage == nil || linkage.polynomial == nil {
+		return shockDeadBand
+	}
+
+	shockPositions := shockTravel
+	if len(shockPositions) == 0 {
+		shockPositions = make([]float64, len(wheelTravel))
+		for i, travel := range wheelTravel {
+			shockPositions[i] = linkage.WheelToDamperTravel(travel)
+		}
+	}
+	if len(shockPositions) == 0 {
+		return shockDeadBand
+	}
+
+	sorted := append([]float64(nil), shockPositions...)
+	medianShock := math.NaN()
+	hasNaN := false
+	for _, position := range sorted {
+		if math.IsNaN(position) {
+			hasNaN = true
+			break
+		}
+	}
+	if !hasNaN {
+		sort.Float64s(sorted)
+		middle := len(sorted) / 2
+		medianShock = sorted[middle]
+		if len(sorted)%2 == 0 {
+			medianShock = (sorted[middle-1] + sorted[middle]) / 2
+		}
+	}
+
+	// Stored rear velocity is wheel-domain; local dWheel/dShock converts the shock-domain threshold.
+	leverage := linkage.polynomial.Derivative().At(medianShock)
+	if math.IsNaN(leverage) || math.IsInf(leverage, 0) || leverage <= 0 || leverage > 10 {
+		leverage = 1
+	}
+	return shockDeadBand * leverage
 }
 
 func deriveTravelPerLsb[T Number](samples []T, calibration *Calibration, fallback float64) float64 {
@@ -562,7 +605,7 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 		pd.Rear.FineVelocityBins = vbinsFine
 
 		currentStrokes := filterStrokes(pd.Rear.Velocity, pd.Rear.Travel, pd.Linkage.MaxRearTravel, pd.Meta.SampleRate,
-			shockVelocityZeroThreshold(pd.Rear.TravelPerLsb, pd.Meta.SampleRate))
+			rearWheelVelocityZeroThreshold(pd.Rear.TravelPerLsb, pd.Meta.SampleRate, &pd.Linkage, pd.Rear.ShockTravel, pd.Rear.Travel))
 		pd.Rear.Strokes.categorize(currentStrokes, pd.Rear.Travel, pd.Rear.Velocity, pd.Linkage.MaxRearTravel)
 		if len(pd.Rear.Strokes.Compressions) == 0 && len(pd.Rear.Strokes.Rebounds) == 0 {
 			pd.Rear.Present = false
@@ -699,7 +742,7 @@ func ReprocessVelocityFromBlob(raw []byte) ([]byte, error) {
 	}
 	if pd.Rear.Present {
 		reprocessSuspension(&pd.Rear, pd.SampleRate, pd.Linkage.MaxRearTravel,
-			shockVelocityZeroThreshold(pd.Rear.TravelPerLsb, pd.SampleRate), &pd.Linkage)
+			rearWheelVelocityZeroThreshold(pd.Rear.TravelPerLsb, pd.SampleRate, &pd.Linkage, pd.Rear.ShockTravel, pd.Rear.Travel), &pd.Linkage)
 	}
 	pd.airtimes()
 	pd.ProcessingVersion = CurrentProcessingVersion
