@@ -645,11 +645,13 @@ static void on_serve_tcp() {
     // cyw43/lwIP teardown can't keep the buzzer's silence alarm from firing.
     wifi_disconnect();
     if (auto_exit) {
-        buzzer_sound_confirm();
         display_message(&disp, "DONE");
-        sleep_ms(800);
+        sleep_ms(5000);
+        // Completion owns the transition; override a late IRQ-side IDLE write.
+        state = SLEEP;
+    } else {
+        state = IDLE;
     }
-    state = IDLE;
 }
 
 static struct boardid_menu boardid_menu_state;
@@ -840,4 +842,3 @@ int main() {
 
     return 0;
 }
-
