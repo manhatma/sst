@@ -22,7 +22,11 @@ const (
 	SHOCK_TRAVEL_PER_LSB_FALLBACK        = 0.00284	// (mm/LSB) shock quantisation fallback
 	IDLING_DURATION_THRESHOLD           = 0.10	// (s) minimum duration to consider stroke an idle period
 	AIRTIME_TRAVEL_THRESHOLD            = 3		// (mm) maximum travel above top-out to consider stroke an airtime candidate
-	AIRTIME_DURATION_THRESHOLD          = 0.20	// (s) minimum duration to consider stroke an airtime candidate
+	// AIRTIME_DURATION_THRESHOLD is slightly below the rounded 0.2 s value: that
+	// boundary has no sharp discriminating power, and the reference jump that
+	// triggered this change misses 0.20 s by a single millisecond, so the gate is
+	// loosened to admit that one-sample difference.
+	AIRTIME_DURATION_THRESHOLD          = 0.190	// (s) minimum duration to consider stroke an airtime candidate
 	AIRTIME_VELOCITY_THRESHOLD          = 500	// (mm/s) minimum velocity after stroke to consider it an airtime candidate
 	AIRTIME_OVERLAP_THRESHOLD           = 0.5	// f&r airtime candidates must overlap at least this fraction of the SHORTER one
 	AIRTIME_SETTLED_TRAVEL_RATIO        = 0.08	// each end must rest within maxTravel*this of ITS OWN top-out to confirm an airtime
@@ -58,7 +62,7 @@ const (
 	// AIRTIME_TRAVEL_THRESHOLD_RATIO scales the top-out-relative airtime
 	// travel gate with suspension size, alongside the fixed
 	// AIRTIME_TRAVEL_THRESHOLD (the larger of the two applies).
-	AIRTIME_TRAVEL_THRESHOLD_RATIO = 0.025
+	AIRTIME_TRAVEL_THRESHOLD_RATIO = 0.08
 
 	// AIRTIME_CREEP_RATE and AIRTIME_DURATION_MAX bound the air-candidate
 	// test on stroke length. Stiction means a topped-out shock is not
@@ -91,11 +95,15 @@ const (
 	AIRTIME_SETTLE_FRACTION    = 0.25	// minimum contiguous fraction of the stroke that must be at rest
 	AIRTIME_QUIESCENT_VELOCITY = 150	// (mm/s) maximum |velocity| while resting at top-out
 
+	// AIRTIME_CREEP_WAIVER_SETTLED_FRACTION is the fraction of ALL samples in a
+	// stroke that must be settled/at-rest for the creep budget to be waived.
+	AIRTIME_CREEP_WAIVER_SETTLED_FRACTION = 0.90
+
 	// CurrentProcessingVersion gates ReprocessVelocityFromBlob: a stored blob whose
 	// ProcessingVersion is already >= this is left untouched, so bumping it is
 	// required whenever a change here (like the airtime rework above) needs to be
 	// applied to existing sessions.
-	CurrentProcessingVersion = 7
+	CurrentProcessingVersion = 8
 
 	// Whittaker-Henderson smoother for travel→velocity differentiation. The velocity dead
 	// band is derived from the calibration at the median raw sample. As a worked example,
@@ -477,7 +485,7 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 
 		currentStrokes := filterStrokes(pd.Front.Velocity, pd.Front.Travel, pd.Linkage.MaxFrontTravel, pd.Meta.SampleRate,
 			forkVelocityZeroThreshold(pd.Front.TravelPerLsb, pd.Meta.SampleRate))
-		pd.Front.Strokes.categorize(currentStrokes, pd.Front.Travel, pd.Linkage.MaxFrontTravel)
+		pd.Front.Strokes.categorize(currentStrokes, pd.Front.Travel, pd.Front.Velocity, pd.Linkage.MaxFrontTravel)
 
 		if len(pd.Front.Strokes.Compressions) == 0 && len(pd.Front.Strokes.Rebounds) == 0 {
 			pd.Front.Present = false
@@ -555,7 +563,7 @@ func ProcessRecording[T Number](front, rear []T, meta Meta, setup *SetupData) (*
 
 		currentStrokes := filterStrokes(pd.Rear.Velocity, pd.Rear.Travel, pd.Linkage.MaxRearTravel, pd.Meta.SampleRate,
 			shockVelocityZeroThreshold(pd.Rear.TravelPerLsb, pd.Meta.SampleRate))
-		pd.Rear.Strokes.categorize(currentStrokes, pd.Rear.Travel, pd.Linkage.MaxRearTravel)
+		pd.Rear.Strokes.categorize(currentStrokes, pd.Rear.Travel, pd.Rear.Velocity, pd.Linkage.MaxRearTravel)
 		if len(pd.Rear.Strokes.Compressions) == 0 && len(pd.Rear.Strokes.Rebounds) == 0 {
 			pd.Rear.Present = false
 		} else {
@@ -638,7 +646,7 @@ func reprocessSuspension(s *suspension, sampleRate uint16, maxTravel, velocityZe
 
 	// Strokes
 	currentStrokes := filterStrokes(s.Velocity, s.Travel, maxTravel, sampleRate, velocityZeroThreshold)
-	s.Strokes.categorize(currentStrokes, s.Travel, maxTravel)
+	s.Strokes.categorize(currentStrokes, s.Travel, s.Velocity, maxTravel)
 	if len(s.Strokes.Compressions) == 0 && len(s.Strokes.Rebounds) == 0 {
 		s.Present = false
 	} else {

@@ -1,7 +1,5 @@
 package psst
 
-import "math"
-
 // coveredByAirtime reports whether stroke s falls within an airtime interval already
 // found (in sample time, converted to seconds via sampleRate). It backs the dedup
 // between the f&r-paired pass and the single-sided fallback passes below: the paired
@@ -19,7 +17,8 @@ func coveredByAirtime(airtimes []*airtime, s *stroke, sampleRate uint16) bool {
 }
 
 // restsAtTopOut looks for a contiguous run, covering at least AIRTIME_SETTLE_FRACTION of
-// the stroke, where travel sits within threshold of topOut AND velocity is below
+// the stroke, where travel sits within maxTravel*AIRTIME_SETTLED_TRAVEL_RATIO of topOut
+// AND velocity is below
 // AIRTIME_QUIESCENT_VELOCITY. A single average or a tail sample is not enough: both ends
 // of the bike are typically still busy right at a stroke's edges (the far end still
 // unloading as the near end tops out, or -- on a rear-wheel-first landing -- touching
@@ -28,7 +27,7 @@ func coveredByAirtime(airtimes []*airtime, s *stroke, sampleRate uint16) bool {
 // can't tell a genuine hover from a manual: a rider can hold a wheel right at top-out
 // while still driving the bike, which travel would read as at-rest but velocity would
 // not.
-func restsAtTopOut(travel, velocity []float64, s *stroke, topOut, threshold float64) bool {
+func restsAtTopOut(travel, velocity []float64, s *stroke, topOut, maxTravel float64) bool {
 	required := int(float64(s.End-s.Start+1) * AIRTIME_SETTLE_FRACTION)
 	if required < 1 {
 		required = 1
@@ -36,7 +35,7 @@ func restsAtTopOut(travel, velocity []float64, s *stroke, topOut, threshold floa
 
 	run := 0
 	for i := s.Start; i <= s.End; i++ {
-		if travel[i]-topOut <= threshold && math.Abs(velocity[i]) <= AIRTIME_QUIESCENT_VELOCITY {
+		if isSettledSample(travel[i], velocity[i], topOut, maxTravel) {
 			run++
 			if run >= required {
 				return true
@@ -86,12 +85,9 @@ func (this *Processed) airtimes() {
 			}
 		}
 
-		frontSettledThreshold := this.Linkage.MaxFrontTravel * AIRTIME_SETTLED_TRAVEL_RATIO
-		rearSettledThreshold := this.Linkage.MaxRearTravel * AIRTIME_SETTLED_TRAVEL_RATIO
-
 		bothEndsAtRest := func(s *stroke) bool {
-			return restsAtTopOut(this.Front.Travel, this.Front.Velocity, s, frontTopOut, frontSettledThreshold) &&
-				restsAtTopOut(this.Rear.Travel, this.Rear.Velocity, s, rearTopOut, rearSettledThreshold)
+			return restsAtTopOut(this.Front.Travel, this.Front.Velocity, s, frontTopOut, this.Linkage.MaxFrontTravel) &&
+				restsAtTopOut(this.Rear.Travel, this.Rear.Velocity, s, rearTopOut, this.Linkage.MaxRearTravel)
 		}
 
 		// Pass 2 & 3: single-sided fallback for candidates that didn't find a
@@ -129,12 +125,11 @@ func (this *Processed) airtimes() {
 			this.Airtimes = append(this.Airtimes, at)
 		}
 	} else if this.Front.Present {
-		threshold := this.Linkage.MaxFrontTravel * AIRTIME_SETTLED_TRAVEL_RATIO
 		for _, f := range this.Front.Strokes.airCandidates {
 			if !f.airCandidate {
 				continue
 			}
-			if !restsAtTopOut(this.Front.Travel, this.Front.Velocity, f, frontTopOut, threshold) {
+			if !restsAtTopOut(this.Front.Travel, this.Front.Velocity, f, frontTopOut, this.Linkage.MaxFrontTravel) {
 				continue
 			}
 			at := &airtime{
@@ -144,12 +139,11 @@ func (this *Processed) airtimes() {
 			this.Airtimes = append(this.Airtimes, at)
 		}
 	} else if this.Rear.Present {
-		threshold := this.Linkage.MaxRearTravel * AIRTIME_SETTLED_TRAVEL_RATIO
 		for _, r := range this.Rear.Strokes.airCandidates {
 			if !r.airCandidate {
 				continue
 			}
-			if !restsAtTopOut(this.Rear.Travel, this.Rear.Velocity, r, rearTopOut, threshold) {
+			if !restsAtTopOut(this.Rear.Travel, this.Rear.Velocity, r, rearTopOut, this.Linkage.MaxRearTravel) {
 				continue
 			}
 			at := &airtime{

@@ -307,7 +307,24 @@ func estimateTopOut(travel []float64, maxTravel float64) float64 {
 	return v
 }
 
-func (this *strokes) categorize(strokes []*stroke, travel []float64, maxTravel float64) {
+func isSettledSample(travel, velocity, topOut, maxTravel float64) bool {
+	return travel-topOut <= AIRTIME_SETTLED_TRAVEL_RATIO*maxTravel &&
+		math.Abs(velocity) <= AIRTIME_QUIESCENT_VELOCITY
+}
+
+// settledSampleFraction returns the fraction of all samples in s that are settled.
+// Unlike restsAtTopOut, it does not require a contiguous run.
+func settledSampleFraction(travel, velocity []float64, s *stroke, topOut, maxTravel float64) float64 {
+	settled := 0
+	for i := s.Start; i <= s.End; i++ {
+		if isSettledSample(travel[i], velocity[i], topOut, maxTravel) {
+			settled++
+		}
+	}
+	return float64(settled) / float64(s.End-s.Start+1)
+}
+
+func (this *strokes) categorize(strokes []*stroke, travel, velocity []float64, maxTravel float64) {
 	this.Compressions = make([]*stroke, 0)
 	this.Rebounds = make([]*stroke, 0)
 	this.Idlings = make([]*stroke, 0)
@@ -328,13 +345,15 @@ func (this *strokes) categorize(strokes []*stroke, travel []float64, maxTravel f
 		// hover regardless of which of those three buckets it lands in.
 		// stroke.length alone can't distinguish a hover from stiction creep, so the
 		// allowed |length| grows with the stroke's own duration (AIRTIME_CREEP_RATE);
+		// a stroke settled for virtually its whole duration waives that creep budget.
 		// AIRTIME_DURATION_MAX rejects hovers long enough to be a bike being carried
 		// or leaned rather than genuinely airborne; and the following stroke's peak
 		// velocity must show a real landing impact, not just quiet settling.
 		if i > 0 && i < len(strokes)-1 &&
 			currentStroke.duration >= AIRTIME_DURATION_THRESHOLD &&
 			currentStroke.duration <= AIRTIME_DURATION_MAX &&
-			math.Abs(currentStroke.length) <= STROKE_LENGTH_THRESHOLD+AIRTIME_CREEP_RATE*currentStroke.duration &&
+			(math.Abs(currentStroke.length) <= STROKE_LENGTH_THRESHOLD+AIRTIME_CREEP_RATE*currentStroke.duration ||
+				settledSampleFraction(travel, velocity, currentStroke, this.topOut, maxTravel) >= AIRTIME_CREEP_WAIVER_SETTLED_FRACTION) &&
 			currentStroke.Stat.SumTravel/float64(currentStroke.Stat.Count) <= airtimeTravelThreshold &&
 			strokes[i+1].Stat.MaxVelocity >= AIRTIME_VELOCITY_THRESHOLD {
 			currentStroke.airCandidate = true

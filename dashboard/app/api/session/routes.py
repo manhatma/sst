@@ -41,7 +41,7 @@ from app.telemetry.velocity import (
 # reprocessed (and its cached Bokeh HTML invalidated) only when its blob's
 # ProcessingVersion is below this, so a bump on the Go side that isn't mirrored
 # here leaves every existing session frozen on its old analysis.
-CURRENT_PROCESSING_VERSION = 5
+CURRENT_PROCESSING_VERSION = 8
 
 
 def _strip_script_tags(script: str) -> str:
