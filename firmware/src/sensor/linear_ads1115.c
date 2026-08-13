@@ -90,25 +90,53 @@ static void linear_sensor_ads1115_init(struct sensor *sensor) {
 #ifdef DEBUG
     uart_init_default();
 #endif
-    
-    i2c_init(sensor->comm.i2c.instance, 1000 * 1000);
+
+    i2c_init(sensor->comm.i2c.instance, 400 * 1000);
     gpio_set_function(sensor->comm.i2c.sda_gpio, GPIO_FUNC_I2C);
     gpio_set_function(sensor->comm.i2c.scl_gpio, GPIO_FUNC_I2C);
-    gpio_pull_up(sensor->comm.i2c.sda_gpio);
-    gpio_pull_up(sensor->comm.i2c.scl_gpio);
+    // External 2.2 kOhm pull-ups provide the defined I2C bus pull-up.
+    gpio_disable_pulls(sensor->comm.i2c.sda_gpio);
+    gpio_disable_pulls(sensor->comm.i2c.scl_gpio);
 
     ads1115_adc_t *adc = get_ads1115(sensor);
     if (!adc) {
         return;
     }
-    
+
+    static const uint8_t hi_thresh[] = {0x03, 0x80, 0x00};
+    static const uint8_t lo_thresh[] = {0x02, 0x00, 0x00};
+
+    int hi_result = i2c_write_blocking(sensor->comm.i2c.instance,
+                                       adc->i2c_addr, hi_thresh,
+                                       sizeof(hi_thresh), false);
+    if (hi_result != (int)sizeof(hi_thresh)) {
+        debug_printf("ADS1115 HI_THRESH write failed: %d\n", hi_result);
+    }
+
+    int lo_result = i2c_write_blocking(sensor->comm.i2c.instance,
+                                       adc->i2c_addr, lo_thresh,
+                                       sizeof(lo_thresh), false);
+    if (lo_result != (int)sizeof(lo_thresh)) {
+        debug_printf("ADS1115 LO_THRESH write failed: %d\n", lo_result);
+    }
+
     ads1115_init(sensor->comm.i2c.instance, adc->i2c_addr, adc);
     ads1115_set_input_mux(ADS1115_MUX_SINGLE_0, adc);
     ads1115_set_pga(ADS1115_PGA_4_096, adc);
     ads1115_set_operating_mode(ADS1115_MODE_CONTINUOUS, adc);
     ads1115_set_data_rate(ADS1115_RATE_860_SPS, adc);
+    adc->config = (adc->config & ~ADS1115_COMP_QUE_MASK) |
+                  ADS1115_COMPARATOR_QUE_1;
 
     ads1115_write_config(adc);
+
+    uint8_t reg = ADS1115_POINTER_CONVERSION;
+    int pointer_result = i2c_write_blocking(adc->i2c_port, adc->i2c_addr,
+                                            &reg, 1, false);
+    if (pointer_result != 1) {
+        debug_printf("ADS1115 conversion pointer write failed: %d\n",
+                     pointer_result);
+    }
 }
 
 static bool linear_sensor_ads1115_check_availability(struct sensor *sensor) {
@@ -129,18 +157,15 @@ static bool linear_sensor_ads1115_start(struct sensor *sensor, uint16_t baseline
     return true;
 }
 
+// The register pointer is set to 0x00 during init and no other path may move it.
+// check_availability only reads, and calibrate_expanded uses this function. A
+// future MUX change (ratiometric AIN1 tap, hardware checklist phase E) writes
+// config at pointer 0x01 and must explicitly restore the pointer to 0x00.
 static int ads1115_read_adc_debug(uint16_t *adc_value, ads1115_adc_t *adc) {
-    uint8_t reg = ADS1115_POINTER_CONVERSION;
     uint8_t dst[2];
-    
-    // Write register pointer
-    int ret = i2c_write_blocking(adc->i2c_port, adc->i2c_addr, &reg, 1, true);
-    if (ret != 1) {
-        return -1;
-    }
-    
+
     // Read conversion result
-    ret = i2c_read_blocking(adc->i2c_port, adc->i2c_addr, dst, 2, false);
+    int ret = i2c_read_blocking(adc->i2c_port, adc->i2c_addr, dst, 2, false);
     if (ret != 2) {
         return -2;
     }
