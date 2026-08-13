@@ -35,4 +35,25 @@ struct sensor {
     void (*calibrate_expanded)(struct sensor *sensor);
     void (*calibrate_compressed)(struct sensor *sensor);
     uint16_t (*measure)(struct sensor *sensor);
+    // These operations are optional so sensors that use the default behavior
+    // do not all need changes just to provide identical implementations.
+    uint16_t (*sample_at)(struct sensor *sensor, uint32_t t_k_us);
+    bool (*ready)(struct sensor *sensor);
+    void (*stop)(struct sensor *sensor);
 };
+
+static inline uint16_t sensor_sample_at(struct sensor *sensor,
+                                        uint32_t t_k_us) {
+    return sensor->sample_at ? sensor->sample_at(sensor, t_k_us)
+                             : sensor->measure(sensor);
+}
+
+static inline bool sensor_ready(struct sensor *sensor) {
+    return sensor->ready ? sensor->ready(sensor) : true;
+}
+
+static inline void sensor_stop(struct sensor *sensor) {
+    if (sensor->stop) {
+        sensor->stop(sensor);
+    }
+}

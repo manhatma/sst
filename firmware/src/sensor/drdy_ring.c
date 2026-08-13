@@ -80,6 +80,8 @@ static struct drdy_ring_state rings[DRDY_CHANNEL_COUNT] = {
     },
 };
 
+static bool gpio_irq_priority_set;
+
 static bool channel_is_valid(enum drdy_channel channel) {
     return (unsigned)channel < DRDY_CHANNEL_COUNT;
 }
@@ -237,6 +239,15 @@ void drdy_ring_init(enum drdy_channel channel, i2c_inst_t *i2c,
     gpio_set_dir(ring->gpio, GPIO_IN);
     gpio_disable_pulls(ring->gpio);
     gpio_set_irq_enabled(ring->gpio, GPIO_IRQ_EDGE_FALL, false);
+
+    if (!gpio_irq_priority_set) {
+        // The grid callback runs in an alarm IRQ and can block on the multicore
+        // FIFO during a buffer swap. Give DRDY priority so its timestamps are
+        // not delayed. If it overtakes a consumer copy, AP4's torn check
+        // catches it.
+        irq_set_priority(IO_IRQ_BANK0, 0x40);
+        gpio_irq_priority_set = true;
+    }
 
     irq_handler_t handler = channel == DRDY_CHANNEL_FORK
                                 ? fork_drdy_irq_handler

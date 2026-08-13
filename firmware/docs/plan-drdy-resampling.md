@@ -11,14 +11,17 @@
 > | ADC-Periode | **1201 µs** | **1152 µs** |
 > | Intervall-Gate (0,8 × T) | **961 µs** | **922 µs** |
 >
-> Der Shock-ADC läuft **schneller** als der 860,585-Hz-Poll-Takt. Er verwirft
+> Der Shock-ADC läuft **schneller** als der Poll-Takt vor AP5 (860,585 Hz). Er verwirft
 > heute ~7,4 Wandlungen pro Sekunde, statt zu duplizieren. Der Fork dupliziert
 > ~28/s. Die Zahlen ersetzen alle Schätzwerte weiter unten.
+
+*Stand 2026-08-13: Raster auf exakt 860,000 Hz festgelegt. AP6, AP7 und AP7b
+entfallen dadurch; `sample_rate = 860` beschreibt die Zeitachse exakt.*
 
 *Stand 2026-08-13: AP0 bis AP3 auf Hardware verifiziert; 400-kHz-Empfehlung aus
 AP1 verworfen, Bus bleibt bei 1 MHz; Jitter gemessen statt angenommen.*
 
-*Stand 2026-08-13: Code-Referenzen gegen den aktuellen Stand geprüft
+*Historischer Stand 2026-08-13: Code-Referenzen gegen den damaligen Plan geprüft
 ([protokoll-hw-verifikation-drdy.md](protokoll-hw-verifikation-drdy.md), Abschnitt 4):
 gosst-`CurrentProcessingVersion` ist inzwischen 9 (Bump → 10), Sufni.Bridge ist 30
 (Bump → 31). Zeilennummern in AP3/AP7/AP7b nach dem Dead-Band-Umbau (gosst) und
@@ -47,7 +50,8 @@ und vor dem ADC sitzt weiterhin kein Antialiasing-Filter. Beides bleibt offen.
 
 | | Wert |
 |---|---|
-| Poll-Takt heute | 860,585 Hz (`-1000000/860` = 1162 µs, Integer-Division) |
+| Poll-Takt vor AP5 | 860,585 Hz (`-1000000/860` = 1162 µs, Integer-Division) |
+| Raster ab AP5 | exakt 860,000 Hz (Restakkumulator 1162/1163 µs) |
 | Header deklariert | 860 Hz |
 | Wandlung Fork real | 832,4 SPS (gemessen AP0) |
 | Wandlung Shock real | 868,1 SPS (gemessen AP0) |
@@ -59,8 +63,8 @@ und vor dem ADC sitzt weiterhin kein Antialiasing-Filter. Beides bleibt offen.
 
 ## Arbeitspakete
 
-Firmware-Kette AP0→AP5 ist seriell. AP6/AP7 (Format + gosst) laufen parallel dazu,
-müssen aber vor AP8 fertig sein. AP7b (Bridge) ist unabhängig deploybar.
+Firmware-Kette AP0→AP5 ist seriell. AP6, AP7 und AP7b entfallen mit dem exakten
+860-Hz-Raster; danach folgt direkt AP8.
 
 ---
 
@@ -206,7 +210,8 @@ Rings (~ms). Jede auftretende Differenz liegt damit um Größenordnungen unter
 kein Sonderfall, kein Langzeittest nötig.
 
 Kostet eine Klammer, also mitnehmen: Vergleiche ausschließlich über
-`(int32_t)(a - b)`, `t_k = t_0 + k·1162` bewusst als wrappende uint32-Rechnung.
+`(int32_t)(a - b)`; `t_k` wird in AP5 mit 1162/1163-µs-Schritten und bewusst als
+wrappende uint32-Rechnung fortgeschrieben.
 **Nirgends `absolute_time_t` oder 64-bit-Zeit einmischen** — genau das (und nacktes
 `a < b`) wäre der einzige Weg, den Wrap doch noch sichtbar zu machen.
 
@@ -354,16 +359,23 @@ Datei: `firmware/src/fw/main.c`
 
 - **Mixed-Presets:** `data_acquisition_cb` (`main.c:157`) ist preset-übergreifend —
   `linear_fork-as5600_shock` und `as5600_fork-linear_shock` existieren in
-  `CMakePresets.json`. Deshalb kein `resample()`-Call direkt im Callback, sondern
-  neue Op in `sensor.h`:
-  `uint16_t (*sample_at)(struct sensor *, uint32_t t_k)`. Default-Implementierung
-  wrappt `measure()` (AS5600/EvoMini bleiben unangetastet); ADS1115
-  implementiert Ring-Resampling + Baseline/Clamp (Reihenfolge aus AP4). Der
-  Callback ruft nur noch die Op, kein `#ifdef`.
-- `data_acquisition_cb`: **`t_k = t_0 + k · 1162 µs` aus einem Basiszeitstempel
-  rechnen (uint32, wrappend), niemals `get_absolute_time()` im Callback lesen** —
-  sonst zieht man den ISR-Jitter in die Interpolation und hat das Quarzraster
-  wieder verloren. Genau hier entsteht es.
+  `CMakePresets.json`. Deshalb kein `resample()`-Call und kein `#ifdef` direkt im
+  Callback, sondern optionale Ops in `sensor.h`: `sample_at`, `ready` und `stop`.
+  Statische Inline-Helfer verwenden bei `NULL` weiterhin `measure()`, `true` bzw.
+  keine Aktion. So bleiben AS5600 und EvoMini unangetastet. ADS1115 implementiert
+  Ring-Resampling + Baseline/Clamp (Reihenfolge aus AP4), Ring-Füllstand und
+  IRQ-Abschaltung.
+- Das Raster läuft **exakt mit 860,000 Hz**. Weil
+  `1000000 = 860 · 1162 + 680`, ist jeder Schritt zunächst 1162 µs lang; ein
+  Restakkumulator addiert 680 und macht den Schritt bei Überlauf über 860 zu
+  1163 µs. Das Muster wiederholt sich nach 43 Ticks über exakt 50000 µs und
+  sammelt unabhängig von der Aufnahmedauer keinen Fehler an. `t_k` bleibt eine
+  wrappende uint32-Rechnung gemäß AP3.
+- Ein selbst neu gestellter Alarm ersetzt den Wiederhol-Timer. Der Callback gibt
+  den nächsten Schritt **negativ** zurück. Damit plant das SDK relativ zum
+  vorgesehenen Auslösezeitpunkt; ein positiver Wert wäre relativ zur Jetztzeit
+  und würde Verspätung und Interrupt-Jitter in der Zeitachse aufsummieren.
+  `get_absolute_time()` kommt im Callback nicht vor.
 - `on_rec_start` (`main.c:407`): DRDY-IRQs aktivieren → warten, bis alle
   **verfügbaren** Kanäle ≥ 4 Samples im Ring haben (Timeout ~100 ms; „beide" wäre
   bei nur einem bestückten Sensor ein Dauer-Timeout — `start_sensors` lässt einen
@@ -377,11 +389,25 @@ Datei: `firmware/src/fw/main.c`
   Duplikaten), nur mit explodierendem Zähler. −3 statt −2: eine Periode
   Jitter-Reserve. Sample-Alter damit konstant ~3,6 ms, abgeleitet aus der
   Fork-Periode als langsamerem Kanal.
-- `on_rec_stop` (`main.c:441`): IRQs aus, Zähler aufs Display bzw. in die Datei
+- `absolute_time_t` wird beim Start nur verwendet, um den ersten Alarm zu
+  terminieren. Direkt daneben wird `grid_t_k_us = timerawl - 3603` gelesen; die
+  Rasterrechnung selbst mischt keine 64-bit-Zeit ein.
+- `on_rec_stop` (`main.c:441`): Alarm abbrechen, DRDY-IRQs ausschalten und alle
+  Ringzähler beider ADS1115-Kanäle debug-ausgeben. Nichtnull-Fehlerzähler werden
+  mit Kanal, Kürzel und Wert kurz auf dem Display sichtbar gemacht.
+- Der Dateiversionswert steigt von 3 auf 4. Headerformat und -größe bleiben
+  unverändert; der Bump kennzeichnet lediglich Dateien aus dem DRDY-Verfahren.
 
 ---
 
-### AP6 — Dateiformat v4
+### AP6 — Entfallen (ehemals Dateiformat v4)
+
+**Entfallen.** Dieses Arbeitspaket existierte nur, um die 0,585-Hz-Abweichung des
+1162-µs-Takts nach unten durchzureichen. Das exakte Raster stimmt mit
+`sample_rate = 860` überein; gosst, Bridge und Dashboard brauchen kein neues
+Periodenfeld. Der Versionsbump 3 → 4 bleibt als Kennzeichen ohne Formatänderung.
+
+Der folgende Text dokumentiert den früheren, nicht mehr umzusetzenden Ansatz.
 
 Die Rasterperiode 1162 µs = 860,585 Hz ist kein ganzzahliges Hz. Der Header hat aber
 2 Byte implizites Padding (Alignment vor `time_t`) — sichtbar in
@@ -419,7 +445,13 @@ darf, ist das Feld dort trotzdem vorgesehen: → **AP7b**.
 
 ---
 
-### AP7 — gosst auf Fließkomma-Rate
+### AP7 — Entfallen (ehemals gosst auf Fließkomma-Rate)
+
+**Entfallen.** Die Fließkomma-Rate war nur wegen der 0,585-Hz-Abweichung des
+früheren 1162-µs-Rasters nötig. Mit exakt 860,000 Hz ist `sample_rate = 860`
+bereits vollständig; gosst und Dashboard bleiben unverändert.
+
+Der folgende Text dokumentiert den früheren, nicht mehr umzusetzenden Ansatz.
 
 **Empfohlener Weg bleibt additiv statt Typwechsel.** `Meta.SampleRate uint16` im Blob
 **stehen lassen** und ein neues Feld `SampleRateHz float64` danebenlegen. Alte Blobs
@@ -489,7 +521,13 @@ Weiter:
 
 ---
 
-### AP7b — Sufni.Bridge, symmetrisch additiv (optional, unabhängig deploybar)
+### AP7b — Entfallen (ehemals Sufni.Bridge, symmetrisch additiv)
+
+**Entfallen.** Wie AP6 und AP7 diente dieses Paket ausschließlich dazu, die
+0,585-Hz-Abweichung weiterzureichen. Beim exakten 860-Hz-Raster benötigt die
+Bridge weder ein Zusatzfeld noch einen Processing-Version-Bump.
+
+Der folgende Text dokumentiert den früheren, nicht mehr umzusetzenden Ansatz.
 
 Sufni.Bridge ist nicht Teil dieses Repositories. Dessen oberste Ebene enthält nur
 `caddy`, `dashboard`, `firmware`, `gosst`, `pics` und `test_utils`. AP7b braucht ein
@@ -537,13 +575,9 @@ bleibt, wie sie ist: 860 → 860,585 verschöbe λ um 0,14 %, unterhalb jeder Re
    Herkunft ist ein eigenes, offenes Thema. Verdacht: Speisung.
 4. **Skew:** Fahrwerk von Hand periodisch anregen, Fork/Shock-Phasenversatz muss
    konstant sein statt mit 28,2 Hz zu wandern
-5. **Sufni.Bridge, beide Pfade:** (a) eine mit neuem gosst verarbeitete Session
-   (Blob mit `SampleRateHz`) öffnet fehlerfrei; (b) eine **v4-Rohdatei** wird
-   eingelesen — kein Version-Gate im Code (`RawTelemetryData.cs:40`), der Test
-   sichert nur ab. Mit AP7b zusätzlich: von der Bridge geschriebener Blob
-   (mit `SampleRateHz`) läuft in gosst durch, und ein Blob **ohne** das Feld
-   ebenfalls (Fallback)
-6. **Regression:** alte v3-Dateien müssen unverändert durchlaufen
+5. **Sufni.Bridge:** eine v4-Rohdatei wird trotz unverändertem Headerformat
+   eingelesen; `sample_rate = 860` gilt unverändert für alle Konsumenten.
+6. **Regression:** alte v3-Dateien müssen unverändert durchlaufen.
 
 *Entfallen:* der frühere Langzeittest > 75 min. Aufnahmen sind Minuten lang, der
 uint32-Wrap ist mit der Regel aus AP3 rechnerisch abgedeckt statt empirisch.
@@ -558,20 +592,19 @@ uint32-Wrap ist mit der Regel aus AP3 rechnerisch abgedeckt statt empirisch.
 | `t_0`-Offset falsch herum | Interpolation läuft nie, Fallback maskiert es | Vorzeichen-Begründung in AP5; Randfall-Zähler in AP8.2 mit abnehmen |
 | 64-bit-Zeit in die uint32-Kette gemischt | Wrap wird doch sichtbar (Timer läuft ab Boot) | Wrap-Regel AP3; Differenzen ≤ 10 min ≪ 2³¹ µs → modular exakt, solange nichts gemischt wird |
 | `resample()` hart im Callback | bricht Mixed-Presets (AS5600/ADS131) | `sample_at`-Op mit `measure()`-Default (AP5) |
+| Fester 1162-µs-Timer | Raster läuft 0,585 Hz zu schnell; `t_k` verlässt langfristig den Ring | exakter 1162/1163-µs-Restakkumulator (AP5) |
+| Alarm relativ zur tatsächlichen Callback-Zeit | Interrupt-Jitter summiert sich als Rasterdrift | negativer Alarm-Rückgabewert plant relativ zum Sollzeitpunkt (AP5) |
 | I²C-Anstiegszeit außerhalb Spec (Bestand) | sporadische Lesefehler | AP1: 2,2 kΩ parallel eingelötet, gemessen 1,8 kΩ; 1 MHz bleibt; AP3: über 10 s je Kanal `i2c_err_count = 0` |
 | SD-SPI koppelt auf die 10-kΩ-ALRT-Leitung | Phantom-Sample verdrängt echte Stützstelle | Drähte trennen (AP1); Intervall-Gate + `glitch_count` (AP3) |
 | Late-Reads durch Core0-Blockaden | falscher Wert zu altem Zeitstempel | `late_count`; DRDY-IRQ-Priorität anheben |
-| Blob-Typwechsel statt additivem Feld | erzwingt Lockstep-Deploy — die Bridge schreibt Blobs ebenfalls | additives `SampleRateHz` (AP7); Bridge separat und optional (AP7b); Lesetest AP8.5 |
-| AP7b vergessen | Bridge rechnet weiter mit 860 | 0,068 % Fehler, kein Funktionsbruch — bewusst optional |
 | CR-Randfälle am Aufnahmestart | erste Samples unbrauchbar | Ringe vorfüllen, `t_0` erst danach |
 
 ## Zu verifizierende Annahmen
 
 - ~~ALRT am Modul herausgeführt~~ → am Foto bestätigt (AZ-Delivery, Pin 6)
 - ~~ALERT-Pull-up bestückt~~ → gemessen, 10 kΩ ✓
-- ~~Sufni.Bridge toleriert Zusatzfeld im Blob~~ → Map-Mode im Code bestätigt
-  (`keyAsPropertyName: true`, `TelemetryData.cs:173`); Lesetest in AP8.5 bleibt als
-  Absicherung
+- Sufni.Bridge braucht kein Zusatzfeld mehr; AP7b ist mit dem exakten Raster
+  entfallen. Der v4-Versionswert ändert das Headerformat nicht.
 - ~~uint32-Wrap tritt in realen Aufnahmen auf~~ → Aufnahmen max ~10 min, Wrap nur
   noch als Hygiene-Regel relevant (AP3)
 - ~~DRDY-Pulsbreite und Polarität~~ → 8 µs und aktiv low auf beiden Kanälen,
@@ -580,14 +613,12 @@ uint32-Wrap ist mit der Regel aus AP3 rechnerisch abgedeckt statt empirisch.
 - ~~GPIO-IRQ und PWM-Flankenzählung auf demselben Pin schließen sich nicht aus~~ (die
   Interruptlogik greift den Pegel am Pad ab, vor dem Function-Mux) → AP0 Test 2
   mit Zählerdifferenz 0 verifiziert ✓
-- ugorji-codec dekodiert alte Blobs unverändert nach Hinzufügen eines Feldes →
-  Round-Trip-Test mit echtem Blob in AP7
+- AP7 bringt kein Blob-Feld mehr ein; ein entsprechender Codec-Test entfällt.
 
 ## Reihenfolge
 
 ```
-AP0 ─ AP1 ─ AP2 ─ AP3 ─ AP4 ─ AP5 ─┐
-                                    ├─ AP8
-              AP6 ─ AP7 ────────────┘
-                     └─ AP7b (optional, unabhängig)
+AP0 ─ AP1 ─ AP2 ─ AP3 ─ AP4 ─ AP5 ─ AP8
+
+AP6 / AP7 / AP7b: entfallen durch das exakte 860-Hz-Raster
 ```

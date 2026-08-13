@@ -3,6 +3,7 @@
 #include "hardware/gpio.h"
 #include "sensor.h"
 #include "ads1115.h"
+#include "drdy_ring.h"
 #include "../fw/hardware_config.h"
 #include <stdint.h>
 #include "pico/stdlib.h"
@@ -85,6 +86,21 @@ static ads1115_adc_t* get_ads1115(struct sensor *sensor) {
     return NULL;
 }
 
+static enum drdy_channel get_drdy_channel(struct sensor *sensor) {
+#ifdef FORK_LINEAR
+    if (sensor == &fork_sensor) {
+        return DRDY_CHANNEL_FORK;
+    }
+#endif
+#ifdef SHOCK_LINEAR
+    if (sensor == &shock_sensor) {
+        return DRDY_CHANNEL_SHOCK;
+    }
+#endif
+
+    return DRDY_CHANNEL_COUNT;
+}
+
 // Sensor operations -----------------------------------------------------------
 static void linear_sensor_ads1115_init(struct sensor *sensor) {
 #ifdef DEBUG
@@ -140,6 +156,8 @@ static void linear_sensor_ads1115_init(struct sensor *sensor) {
         debug_printf("ADS1115 conversion pointer write failed: %d\n",
                      pointer_result);
     }
+
+    drdy_ring_init(get_drdy_channel(sensor), adc->i2c_port, adc->i2c_addr);
 }
 
 static bool linear_sensor_ads1115_check_availability(struct sensor *sensor) {
@@ -157,6 +175,7 @@ static bool linear_sensor_ads1115_check_availability(struct sensor *sensor) {
 static bool linear_sensor_ads1115_start(struct sensor *sensor, uint16_t baseline, bool inverted) {
     if (!sensor->check_availability(sensor)) return false;
     sensor->baseline = baseline;
+    drdy_ring_enable(get_drdy_channel(sensor));
     return true;
 }
 
@@ -177,16 +196,8 @@ static int ads1115_read_adc_debug(uint16_t *adc_value, ads1115_adc_t *adc) {
     return 0;
 }
 
-static uint16_t linear_sensor_ads1115_measure(struct sensor *sensor) {
-    ads1115_adc_t* adc = get_ads1115(sensor);
-    if (!adc || !sensor->available) return 0xFFFF;
-
-    uint16_t raw_value;
-    int ret = ads1115_read_adc_debug(&raw_value, adc);
-    if (ret != 0) {
-        return 0xFFFF;
-    }
-
+static uint16_t apply_baseline(const struct sensor *sensor,
+                               uint16_t raw_value) {
     int16_t adc_travel = (int16_t)raw_value - (int16_t)sensor->baseline;
 
 //    uint16_t lower_adc_threshold;
@@ -204,6 +215,36 @@ static uint16_t linear_sensor_ads1115_measure(struct sensor *sensor) {
     }
 
     return travel;
+}
+
+static uint16_t linear_sensor_ads1115_measure(struct sensor *sensor) {
+    ads1115_adc_t* adc = get_ads1115(sensor);
+    if (!adc || !sensor->available) return 0xFFFF;
+
+    uint16_t raw_value;
+    int ret = ads1115_read_adc_debug(&raw_value, adc);
+    if (ret != 0) {
+        return 0xFFFF;
+    }
+
+    return apply_baseline(sensor, raw_value);
+}
+
+static uint16_t linear_sensor_ads1115_sample_at(struct sensor *sensor,
+                                                 uint32_t t_k_us) {
+    if (!sensor->available) return 0xFFFF;
+
+    uint16_t raw_value =
+        drdy_ring_resample(get_drdy_channel(sensor), t_k_us);
+    return apply_baseline(sensor, raw_value);
+}
+
+static bool linear_sensor_ads1115_ready(struct sensor *sensor) {
+    return drdy_ring_count(get_drdy_channel(sensor)) >= 4;
+}
+
+static void linear_sensor_ads1115_stop(struct sensor *sensor) {
+    drdy_ring_disable(get_drdy_channel(sensor));
 }
 
 static void linear_sensor_ads1115_calibrate_expanded(struct sensor *sensor) {
@@ -232,6 +273,9 @@ struct sensor fork_sensor = {
     .calibrate_expanded = linear_sensor_ads1115_calibrate_expanded,
     .calibrate_compressed = linear_sensor_ads1115_calibrate_compressed,
     .measure = linear_sensor_ads1115_measure,
+    .sample_at = linear_sensor_ads1115_sample_at,
+    .ready = linear_sensor_ads1115_ready,
+    .stop = linear_sensor_ads1115_stop,
 };
 #endif
 
@@ -244,5 +288,8 @@ struct sensor shock_sensor = {
     .calibrate_expanded = linear_sensor_ads1115_calibrate_expanded,
     .calibrate_compressed = linear_sensor_ads1115_calibrate_compressed,
     .measure = linear_sensor_ads1115_measure,
+    .sample_at = linear_sensor_ads1115_sample_at,
+    .ready = linear_sensor_ads1115_ready,
+    .stop = linear_sensor_ads1115_stop,
 };
 #endif

@@ -16,6 +16,7 @@
 #include "hardware/gpio.h"
 #include "hardware/rtc.h"
 #include "hardware/rosc.h"
+#include "hardware/structs/timer.h"
 #include "hardware/timer.h"
 #include "hardware/watchdog.h"
 #include "bsp/board.h"
@@ -31,6 +32,7 @@
 #include "../util/list.h"
 #include "../util/config.h"
 #include "../sensor/sensor.h"
+#include "../sensor/drdy_ring.h"
 
 #include "hardware_config.h"
 #include "buzzer.h"
@@ -47,7 +49,6 @@ static uint32_t clock0_orig;
 static uint32_t clock1_orig;
 
 static ssd1306_t disp;
-static repeating_timer_t data_acquisition_timer;
 static FIL recording;
 static struct tcpserver server;
 
@@ -55,6 +56,12 @@ struct ds3231 rtc;
 
 extern struct sensor fork_sensor;
 extern struct sensor shock_sensor;
+
+#ifdef DEBUG
+#define debug_printf(...) printf(__VA_ARGS__)
+#else
+#define debug_printf(...)
+#endif
 
 // ----------------------------------------------------------------------------
 // Helper functions
@@ -136,6 +143,12 @@ static void calibrate_if_needed() {
 
 static const uint16_t SAMPLE_RATE = 860;
 
+// 1000000 = 860 * 1162 + 680. Carrying the remainder exactly makes the
+// 43-tick pattern span precisely 50000 us, without accumulated drift.
+static uint32_t grid_t_k_us;
+static uint32_t grid_remainder;
+static alarm_id_t grid_alarm_id;
+
 // We are using two buffers. Data acquisition happens on core #1 into the active
 // buffer (referred to by the pointer active_buffer) and we dump to Micro SD card
 // on core #2.
@@ -154,7 +167,10 @@ struct record databuffer2[BUFFER_SIZE];
 struct record * volatile active_buffer = databuffer1;
 volatile uint16_t count = 0;
 
-static bool data_acquisition_cb(repeating_timer_t *rt) {
+static int64_t data_acquisition_cb(alarm_id_t id, void *user_data) {
+    (void)id;
+    (void)user_data;
+
     if (count == BUFFER_SIZE) {
         count = 0;
         multicore_fifo_push_blocking(DUMP);
@@ -162,12 +178,97 @@ static bool data_acquisition_cb(repeating_timer_t *rt) {
         active_buffer = (struct record *)((uintptr_t)multicore_fifo_pop_blocking());
     }
 
-    active_buffer[count].fork_angle = fork_sensor.measure(&fork_sensor);
-    active_buffer[count].shock_angle = shock_sensor.measure(&shock_sensor);
+    active_buffer[count].fork_angle =
+        sensor_sample_at(&fork_sensor, grid_t_k_us);
+    active_buffer[count].shock_angle =
+        sensor_sample_at(&shock_sensor, grid_t_k_us);
 
     count += 1;
 
-    return state == RECORD; // keep repeating if we are still recording
+    uint32_t step = 1162;
+    grid_remainder += 680;
+    if (grid_remainder >= 860) {
+        step = 1163;
+        grid_remainder -= 860;
+    }
+    grid_t_k_us += step;
+
+    // A negative delay is relative to the scheduled alarm time, not the actual
+    // callback time. That prevents late-tick jitter from accumulating as drift.
+    return state == RECORD ? -(int64_t)step : 0;
+}
+
+static bool wait_for_sensors_ready(void) {
+    absolute_time_t timeout = make_timeout_time_ms(100);
+    while ((fork_sensor.available && !sensor_ready(&fork_sensor)) ||
+           (shock_sensor.available && !sensor_ready(&shock_sensor))) {
+        if (absolute_time_diff_us(get_absolute_time(), timeout) < 0) {
+            return false;
+        }
+        sleep_ms(1);
+    }
+    return true;
+}
+
+static bool report_sensor_counters(struct sensor *sensor,
+                                   enum drdy_channel channel,
+                                   const char *name) {
+    if (!sensor->sample_at) {
+        return false;
+    }
+
+    struct drdy_ring_counters counters = drdy_ring_get_counters(channel);
+    debug_printf(
+        "%s drdy=%lu late=%lu i2c=%lu glitch=%lu short=%lu before=%lu "
+        "after=%lu torn=%lu\n",
+        name, (unsigned long)counters.drdy_count,
+        (unsigned long)counters.late_count,
+        (unsigned long)counters.i2c_err_count,
+        (unsigned long)counters.glitch_count,
+        (unsigned long)counters.resample_short_count,
+        (unsigned long)counters.resample_before_count,
+        (unsigned long)counters.resample_after_count,
+        (unsigned long)counters.resample_torn_count);
+
+    // Show only one counter per channel to bound the delay. Priority is sorted
+    // by data loss first, then timing anomalies, then held-value fallbacks.
+    const char *counter = NULL;
+    uint32_t value = 0;
+    if (counters.i2c_err_count != 0) {
+        counter = "I";
+        value = counters.i2c_err_count;
+    } else if (counters.resample_torn_count != 0) {
+        counter = "T";
+        value = counters.resample_torn_count;
+    } else if (counters.late_count != 0) {
+        counter = "L";
+        value = counters.late_count;
+    } else if (counters.glitch_count != 0) {
+        counter = "G";
+        value = counters.glitch_count;
+    } else if (counters.resample_before_count != 0) {
+        counter = "B";
+        value = counters.resample_before_count;
+    } else if (counters.resample_after_count != 0) {
+        counter = "A";
+        value = counters.resample_after_count;
+    } else if (counters.resample_short_count != 0) {
+        counter = "S";
+        value = counters.resample_short_count;
+    } else {
+        return false;
+    }
+
+    char msg[10];
+    if (value > 9999) {
+        snprintf(msg, sizeof(msg), "%s %s:9999+", name, counter);
+    } else {
+        snprintf(msg, sizeof(msg), "%s %s:%lu", name, counter,
+                 (unsigned long)value);
+    }
+    display_message(&disp, msg);
+    sleep_ms(2000);
+    return true;
 }
 
 static bool start_sensors() {
@@ -264,7 +365,7 @@ static int open_datafile() {
         return fr;
     }
 
-    struct header h = {"SST", 3, SAMPLE_RATE, rtc_timestamp()};
+    struct header h = {"SST", 4, SAMPLE_RATE, rtc_timestamp()};
     f_write(&recording, &h, sizeof(struct header), NULL);
 
     return index;
@@ -418,8 +519,17 @@ static void on_rec_start() {
         return;
     }
 
+    if (!wait_for_sensors_ready()) {
+        sensor_stop(&fork_sensor);
+        sensor_stop(&shock_sensor);
+        display_message(&disp, "SENS WAIT");
+        sleep_ms(1000);
+        state = IDLE;
+        return;
+    }
+
     state = RECORD;
-    char msg[8];
+    char msg[16];
     sprintf(msg, "REC:%s|%s", fork_sensor.available ? "F" : ".", shock_sensor.available ? "S" : ".");
     display_message(&disp, msg);
     buzzer_sound_start();
@@ -431,8 +541,15 @@ static void on_rec_start() {
         while(true) { tight_loop_contents(); }
     }
 
-    // Start data acquisition timer
-    if (!add_repeating_timer_us(-1000000/SAMPLE_RATE, data_acquisition_cb, NULL, &data_acquisition_timer)) {
+    // t_0 is in the past: Catmull-Rom needs two later support points. Three
+    // periods of the slower Fork ADC provide one additional period for jitter.
+    // absolute_time_t only schedules the alarm; grid arithmetic stays uint32_t
+    // so timerawl wrap remains exact according to the AP3 rule.
+    absolute_time_t base = get_absolute_time();
+    grid_t_k_us = timer_hw->timerawl - 3603u;
+    grid_remainder = 0;
+    grid_alarm_id = add_alarm_at(base, data_acquisition_cb, NULL, true);
+    if (grid_alarm_id <= 0) {
         display_message(&disp, "TIMER ERR");
         while(true) { tight_loop_contents(); }
     }
@@ -440,13 +557,23 @@ static void on_rec_start() {
 
 static void on_rec_stop() {
     state = IDLE;
-    display_message(&disp, "IDLE");
-    cancel_repeating_timer(&data_acquisition_timer);
+    cancel_alarm(grid_alarm_id);
+    grid_alarm_id = 0;
+    sensor_stop(&fork_sensor);
+    sensor_stop(&shock_sensor);
     buzzer_sound_stop();
 
     multicore_fifo_push_blocking(FINISH);
     multicore_fifo_push_blocking(count);
     multicore_fifo_push_blocking((uintptr_t)active_buffer);
+
+    display_message(&disp, "IDLE");
+    bool displayed = false;
+    displayed |= report_sensor_counters(&fork_sensor, DRDY_CHANNEL_FORK, "F");
+    displayed |= report_sensor_counters(&shock_sensor, DRDY_CHANNEL_SHOCK, "S");
+    if (displayed) {
+        display_message(&disp, "IDLE");
+    }
 }
 
 static void on_sync_data() {
