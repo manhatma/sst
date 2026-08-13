@@ -43,12 +43,14 @@ add_executable(sufni-suspension-telemetry
     src/util/list.c
 #    src/sensor/rotational.c    	# Rotational sensor implementation (AS5600)
     src/sensor/linear_ads1115.c # Linear sensor with external adc implementation
+    src/sensor/drdy_ring.c      # DRDY timestamp ring buffers for linear sensors
 #    src/sensor/evomini_debug.c  # Evomini debug/logging functions 
 )
 
 add_executable(drdy_probe
     src/tools/drdy_probe.c
     src/pio_i2c/pio_i2c.c
+    src/sensor/drdy_ring.c
 )
 
 pico_generate_pio_header(sufni-suspension-telemetry

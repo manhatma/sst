@@ -15,6 +15,9 @@
 > heute ~7,4 Wandlungen pro Sekunde, statt zu duplizieren. Der Fork dupliziert
 > ~28/s. Die Zahlen ersetzen alle Schätzwerte weiter unten.
 
+*Stand 2026-08-13: AP0 bis AP3 auf Hardware verifiziert; 400-kHz-Empfehlung aus
+AP1 verworfen, Bus bleibt bei 1 MHz; Jitter gemessen statt angenommen.*
+
 *Stand 2026-08-13: Code-Referenzen gegen den aktuellen Stand geprüft
 ([protokoll-hw-verifikation-drdy.md](protokoll-hw-verifikation-drdy.md), Abschnitt 4):
 gosst-`CurrentProcessingVersion` ist inzwischen 9 (Bump → 10), Sufni.Bridge ist 30
@@ -33,7 +36,8 @@ Die ADC-Uhr wird beobachtet statt angenommen. ADS1115 läuft weiter frei in
 `MODE_CONTINUOUS` / `RATE_860_SPS`; jede Wandlung bekommt beim DRDY-Impuls einen
 Quarz-Zeitstempel. Ausgabe auf exaktem 860-Hz-Raster, Catmull-Rom-interpoliert.
 
-**Erreicht:** keine Duplikate, ehrliche Zeitachse, Fork/Shock-Skew exakt null,
+**Erreicht:** keine Duplikate, ehrliche Zeitachse, Fork/Shock-Skew höchstens 37 µs
+und vor allem konstant statt mit 28,2 Hz wandernd (heute ±1,2 ms),
 konstantes Sample-Alter (~3,6 ms, s. AP5), Ausfälle werden gezählt statt verschluckt.
 
 **Nicht erreicht (bewusst):** effektive Bandbreite bleibt ~416 Hz (setzt der ADC),
@@ -139,21 +143,26 @@ Module sitzen im Gehäuse (AP0 Test 3), Buskapazität ~30 pF. Pull-ups sind
 | 8,5 kΩ (Bestand) | 216 ns | 360 ns | ✗ | grenzwertig |
 | **+ 2,2 kΩ parallel → 1,8 kΩ** | 46 ns | 76 ns | ✓ | ✓ |
 
-Der Bus läuft heute bei 1 MHz weit außerhalb der Spec — funktioniert, aber ohne
-Marge. Erklärt jedes `i2c_err_count > 0` in AP8. Bei 400 kHz reicht der Bestand
-rechnerisch, aber 20-cm-Dupont-Strippen kippen die Rechnung schon.
+Die 2,2-kΩ-Widerstände sind eingelötet. Parallel zu den 10 kΩ der Module ergeben
+sie gemessene 1,8 kΩ je Leitung. Damit liegt die Anstiegszeit bei 1 MHz innerhalb
+der Fast-mode-Plus-Spec.
 
-→ **2,2 kΩ von SDA und SCL nach 3V3, je Bus, auf der Pico-Seite.** Nichts auslöten,
-nur ergänzen. Senkstrom 1,8 mA, klar innerhalb der 3 mA des ADS1115.
-→ **Zusätzlich Bus auf 400 kHz** (`linear_ads1115.c:94`). Kostet in diesem Entwurf
-nichts: in Continuous Mode wird die Config nie neu geschrieben, pro DRDY bleibt ein
-2-Byte-Read — 30 µs bei 1 MHz, 75 µs bei 400 kHz, beides verschwindet im 1,2-ms-Budget
-aus AP3. Die Störfestigkeit nimmt man gratis mit.
+→ **2,2 kΩ von SDA und SCL nach 3V3, je Bus, auf der Pico-Seite, sind eingelötet.**
+Nichts wurde ausgelötet. Senkstrom 1,8 mA, klar innerhalb der 3 mA des ADS1115.
+
+→ **Der Plan empfahl hier 400 kHz. Die Messung in AP3 widerlegt das.** Der Bus
+bleibt bei 1 MHz. 400 kHz verlängert den Read und damit die ISR-Kollision. Die
+maximale Zeitstempelabweichung steigt von 37 µs auf 81 µs. Der Anteil über 35 µs
+steigt von 0,19 % auf 7,7 %. Mit 1,8-kΩ-Pull-ups bleiben `i2c_err_count` und
+`glitch_count` bei 1 MHz null.
 
 Die Pico-internen Pull-ups (`linear_ads1115.c:97`) können bleiben (parallel senken sie
 R zusätzlich), für definierte Verhältnisse aber besser abschalten.
 
-Aufwand: 2 Drähte, 4 bedrahtete Widerstände, 1 Zeile Baudrate.
+Aufwand: 2 Drähte, 4 bedrahtete Widerstände.
+
+**Erledigt:** DRDY-Leitungen und 2,2-kΩ-Pull-ups sind eingebaut. Effektiver
+Pull-up-Widerstand: gemessene 1,8 kΩ je Leitung. Der Bus bleibt bei 1 MHz.
 
 ---
 
@@ -249,6 +258,25 @@ Software — siehe AP1.
 **Beide ISRs auf Core0.** Core1 macht blockierende SD-Writes, die die 1,2-ms-Grenze
 reißen können.
 
+> **AP3 auf Hardware verifiziert am 2026-08-13.** `drdy_count` traf exakt die
+> AP0-Erwartung: 8324 Fork und 8677 Shock in 10 s. `late_count`, `i2c_err_count`
+> und `glitch_count` blieben in allen Läufen null. Ein Ringdump zeigte echte
+> Wandlungswerte und bestätigte damit die Pointer-Invariante.
+>
+> | Größe | 400 kHz | 1 MHz |
+> |---|---:|---:|
+> | max. Abweichung | 81 µs | 37 µs |
+> | Anteil Samples > 5 µs daneben | 10,6 % | 5,3 % |
+> | Anteil Samples > 35 µs daneben | 7,7 % | 0,19 % |
+> | Anteil Samples > 75 µs daneben | 0,41 % | 0 |
+> | `i2c_err_count` / `glitch_count` / `late_count` | 0 | 0 |
+>
+> Beide blockierenden DRDY-ISRs laufen auf Core0. Kollidieren zwei DRDY-Impulse,
+> wartet der zweite Read auf den ersten. 1 MHz verkürzt dieses Warten. Kontrollen
+> mit jeweils nur einem aktiven Kanal ergaben 9 µs und 1 µs maximale Abweichung.
+> Sie bestätigen die Kollision als alleinige Ursache. Der Restjitter von 37 µs
+> ist inhärent und wird in AP4 als Stützstellenabstand-Ungleichheit sichtbar.
+
 ---
 
 ### AP4 — Catmull-Rom-Resampler
@@ -263,8 +291,9 @@ Gleiche Datei. `resample(channel, t_k) → uint16`
 - `v = ½·( 2P₁ + (−P₀+P₂)u + (2P₀−5P₁+4P₂−P₃)u² + (−P₀+3P₁−3P₂+P₃)u³ )`
 - int32/int64-Arithmetik, kein Float nötig (RP2040 hat keine FPU).
   ~20 Ops pro Kanal pro Tick → 34 k Ops/s von 125 MHz, nicht messbar
-- Ungleichmäßige Stützstellenabstände (IRQ-Jitter) ignorieren — Jitter ≪ Intervall,
-  Fehler zweiter Ordnung
+- Gemessener Jitter höchstens 37 µs gegen 1152 µs Intervall, also 3,2 %; 95 % der
+  Intervalle liegen innerhalb 5 µs. Das echte `u` enthält den Jitter bereits;
+  ignoriert wird nur die Ungleichheit der Abstände zwischen vier Stützstellen.
 
 **Randfälle:**
 
@@ -493,7 +522,7 @@ uint32-Wrap ist mit der Regel aus AP3 rechnerisch abgedeckt statt empirisch.
 | `t_0`-Offset falsch herum | Interpolation läuft nie, Fallback maskiert es | Vorzeichen-Begründung in AP5; Randfall-Zähler in AP8.2 mit abnehmen |
 | 64-bit-Zeit in die uint32-Kette gemischt | Wrap wird doch sichtbar (Timer läuft ab Boot) | Wrap-Regel AP3; Differenzen ≤ 10 min ≪ 2³¹ µs → modular exakt, solange nichts gemischt wird |
 | `resample()` hart im Callback | bricht Mixed-Presets (AS5600/ADS131) | `sample_at`-Op mit `measure()`-Default (AP5) |
-| I²C-Anstiegszeit außerhalb Spec (Bestand) | sporadische Lesefehler | AP1: 400 kHz + 2,2 kΩ parallel; `i2c_err_count` |
+| I²C-Anstiegszeit außerhalb Spec (Bestand) | sporadische Lesefehler | AP1: 2,2 kΩ parallel eingelötet, gemessen 1,8 kΩ; 1 MHz bleibt; AP3: über 10 s je Kanal `i2c_err_count = 0` |
 | SD-SPI koppelt auf die 10-kΩ-ALRT-Leitung | Phantom-Sample verdrängt echte Stützstelle | Drähte trennen (AP1); Intervall-Gate + `glitch_count` (AP3) |
 | Late-Reads durch Core0-Blockaden | falscher Wert zu altem Zeitstempel | `late_count`; DRDY-IRQ-Priorität anheben |
 | Blob-Typwechsel statt additivem Feld | erzwingt Lockstep-Deploy — die Bridge schreibt Blobs ebenfalls | additives `SampleRateHz` (AP7); Bridge separat und optional (AP7b); Lesetest AP8.5 |

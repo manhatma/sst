@@ -12,6 +12,7 @@
 #include "ssd1306.h"
 
 #include "../pio_i2c/pio_i2c.h"
+#include "../sensor/drdy_ring.h"
 
 #define ADS1115_ADDRESS 0x48
 
@@ -88,7 +89,8 @@ static bool arm_ads1115(i2c_inst_t *port, uint sda, uint scl,
     static const uint8_t hi_thresh[] = {0x03, 0x80, 0x00};
     static const uint8_t lo_thresh[] = {0x02, 0x00, 0x00};
 
-    i2c_init(port, 400 * 1000);
+    // Fm+ is valid with external 2.2 kOhm pull-ups; shorter reads halve DRDY ISR jitter.
+    i2c_init(port, 1000 * 1000);
     gpio_set_function(sda, GPIO_FUNC_I2C);
     gpio_set_function(scl, GPIO_FUNC_I2C);
 
@@ -198,6 +200,97 @@ static void analyze_capture(const struct pulse_capture *capture,
 
     *pulse_width = width_count ? width_sum / width_count : 0;
     *period = period_count ? period_sum / period_count : 0;
+}
+
+struct ring_dump_stats {
+    uint16_t v_min;
+    uint16_t v_max;
+    uint32_t v_avg;
+    int32_t dt_min;
+    int32_t dt_max;
+    int32_t dt_avg;
+};
+
+static struct ring_dump_stats ring_dump_calculate_stats(
+        const struct sample *samples, const int32_t *deltas,
+        uint32_t count) {
+    struct ring_dump_stats stats = {0};
+    if (count == 0) {
+        return stats;
+    }
+
+    stats.v_min = samples[0].v;
+    stats.v_max = samples[0].v;
+    uint32_t v_sum = 0;
+    for (uint32_t i = 0; i < count; ++i) {
+        if (samples[i].v < stats.v_min) {
+            stats.v_min = samples[i].v;
+        }
+        if (samples[i].v > stats.v_max) {
+            stats.v_max = samples[i].v;
+        }
+        v_sum += samples[i].v;
+    }
+    stats.v_avg = v_sum / count;
+
+    if (count > 1) {
+        stats.dt_min = deltas[1];
+        stats.dt_max = deltas[1];
+        int32_t dt_sum = 0;
+        for (uint32_t i = 1; i < count; ++i) {
+            if (deltas[i] < stats.dt_min) {
+                stats.dt_min = deltas[i];
+            }
+            if (deltas[i] > stats.dt_max) {
+                stats.dt_max = deltas[i];
+            }
+            dt_sum += deltas[i];
+        }
+        stats.dt_avg = dt_sum / (int32_t)(count - 1);
+    }
+
+    return stats;
+}
+
+static void print_ring_dump(char channel, const struct sample *samples,
+                            const int32_t *deltas, uint32_t count,
+                            const struct ring_dump_stats *stats) {
+    for (uint32_t i = 0; i < count; ++i) {
+        printf("RINGDUMP %c i=%lu v=%u dt=%ld\n", channel,
+               (unsigned long)i, (unsigned)samples[i].v, (long)deltas[i]);
+    }
+    printf("RINGSTAT %c n=%lu v_min=%u v_max=%u v_avg=%lu "
+           "dt_min=%ld dt_max=%ld dt_avg=%ld\n",
+           channel, (unsigned long)count, (unsigned)stats->v_min,
+           (unsigned)stats->v_max, (unsigned long)stats->v_avg,
+           (long)stats->dt_min, (long)stats->dt_max, (long)stats->dt_avg);
+}
+
+static void print_jitter(char run, char channel,
+                         const struct drdy_ring_counters *counters,
+                         const struct drdy_ring_jitter_stats *stats) {
+    uint32_t dt_avg = stats->dt_count
+                          ? stats->dt_sum_us / stats->dt_count
+                          : 0;
+    printf("JITTER %c %c n=%lu dt_min=%ld dt_max=%ld dt_avg=%lu "
+           "devmax=%lu le5=%lu le15=%lu le35=%lu le75=%lu gt75=%lu\n",
+           run, channel, (unsigned long)counters->drdy_count,
+           (long)stats->dt_min_us, (long)stats->dt_max_us,
+           (unsigned long)dt_avg, (unsigned long)stats->max_deviation_us,
+           (unsigned long)stats->deviation_le5_count,
+           (unsigned long)stats->deviation_le15_count,
+           (unsigned long)stats->deviation_le35_count,
+           (unsigned long)stats->deviation_le75_count,
+           (unsigned long)stats->deviation_gt75_count);
+}
+
+static void print_ring_counters(char run, char channel,
+                                const struct drdy_ring_counters *counters) {
+    printf("RING %c %c drdy=%lu late=%lu i2c_err=%lu glitch=%lu\n",
+           run, channel, (unsigned long)counters->drdy_count,
+           (unsigned long)counters->late_count,
+           (unsigned long)counters->i2c_err_count,
+           (unsigned long)counters->glitch_count);
 }
 
 int main(void) {
@@ -330,9 +423,145 @@ int main(void) {
         snprintf(line4, sizeof(line4), "XCHK %ld/%ld",
                  (long)diff_fork, (long)diff_shock);
     }
+
+    // Phase 4: hand the pins from PWM/the probe callback to drdy_ring.
+    pwm_set_enabled(fork_slice, false);
+    pwm_set_enabled(shock_slice, false);
+    gpio_set_irq_enabled(FORK_PIN_DRDY,
+        GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, false);
+    gpio_set_irq_enabled(SHOCK_PIN_DRDY,
+        GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, false);
+    gpio_set_irq_callback(NULL);
+    capture_mode = CAPTURE_IDLE;
+
+    drdy_ring_init(DRDY_CHANNEL_FORK, FORK_I2C, ADS1115_ADDRESS);
+    drdy_ring_init(DRDY_CHANNEL_SHOCK, SHOCK_I2C, ADS1115_ADDRESS);
+
+    // arm_ads1115 leaves the ADS1115 pointer at Config (0x01). The ring ISR
+    // requires it to remain at the Conversion register (0x00).
+    const uint8_t conversion_register = 0x00;
+    int fork_pointer_result = i2c_write_blocking(
+        FORK_I2C, ADS1115_ADDRESS, &conversion_register, 1, false);
+    int shock_pointer_result = i2c_write_blocking(
+        SHOCK_I2C, ADS1115_ADDRESS, &conversion_register, 1, false);
+    display_lines(&disp, "phase 4: ring A",
+                  fork_pointer_result == 1 ? "fork ptr=0" : "PTR ERR F",
+                  shock_pointer_result == 1 ? "shock ptr=0" : "PTR ERR S",
+                  "10s");
+
+    // Run A: Fork alone.
+    drdy_ring_enable(DRDY_CHANNEL_FORK);
+    sleep_ms(EDGE_COUNT_MS);
+    drdy_ring_disable(DRDY_CHANNEL_FORK);
+
+    struct drdy_ring_counters ring_a_fork =
+        drdy_ring_get_counters(DRDY_CHANNEL_FORK);
+    struct drdy_ring_jitter_stats jitter_a_fork =
+        drdy_ring_get_jitter_stats(DRDY_CHANNEL_FORK);
+
+    // Run B: Shock alone.
+    display_lines(&disp, "phase 4: ring B", "shock only", "", "10s");
+    drdy_ring_enable(DRDY_CHANNEL_SHOCK);
+    sleep_ms(EDGE_COUNT_MS);
+    drdy_ring_disable(DRDY_CHANNEL_SHOCK);
+
+    struct drdy_ring_counters ring_b_shock =
+        drdy_ring_get_counters(DRDY_CHANNEL_SHOCK);
+    struct drdy_ring_jitter_stats jitter_b_shock =
+        drdy_ring_get_jitter_stats(DRDY_CHANNEL_SHOCK);
+
+    // Run C: both channels together. The retained ring dump is from this run.
+    display_lines(&disp, "phase 4: ring C", "fork + shock", "", "10s");
+    drdy_ring_enable(DRDY_CHANNEL_FORK);
+    drdy_ring_enable(DRDY_CHANNEL_SHOCK);
+    sleep_ms(EDGE_COUNT_MS);
+    drdy_ring_disable(DRDY_CHANNEL_FORK);
+    drdy_ring_disable(DRDY_CHANNEL_SHOCK);
+
+    struct drdy_ring_counters ring_c_fork =
+        drdy_ring_get_counters(DRDY_CHANNEL_FORK);
+    struct drdy_ring_counters ring_c_shock =
+        drdy_ring_get_counters(DRDY_CHANNEL_SHOCK);
+    struct drdy_ring_jitter_stats jitter_c_fork =
+        drdy_ring_get_jitter_stats(DRDY_CHANNEL_FORK);
+    struct drdy_ring_jitter_stats jitter_c_shock =
+        drdy_ring_get_jitter_stats(DRDY_CHANNEL_SHOCK);
+
+    struct sample fork_samples[DRDY_RING_SIZE] = {0};
+    struct sample shock_samples[DRDY_RING_SIZE] = {0};
+    int32_t fork_deltas[DRDY_RING_SIZE] = {0};
+    int32_t shock_deltas[DRDY_RING_SIZE] = {0};
+    uint32_t fork_head = drdy_ring_head_snapshot(DRDY_CHANNEL_FORK);
+    uint32_t shock_head = drdy_ring_head_snapshot(DRDY_CHANNEL_SHOCK);
+    uint32_t fork_count = drdy_ring_count_at(fork_head);
+    uint32_t shock_count = drdy_ring_count_at(shock_head);
+
+    for (uint32_t i = 0; i < fork_count; ++i) {
+        (void)drdy_ring_read(DRDY_CHANNEL_FORK, fork_head, i,
+                             &fork_samples[i]);
+        if (i > 0) {
+            fork_deltas[i] = (int32_t)(fork_samples[i].t_us -
+                                       fork_samples[i - 1].t_us);
+        }
+    }
+    for (uint32_t i = 0; i < shock_count; ++i) {
+        (void)drdy_ring_read(DRDY_CHANNEL_SHOCK, shock_head, i,
+                             &shock_samples[i]);
+        if (i > 0) {
+            shock_deltas[i] = (int32_t)(shock_samples[i].t_us -
+                                        shock_samples[i - 1].t_us);
+        }
+    }
+
+    struct ring_dump_stats fork_stats = ring_dump_calculate_stats(
+        fork_samples, fork_deltas, fork_count);
+    struct ring_dump_stats shock_stats = ring_dump_calculate_stats(
+        shock_samples, shock_deltas, shock_count);
+
+    int32_t ring_diff_fork =
+        (int32_t)ring_c_fork.drdy_count - (int32_t)n_fork;
+    int32_t ring_diff_shock =
+        (int32_t)ring_c_shock.drdy_count - (int32_t)n_shock;
+
+    char ring_line_fork[32];
+    char ring_line_shock[32];
+    char ring_line_diff[32];
+    snprintf(ring_line_fork, sizeof(ring_line_fork), "F %lu e%lu l%lu g%lu",
+             (unsigned long)ring_c_fork.drdy_count,
+             (unsigned long)ring_c_fork.i2c_err_count,
+             (unsigned long)ring_c_fork.late_count,
+             (unsigned long)ring_c_fork.glitch_count);
+    snprintf(ring_line_shock, sizeof(ring_line_shock), "S %lu e%lu l%lu g%lu",
+             (unsigned long)ring_c_shock.drdy_count,
+             (unsigned long)ring_c_shock.i2c_err_count,
+             (unsigned long)ring_c_shock.late_count,
+             (unsigned long)ring_c_shock.glitch_count);
+    snprintf(ring_line_diff, sizeof(ring_line_diff), "dPWM %ld/%ld",
+             (long)ring_diff_fork, (long)ring_diff_shock);
+
     // Repeat forever so the result survives a serial connection made late.
     while (true) {
         display_lines(&disp, line1, line2, line3, line4);
+        display_lines(&disp, "RING 10s", ring_line_fork, ring_line_shock,
+                      ring_line_diff);
+        print_jitter('A', 'F', &ring_a_fork, &jitter_a_fork);
+        print_ring_counters('A', 'F', &ring_a_fork);
+        print_jitter('B', 'S', &ring_b_shock, &jitter_b_shock);
+        print_ring_counters('B', 'S', &ring_b_shock);
+        print_jitter('C', 'F', &ring_c_fork, &jitter_c_fork);
+        print_ring_counters('C', 'F', &ring_c_fork);
+        print_jitter('C', 'S', &ring_c_shock, &jitter_c_shock);
+        print_ring_counters('C', 'S', &ring_c_shock);
+        printf("RING vs PWM F: %lu vs %u (%ld)\n",
+               (unsigned long)ring_c_fork.drdy_count, n_fork,
+               (long)ring_diff_fork);
+        printf("RING vs PWM S: %lu vs %u (%ld)\n",
+               (unsigned long)ring_c_shock.drdy_count, n_shock,
+               (long)ring_diff_shock);
+        print_ring_dump('F', fork_samples, fork_deltas, fork_count,
+                        &fork_stats);
+        print_ring_dump('S', shock_samples, shock_deltas, shock_count,
+                        &shock_stats);
         sleep_ms(2000);
     }
 }

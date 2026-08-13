@@ -68,20 +68,24 @@
 #define FORK_I2C         i2c0
 #define FORK_PIN_SDA     8
 #define FORK_PIN_SCL     9
+#define FORK_PIN_DRDY    21
 #else
 #define FORK_I2C         i2c0
 #define FORK_PIN_SDA     8
 #define FORK_PIN_SCL     9
+#define FORK_PIN_DRDY    21
 #endif // FORK_LINEAR
 
 #ifdef SHOCK_LINEAR
 #define SHOCK_I2C        i2c1
 #define SHOCK_PIN_SDA    14
 #define SHOCK_PIN_SCL    15
+#define SHOCK_PIN_DRDY   27
 #else
 #define SHOCK_I2C        i2c1
 #define SHOCK_PIN_SDA    14
 #define SHOCK_PIN_SCL    15
+#define SHOCK_PIN_DRDY   27
 #endif // SHOCK_LINEAR
 
 #endif // _HARDWARE_CONFIG_H
