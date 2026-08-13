@@ -28,6 +28,10 @@ struct drdy_ring_counters {
     uint32_t late_count;
     uint32_t i2c_err_count;
     uint32_t glitch_count;
+    uint32_t resample_short_count;
+    uint32_t resample_before_count;
+    uint32_t resample_after_count;
+    uint32_t resample_torn_count;
 };
 
 struct drdy_ring_jitter_stats {
@@ -59,6 +63,10 @@ uint32_t drdy_ring_count_at(uint32_t head_snapshot);
 // Index zero is the oldest entry visible in head_snapshot.
 bool drdy_ring_read(enum drdy_channel channel, uint32_t head_snapshot,
                     uint32_t index, struct sample *sample_out);
+
+// Returns the raw ADS1115 word. The caller applies baseline and clamping.
+// Only call from the consumer, never from an ISR.
+uint16_t drdy_ring_resample(enum drdy_channel channel, uint32_t t_k_us);
 
 struct drdy_ring_counters drdy_ring_get_counters(enum drdy_channel channel);
 struct drdy_ring_jitter_stats drdy_ring_get_jitter_stats(

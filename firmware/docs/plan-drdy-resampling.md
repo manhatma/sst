@@ -156,8 +156,7 @@ maximale Zeitstempelabweichung steigt von 37 µs auf 81 µs. Der Anteil über 35
 steigt von 0,19 % auf 7,7 %. Mit 1,8-kΩ-Pull-ups bleiben `i2c_err_count` und
 `glitch_count` bei 1 MHz null.
 
-Die Pico-internen Pull-ups (`linear_ads1115.c:97`) können bleiben (parallel senken sie
-R zusätzlich), für definierte Verhältnisse aber besser abschalten.
+Die Pico-internen Pull-ups sind in `linear_ads1115.c:101`–`102` per `gpio_disable_pulls` abgeschaltet.
 
 Aufwand: 2 Drähte, 4 bedrahtete Widerstände.
 
@@ -309,6 +308,43 @@ Gleiche Datei. `resample(channel, t_k) → uint16`
 `linear_sensor_ads1115_measure` (`linear_ads1115.c:162`). Beides muss **nach** der
 Interpolation laufen — clampt man die Stützstellen, verzerrt man die Kurve.
 Im Ring stehen Rohwerte.
+
+> **AP4 auf dem Host geprüft am 2026-08-13.** Die Datei `drdy_ring.c` wurde mit
+> Pico-SDK-Stubs auf dem Rechner übersetzt und gegen eine Float-Referenz geprüft.
+>
+> Die Q16-Festkommarechnung liefert bei u=0 exakt P1 und bei u=1 exakt P2. Eine
+> Gerade als Stützstellenfolge wird exakt reproduziert. Eine Konstante bleibt exakt
+> konstant. Die Abweichung gegen die Float-Referenz beträgt höchstens 2 LSB bei
+> einem systematischen Versatz von -0,71 LSB. Beides stammt aus den drei
+> Abschneidungen im Horner-Schema.
+>
+> Eine Variante mit Rundung statt Abschneiden wurde geprüft. Sie erreicht 1,46 LSB
+> und -0,21 LSB. Der Gewinn liegt bei einem halben LSB. Das Ruhesignal rauscht um
+> rund 30 LSB. Die einfachere Variante bleibt deshalb im Code.
+>
+> Bei Extremstützstellen mit einem Wechsel zwischen -32768 und 32767 läuft das
+> Ergebnis auf -40960 bis 40958. Catmull-Rom überschwingt an Stufen um bis zu
+> 25 Prozent. Der Clamp auf den int16-Bereich ist damit notwendig, nicht
+> vorsorglich.
+>
+> Bei 16 Ringeinträgen sind die Intervalle 1 bis 13 nutzbar. Das sind 13 Intervalle
+> oder rund 15,6 ms Vorgeschichte. Der Auswerte-Offset von 3,6 ms aus AP5 liegt
+> komfortabel darin.
+>
+> `t_k` vor dem Fenster, `t_k` hinter dem Fenster und weniger als vier Stützstellen
+> lösen jeweils den richtigen Zähler aus und halten den letzten Wert. Ein
+> uint32-Überlauf der Zeitstempel mitten im Ring ändert nichts am Ergebnis. Die
+> Wrap-Regel aus AP3 trägt.
+>
+> Das Torn-Prädikat wurde einzeln gegen zwölf Fälle geprüft. Dabei überholt die ISR
+> den Consumer während des Kopierens. Die Fälle enthalten einen Überlauf von
+> `head` selbst. Das Prädikat trifft in allen Fällen zu. Im Einzelthread lässt sich
+> der Fall nicht fahren. Deshalb erfolgte die getrennte Prüfung.
+>
+> Ein Loch im Ring verzerrt lokal, stürzt aber nicht ab. Das ist so vorgesehen.
+>
+> Das Testprogramm liegt außerhalb des Repos. Es gibt im Firmware-Teil noch keine
+> Testinfrastruktur.
 
 ---
 

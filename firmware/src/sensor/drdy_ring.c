@@ -41,11 +41,17 @@ struct drdy_ring_state {
     volatile uint32_t late_count;
     volatile uint32_t i2c_err_count;
     volatile uint32_t glitch_count;
+    // These resampling counters are consumer-owned and never changed by an ISR.
+    volatile uint32_t resample_short_count;
+    volatile uint32_t resample_before_count;
+    volatile uint32_t resample_after_count;
+    volatile uint32_t resample_torn_count;
 #if DRDY_RING_JITTER_STATS
     struct drdy_ring_jitter_stats jitter;
 #endif
     uint32_t last_accepted_t_us;
     uint32_t min_period_us;
+    uint16_t last_value;
 #if DRDY_RING_JITTER_STATS
     uint32_t nominal_period_us;
 #endif
@@ -53,6 +59,7 @@ struct drdy_ring_state {
     uint8_t i2c_address;
     uint8_t gpio;
     bool has_last_accepted;
+    bool has_last_value;
     bool initialized;
 };
 
@@ -83,11 +90,44 @@ static void reset_ring(struct drdy_ring_state *ring) {
     ring->late_count = 0;
     ring->i2c_err_count = 0;
     ring->glitch_count = 0;
+    ring->resample_short_count = 0;
+    ring->resample_before_count = 0;
+    ring->resample_after_count = 0;
+    ring->resample_torn_count = 0;
 #if DRDY_RING_JITTER_STATS
     ring->jitter = (struct drdy_ring_jitter_stats){0};
 #endif
     ring->last_accepted_t_us = 0;
+    ring->last_value = 0;
     ring->has_last_accepted = false;
+    ring->has_last_value = false;
+}
+
+static int32_t catmull_rom_q16(int32_t p0, int32_t p1, int32_t p2, int32_t p3,
+                               int32_t u_q16) {
+    int32_t c1 = -p0 + p2;
+    int32_t c2 = 2 * p0 - 5 * p1 + 4 * p2 - p3;
+    int32_t c3 = -p0 + 3 * p1 - 3 * p2 + p3;
+    int64_t acc = c3;
+
+    // GCC guarantees arithmetic right shifts for negative int64_t values here.
+    acc = ((acc * u_q16) >> 16) + c2;
+    acc = ((acc * u_q16) >> 16) + c1;
+    acc = (acc * u_q16) >> 16;
+    // This rounds down by at most half an LSB, negligible at 16-bit ADC scale.
+    return p1 + (int32_t)(acc >> 1);
+}
+
+static uint16_t resample_fallback(const struct drdy_ring_state *ring,
+                                  uint32_t head_snapshot, uint32_t count) {
+    if (ring->has_last_value) {
+        return ring->last_value;
+    }
+    if (count > 0) {
+        return ring->samples[(head_snapshot - 1u) & DRDY_RING_MASK].v;
+    }
+    // Unreachable after AP5 supplies a correct t_0; keeps the function total.
+    return 0;
 }
 
 static void handle_drdy(enum drdy_channel channel, uint32_t t_us) {
@@ -255,6 +295,91 @@ bool drdy_ring_read(enum drdy_channel channel, uint32_t head_snapshot,
     return true;
 }
 
+uint16_t drdy_ring_resample(enum drdy_channel channel, uint32_t t_k_us) {
+    hard_assert(channel_is_valid(channel));
+    struct drdy_ring_state *ring = &rings[channel];
+    uint32_t head_before = drdy_ring_head_snapshot(channel);
+    uint32_t count = drdy_ring_count_at(head_before);
+
+    if (count < 4) {
+        ring->resample_short_count++;
+        return resample_fallback(ring, head_before, count);
+    }
+
+    uint32_t first = head_before - count;
+    int32_t j = (int32_t)count - 3;
+    while (j >= 1) {
+        const struct sample *candidate =
+            &ring->samples[(first + (uint32_t)j) & DRDY_RING_MASK];
+        if ((int32_t)(t_k_us - candidate->t_us) >= 0) {
+            break;
+        }
+        j--;
+    }
+    if (j < 1) {
+        ring->resample_before_count++;
+        return resample_fallback(ring, head_before, count);
+    }
+
+    struct sample p1 =
+        ring->samples[(first + (uint32_t)j) & DRDY_RING_MASK];
+    struct sample p2 =
+        ring->samples[(first + (uint32_t)j + 1u) & DRDY_RING_MASK];
+    if ((int32_t)(t_k_us - p2.t_us) >= 0) {
+        ring->resample_after_count++;
+        return resample_fallback(ring, head_before, count);
+    }
+
+    struct sample p0 =
+        ring->samples[(first + (uint32_t)j - 1u) & DRDY_RING_MASK];
+    struct sample p3 =
+        ring->samples[(first + (uint32_t)j + 2u) & DRDY_RING_MASK];
+
+    // Check after copying: only then can it prove that none of the local inputs
+    // was overwritten by the ISR while the four samples were being collected.
+    uint32_t head_after = drdy_ring_head_snapshot(channel);
+    uint32_t oldest_touched = first + (uint32_t)(j - 1);
+    if ((uint32_t)(head_after - oldest_touched) > DRDY_RING_SIZE) {
+        ring->resample_torn_count++;
+        return resample_fallback(ring, head_before, count);
+    }
+
+    int32_t dt = (int32_t)(p2.t_us - p1.t_us);
+    if (dt <= 0) {
+        // The AP3 interval gate makes this impossible without torn input.
+        ring->resample_torn_count++;
+        return resample_fallback(ring, head_before, count);
+    }
+
+    int32_t num = (int32_t)(t_k_us - p1.t_us);
+    int32_t u_q16 = (int32_t)(((int64_t)num << 16) / dt);
+    if (u_q16 < 0) {
+        u_q16 = 0;
+    } else if (u_q16 > 65536) {
+        u_q16 = 65536;
+    }
+
+    // Missing samples merely widen an interval and locally distort uniform CR;
+    // glitch_count and i2c_err_count already diagnose the underlying causes.
+    int32_t value = catmull_rom_q16((int32_t)(int16_t)p0.v,
+                                    (int32_t)(int16_t)p1.v,
+                                    (int32_t)(int16_t)p2.v,
+                                    (int32_t)(int16_t)p3.v, u_q16);
+    if (value < -32768) {
+        value = -32768;
+    } else if (value > 32767) {
+        value = 32767;
+    }
+
+    uint16_t raw_value = (uint16_t)(int16_t)value;
+    ring->last_value = raw_value;
+    ring->has_last_value = true;
+    // 0xFFFF is already linear_ads1115.c's unavailable-channel sentinel and
+    // formally collides with raw -1, a practically impossible divider reading;
+    // channel availability itself remains the caller's responsibility.
+    return raw_value;
+}
+
 struct drdy_ring_counters drdy_ring_get_counters(enum drdy_channel channel) {
     hard_assert(channel_is_valid(channel));
     struct drdy_ring_state *ring = &rings[channel];
@@ -263,6 +388,10 @@ struct drdy_ring_counters drdy_ring_get_counters(enum drdy_channel channel) {
         .late_count = ring->late_count,
         .i2c_err_count = ring->i2c_err_count,
         .glitch_count = ring->glitch_count,
+        .resample_short_count = ring->resample_short_count,
+        .resample_before_count = ring->resample_before_count,
+        .resample_after_count = ring->resample_after_count,
+        .resample_torn_count = ring->resample_torn_count,
     };
 }
 
