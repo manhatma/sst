@@ -46,7 +46,16 @@ add_executable(sufni-suspension-telemetry
 #    src/sensor/evomini_debug.c  # Evomini debug/logging functions 
 )
 
+add_executable(drdy_probe
+    src/tools/drdy_probe.c
+    src/pio_i2c/pio_i2c.c
+)
+
 pico_generate_pio_header(sufni-suspension-telemetry
+    ${CMAKE_CURRENT_LIST_DIR}/src/pio_i2c/i2c.pio
+)
+
+pico_generate_pio_header(drdy_probe
     ${CMAKE_CURRENT_LIST_DIR}/src/pio_i2c/i2c.pio
 )
 
@@ -96,6 +105,20 @@ target_link_libraries(sufni-suspension-telemetry
     ssd1306
 )
 
+target_link_libraries(drdy_probe
+    pico_stdlib
+    hardware_i2c
+    hardware_pwm
+    hardware_pio
+    ssd1306
+    pico-ads1115
+)
+
+# The probe must stay readable even if the SSD1306 does not come up, so it
+# reports over USB serial as well as on the display.
+pico_enable_stdio_usb(drdy_probe 1)
+pico_enable_stdio_uart(drdy_probe 0)
+
 if(FORK_LINEAR STREQUAL "ON" OR SHOCK_LINEAR STREQUAL "ON")
     target_link_libraries(sufni-suspension-telemetry pico-ads1115)
 endif()
@@ -111,3 +134,4 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 pico_add_extra_outputs(sufni-suspension-telemetry)
+pico_add_extra_outputs(drdy_probe)
