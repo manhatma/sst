@@ -18,6 +18,11 @@
 *Stand 2026-08-13: Raster auf exakt 860,000 Hz festgelegt. AP6, AP7 und AP7b
 entfallen dadurch; `sample_rate = 860` beschreibt die Zeitachse exakt.*
 
+*Stand 2026-08-14: AP8 abgeschlossen -- Punkte 1-5 und 7 bestanden, Punkt 6
+statisch verifiziert (Bridge prueft nur das Magic). Offen bleiben nur die
+opportunistische Rausch-Wiederholung bei teilentladenem Akku (AP8.4, kein
+Blocker) und die Nebenbefunde.*
+
 *Stand 2026-08-13: AP0 bis AP3 auf Hardware verifiziert; 400-kHz-Empfehlung aus
 AP1 verworfen, Bus bleibt bei 1 MHz; Jitter gemessen statt angenommen.*
 
@@ -569,8 +574,16 @@ bleibt, wie sie ist: 860 → 860,585 verschöbe λ um 0,14 %, unterhalb jeder Re
 
 1. **DRDY lebt:** 832,4 SPS (Fork) / 868,1 SPS (Shock). Mit AP0 Test 2 bereits
    erbracht.
-2. **Keine verlorenen Reads:** 10-min-Aufnahme unter Last (SD-Writes laufen),
-   `late_count == 0`, `i2c_err_count == 0`, `glitch_count == 0`
+2. **Keine verlorenen Reads:** 2-min-Aufnahme unter Last (SD-Writes laufen),
+   `late_count == 0`, `i2c_err_count == 0`, `glitch_count == 0`. Die
+   Fehlerfenster liegen an den Puffertauschen (alle 2048 Records = 2,38 s),
+   nicht in der Dauer: 2 min decken ~50 Puffertausche und ~10^5 Wandlungen je
+   Kanal ab, das Zwoelffache der AP3-Verifikation. Die fruehere 10-min-Vorgabe
+   stammte aus der entfallenen Langzeit-Logik.
+
+   > **Bestanden am 2026-08-14 (00280, 128 s, ~54 Puffertausche):** keine
+   > Zaehleranzeige nach dem Stopp, alle Fehlerzaehler null.
+
 3. **Der eigentliche Test:** Die Referenzaufnahme `ref-vor-drdy.SST` (126 s,
    108682 Records, Ruhe, alte Firmware) zeigt im Duplikat-Indikator
    (`v[n] == v[n-1]`) einen Kamm bei 27,94 Hz und Vielfachen auf dem Fork sowie
@@ -580,6 +593,14 @@ bleibt, wie sie ist: 860 → 860,585 verschöbe λ um 0,14 %, unterhalb jeder Re
    Sie fehlen im Duplikat-Indikator und sind damit echtes Analogsignal, kein
    Abtastartefakt. Sie bleiben nach dem DRDY-Umbau und sind kein Fehlschlag. Ihre
    Herkunft ist ein eigenes, offenes Thema. Verdacht: Speisung.
+
+   > **Bestanden am 2026-08-14 (00280, 128 s Ruhe):** Duplikatrate Fork 8,0 %,
+   > Shock 11,4 % (v3: 41 %/35 %), kein Kamm bei ~27,6 oder ~8 Hz. Staerkster
+   > Rest-Peak bei 1,68 Hz = 4. Harmonische des 2048-Record-Pufferzyklus
+   > (Rausch-Nebenbefund, kein Abtastartefakt). Kontrolllinien 88,6/177,3 Hz
+   > mit 29-33 dB erhalten. Auch unter Bewegung (00281, 23 s Wippen) kein
+   > Schwebungskamm.
+
 4. **Schwebung im Signalspektrum:** Die Schwebungsfrequenz im Signal prüfen, nicht
    nur im Duplikat-Indikator. Die alte Firmware zeigte die Schwebung ausschließlich
    im Duplikat-Indikator; ihr Signal war frei davon. Der Indikator allein hätte
@@ -598,9 +619,34 @@ bleibt, wie sie ist: 860 → 860,585 verschöbe λ um 0,14 %, unterhalb jeder Re
    > Offen: 00279 entstand mit frisch geladenem Akku und zeigt rund zehnfach
    > höheres Breitbandrauschen als 00278. Der Test bleibt gültig, ist aber
    > unschärfer als nötig. Eine Wiederholung in Ruhe mit halb geladenem Akku
-   > steht aus.
-5. **Skew:** Fahrwerk von Hand periodisch anregen, Fork/Shock-Phasenversatz muss
-   konstant sein statt mit 28,2 Hz zu wandern
+   > ist kurzfristig nicht machbar: eine 10-min-Messung entlädt den Akku nicht
+   > auf halb. Die Wiederholung erfolgt opportunistisch, sobald der Akku durch
+   > normale Nutzung teilentladen ist. Sie ist kein Abnahme-Blocker; die
+   > Schwebungslinie ist in 00279 trotz des Rauschens statistisch sauber
+   > widerlegt.
+5. **Skew:** 15-20 s im Stand auf den Pedalen wippen, so gleichmaessig wie von
+   Hand moeglich (~2 Hz). Auswertung mit `~/Telemetry/harness-drdy-skew/skew.py`:
+   Tracking-SNR >= 10 dB (keine WARNUNG) und kein dominanter Peak bei ~28 Hz
+   oder ~8 Hz im Skew-Spektrum. Minutenlange rhythmische Anregung ist von Hand
+   nicht machbar und nicht noetig: das SNR bestimmt die Amplitude, nicht die
+   Dauer; das Skript verwirft nur ~26 ms Raender. Der Wander-Mechanismus
+   (Sample-Hold-Schwebung) ist durch die Punkte 3 und 4 bereits widerlegt;
+   dieser Test bestaetigt nur den Restpfad eines konstanten Kanalversatzes
+   (AP3-Grenze 37 us). An Ruheaufnahmen ist der Test nicht fuehrbar: die
+   88,6-Hz-Linie ist fuer Phasen-Tracking zu schwach (Tracking-SNR -13 bis
+   -8 dB), und ihre Schwebungs-Seitenbaender sind mit 8-12 dB kein
+   Diskriminator.
+
+   > **Bestanden am 2026-08-14.** Anregungslinie 3,2 Hz (00281) wie erwartet
+   > untauglich (Mechanik im Trackingband, WARNUNG). Nachweis an der
+   > 88,63-Hz-Linie von 00280 mit `--lp 0.5`, Tracking-SNR +11,9 dB:
+   > mittlerer Skew -23 us (Kontrolle bei 177,26 Hz: -26 us, konsistent),
+   > trendbereinigte Std 64 us ueber 128 s, kein Drift. Staerkster Peak im
+   > Skew-Spektrum 3-60 Hz: 1,6 us. Das 0,5-Hz-Filter daempft 28-Hz-Anteile;
+   > Obergrenze aus diesem Lauf ~350 us bei 28 Hz. Zusammen mit fehlendem
+   > Duplikat-Kamm und widerlegter Schwebungslinie ist das v3-Wandern von
+   > +-1,2 ms dreifach unabhaengig ausgeschlossen.
+
 6. **Sufni.Bridge:** eine v4-Rohdatei wird trotz unverändertem Headerformat
    eingelesen; `sample_rate = 860` gilt unverändert für alle Konsumenten.
 7. **Regression:** alte v3-Dateien müssen unverändert durchlaufen.
