@@ -714,19 +714,13 @@ geladenem Akku, alle anderen mit fast leerem. Verdacht: der Spannungswandler
 arbeitet bei hoher Eingangsspannung im Puls-Skip-Betrieb. Der SD-Schreibvorgang
 ist der Auslöser, der Wandler der Verstärker.
 
-**Reset-Schleife im MSC-Zustand.** Das Gerät kommt bei USB-Versorgung nicht in den
-MSC-Zustand. Es zeigt `MSC MODE` und startet nach etwa einer Sekunde neu. Ursache
-ist der VSYS-Reset in `on_msc`: `read_voltage()` liefert unter 4,4 V, dreimal in
-Folge alle 250 ms, danach `soft_reset()`. Der Umbau ist nicht die Ursache. Derselbe
-Loop tritt mit dem Firmware-Stand von `main` auf, also vor allen DRDY-Änderungen.
-Der Akku ist es auch nicht: der Loop tritt mit abgeklemmtem Akku und an drei
-verschiedenen USB-Hosts auf. `read_voltage()` selbst arbeitet korrekt; im
-Akkubetrieb zeigt das IDLE-Display 87 bis 92 Prozent, was 4,08 bis 4,13 V
-entspricht und zu einem vollen Li-Ion-Akku passt. Folgerung: VSYS liegt bei
-USB-Versorgung wirklich unter 4,4 V. Die Schwelle 4,4 V trennt USB und Akku auf
-diesem Gerät nicht mehr, denn der Akku liegt bei 4,1 V. Es fehlt noch eine Messung
-von VSYS an Pin 39 gegen Pin 38. Ein Wegwerf-Patch, der den gemessenen Wert im
-MSC-Zustand auf dem Display anzeigt und den Reset unterdrückt, liegt bereit.
-MSC hat auf diesem Gerät früher funktioniert, aber nicht sicher unmittelbar vor
-den DRDY-Änderungen. Der Nutzer verwendet den MSC-Zustand nicht; das Thema ist
-deshalb zurückgestellt.
+**Reset-Schleife im MSC-Zustand — behoben.** Das Gerät kam bei USB-Versorgung
+nicht in den MSC-Zustand: `read_voltage()` lieferte unter 4,4 V, dreimal in Folge,
+danach `soft_reset()`. Die ursprüngliche Folgerung („VSYS liegt wirklich unter
+4,4 V") war falsch. Tatsächliche Ursache: der cyw43 klemmt im Power-Save die
+geteilte ADC3/GPIO29-Leitung auf ~0 V, die Messung las eine eingebrochene
+Versorgung, wo keine war. Fix in `edf898c`: `read_voltage()` weckt den Chip vor
+der Messung per `cyw43_arch_gpio_get` (Muster aus pico-examples `read_vsys`),
+Schwelle auf 4,30 V präzisiert, und ein absichtlicher Reboot in den MSC-Zustand
+wird über `watchdog_hw->scratch[3]`-Magic mit 10 s USB-Timeout erzwungen. Der
+Umbau war wie vermutet nicht die Ursache; der Fehler bestand auch auf `main`.
