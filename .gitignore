@@ -96,3 +96,6 @@ dashboard/.coverage
 
 # clangd cache
 firmware/.cache
+
+# macOS Finder metadata
+.DS_Store
