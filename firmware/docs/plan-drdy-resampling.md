@@ -319,13 +319,20 @@ Im Ring stehen Rohwerte.
 >
 > Die Q16-Festkommarechnung liefert bei u=0 exakt P1 und bei u=1 exakt P2. Eine
 > Gerade als Stützstellenfolge wird exakt reproduziert. Eine Konstante bleibt exakt
-> konstant. Die Abweichung gegen die Float-Referenz beträgt höchstens 2 LSB bei
-> einem systematischen Versatz von -0,71 LSB. Beides stammt aus den drei
-> Abschneidungen im Horner-Schema.
+> konstant.
 >
-> Eine Variante mit Rundung statt Abschneiden wurde geprüft. Sie erreicht 1,46 LSB
-> und -0,21 LSB. Der Gewinn liegt bei einem halben LSB. Das Ruhesignal rauscht um
-> rund 30 LSB. Die einfachere Variante bleibt deshalb im Code.
+> Der Host-Test maß nur den über alle `u` gemittelten Versatz. Das war der Fehler.
+> Entscheidend ist die Abhängigkeit von `u`: Der abschneidende Versatz läuft von 0
+> bei u=0 auf -0,88 LSB bei u=0,9 und springt bei u=1 zurück auf 0. `u` durchläuft
+> diesen Bereich mit der Schwebungsfrequenz. Der Versatz wird damit zu einem
+> Sägezahn von 0,9 LSB, im Ruhesignal von rund 1 LSB.
+>
+> Eine Aufnahme mit der abschneidenden Variante zeigte die Linie im Signal mit
+> +18,4 dB (Fork, 27,32 Hz) und +16,6 dB (Shock, 7,97 Hz). Die alte Firmware hatte
+> im Signal keine solche Linie. Die Simulation der ganzen Kette reproduziert den
+> Befund und sagt für die gerundete Variante den Rauschboden voraus. Deshalb wird
+> gerundet. Der `u`-abhängige Versatz sinkt auf praktisch null, die maximale
+> Abweichung von der Float-Referenz von 2,00 auf 0,97 LSB.
 >
 > Bei Extremstützstellen mit einem Wechsel zwischen -32768 und 32767 läuft das
 > Ergebnis auf -40960 bis 40958. Catmull-Rom überschwingt an Stufen um bis zu
@@ -573,11 +580,30 @@ bleibt, wie sie ist: 860 → 860,585 verschöbe λ um 0,14 %, unterhalb jeder Re
    Sie fehlen im Duplikat-Indikator und sind damit echtes Analogsignal, kein
    Abtastartefakt. Sie bleiben nach dem DRDY-Umbau und sind kein Fehlschlag. Ihre
    Herkunft ist ein eigenes, offenes Thema. Verdacht: Speisung.
-4. **Skew:** Fahrwerk von Hand periodisch anregen, Fork/Shock-Phasenversatz muss
+4. **Schwebung im Signalspektrum:** Die Schwebungsfrequenz im Signal prüfen, nicht
+   nur im Duplikat-Indikator. Die alte Firmware zeigte die Schwebung ausschließlich
+   im Duplikat-Indikator; ihr Signal war frei davon. Der Indikator allein hätte
+   diesen Fehler nicht gefunden.
+
+   > **Ergebnis (00279, 46,5 s, gerundeter Kern):** Die Schwebungslinie ist in
+   > beiden Kanälen nicht mehr nachweisbar. Maß ist die Phasenkohärenz über acht
+   > Segmente, verglichen mit 290 Kontrollfrequenzen von 3 bis 60 Hz. Vorher
+   > (00278, abschneidender Kern): Fork 0,980 und Shock 0,984, jeweils 0 von 290
+   > Kontrollen stärker. Nachher (00279): Fork 0,542 mit 43 von 290 stärker,
+   > Shock 0,677 mit 14 von 290 stärker. Beide liegen damit mitten in der
+   > Verteilung der Kontrollen. Die Kontrolllinie bei 88,7 Hz bleibt in beiden
+   > Kanälen erhalten (+14,7 dB, 0 von 194 Kontrollen stärker); echtes
+   > Analogsignal geht also nicht verloren. Header: SST, Version 4, 860 Hz.
+   >
+   > Offen: 00279 entstand mit frisch geladenem Akku und zeigt rund zehnfach
+   > höheres Breitbandrauschen als 00278. Der Test bleibt gültig, ist aber
+   > unschärfer als nötig. Eine Wiederholung in Ruhe mit halb geladenem Akku
+   > steht aus.
+5. **Skew:** Fahrwerk von Hand periodisch anregen, Fork/Shock-Phasenversatz muss
    konstant sein statt mit 28,2 Hz zu wandern
-5. **Sufni.Bridge:** eine v4-Rohdatei wird trotz unverändertem Headerformat
+6. **Sufni.Bridge:** eine v4-Rohdatei wird trotz unverändertem Headerformat
    eingelesen; `sample_rate = 860` gilt unverändert für alle Konsumenten.
-6. **Regression:** alte v3-Dateien müssen unverändert durchlaufen.
+7. **Regression:** alte v3-Dateien müssen unverändert durchlaufen.
 
 *Entfallen:* der frühere Langzeittest > 75 min. Aufnahmen sind Minuten lang, der
 uint32-Wrap ist mit der Regel aus AP3 rechnerisch abgedeckt statt empirisch.
@@ -596,7 +622,7 @@ uint32-Wrap ist mit der Regel aus AP3 rechnerisch abgedeckt statt empirisch.
 | Alarm relativ zur tatsächlichen Callback-Zeit | Interrupt-Jitter summiert sich als Rasterdrift | negativer Alarm-Rückgabewert plant relativ zum Sollzeitpunkt (AP5) |
 | I²C-Anstiegszeit außerhalb Spec (Bestand) | sporadische Lesefehler | AP1: 2,2 kΩ parallel eingelötet, gemessen 1,8 kΩ; 1 MHz bleibt; AP3: über 10 s je Kanal `i2c_err_count = 0` |
 | SD-SPI koppelt auf die 10-kΩ-ALRT-Leitung | Phantom-Sample verdrängt echte Stützstelle | Drähte trennen (AP1); Intervall-Gate + `glitch_count` (AP3) |
-| Late-Reads durch Core0-Blockaden | falscher Wert zu altem Zeitstempel | `late_count`; DRDY-IRQ-Priorität anheben |
+| Late-Reads durch Core0-Blockaden | falscher Wert zu altem Zeitstempel | `late_count`; DRDY-IRQ-Priorität nur während der Aufnahme anheben, da IO_IRQ_BANK0 ein Vektor für die gesamte GPIO-Bank ist und die Anhebung damit auch den Funk-IRQ betrifft |
 | CR-Randfälle am Aufnahmestart | erste Samples unbrauchbar | Ringe vorfüllen, `t_0` erst danach |
 
 ## Zu verifizierende Annahmen
@@ -622,3 +648,39 @@ AP0 ─ AP1 ─ AP2 ─ AP3 ─ AP4 ─ AP5 ─ AP8
 
 AP6 / AP7 / AP7b: entfallen durch das exakte 860-Hz-Raster
 ```
+
+## Offene Nebenbefunde
+
+Beide Punkte sind beim Umbau aufgefallen, gehören aber nicht dazu. Sie sind
+dokumentiert, damit sie nicht verloren gehen.
+
+**Breitbandrauschen, an den Schreibpuffer gekoppelt.** Aufnahme 00279 zeigt rund
+zehnfach höheres Rauschen als 00278: Fork 10,5 LSB statt 1,1 LSB, Shock 5,7 LSB
+statt 0,9 LSB. Das Muster ist exakt an den 2048-Record-Puffer gekoppelt. Die
+ersten etwa 170 Records nach jedem Puffertausch sind ruhig, die restlichen 1880
+sind gestört, über alle 20 Puffer der Aufnahme gleich. Fork und Shock korrelieren
+dabei mit 0,90, die Werte werden nur nach unten gezogen, und die Obergrenze bleibt
+genau der Ruhewert. Es ist also Gleichtakt, nicht mechanisch. Das Spektrum fällt
+zu hohen Frequenzen ab, passt also zu Analograuschen durch das ADC-Filter und
+nicht zu einem Resampler-Fehler. Die Aufnahmen 00276, 00277, 00278 und
+`ref-vor-drdy` sind frei davon. Unterschied im Aufbau: 00279 entstand mit frisch
+geladenem Akku, alle anderen mit fast leerem. Verdacht: der Spannungswandler
+arbeitet bei hoher Eingangsspannung im Puls-Skip-Betrieb. Der SD-Schreibvorgang
+ist der Auslöser, der Wandler der Verstärker.
+
+**Reset-Schleife im MSC-Zustand.** Das Gerät kommt bei USB-Versorgung nicht in den
+MSC-Zustand. Es zeigt `MSC MODE` und startet nach etwa einer Sekunde neu. Ursache
+ist der VSYS-Reset in `on_msc`: `read_voltage()` liefert unter 4,4 V, dreimal in
+Folge alle 250 ms, danach `soft_reset()`. Der Umbau ist nicht die Ursache. Derselbe
+Loop tritt mit dem Firmware-Stand von `main` auf, also vor allen DRDY-Änderungen.
+Der Akku ist es auch nicht: der Loop tritt mit abgeklemmtem Akku und an drei
+verschiedenen USB-Hosts auf. `read_voltage()` selbst arbeitet korrekt; im
+Akkubetrieb zeigt das IDLE-Display 87 bis 92 Prozent, was 4,08 bis 4,13 V
+entspricht und zu einem vollen Li-Ion-Akku passt. Folgerung: VSYS liegt bei
+USB-Versorgung wirklich unter 4,4 V. Die Schwelle 4,4 V trennt USB und Akku auf
+diesem Gerät nicht mehr, denn der Akku liegt bei 4,1 V. Es fehlt noch eine Messung
+von VSYS an Pin 39 gegen Pin 38. Ein Wegwerf-Patch, der den gemessenen Wert im
+MSC-Zustand auf dem Display anzeigt und den Reset unterdrückt, liegt bereit.
+MSC hat auf diesem Gerät früher funktioniert, aber nicht sicher unmittelbar vor
+den DRDY-Änderungen. Der Nutzer verwendet den MSC-Zustand nicht; das Thema ist
+deshalb zurückgestellt.

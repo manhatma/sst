@@ -60,6 +60,7 @@ struct drdy_ring_state {
     uint8_t gpio;
     bool has_last_accepted;
     bool has_last_value;
+    bool enabled;
     bool initialized;
 };
 
@@ -80,7 +81,8 @@ static struct drdy_ring_state rings[DRDY_CHANNEL_COUNT] = {
     },
 };
 
-static bool gpio_irq_priority_set;
+static uint8_t gpio_irq_original_priority;
+static bool gpio_irq_original_priority_saved;
 
 static bool channel_is_valid(enum drdy_channel channel) {
     return (unsigned)channel < DRDY_CHANNEL_COUNT;
@@ -112,12 +114,15 @@ static int32_t catmull_rom_q16(int32_t p0, int32_t p1, int32_t p2, int32_t p3,
     int32_t c3 = -p0 + 3 * p1 - 3 * p2 + p3;
     int64_t acc = c3;
 
-    // GCC guarantees arithmetic right shifts for negative int64_t values here.
-    acc = ((acc * u_q16) >> 16) + c2;
-    acc = ((acc * u_q16) >> 16) + c1;
-    acc = (acc * u_q16) >> 16;
-    // This rounds down by at most half an LSB, negligible at 16-bit ADC scale.
-    return p1 + (int32_t)(acc >> 1);
+    // Round because a u-dependent truncation bias accumulates into a spur at the
+    // beat frequency. It drops from 0.877 LSB to practically zero; only u=0.5
+    // retains +0.222 LSB because every rounding step hits an exact half, a value
+    // that is rarely encountered in practice. Maximum float-reference error
+    // drops from 2.00 LSB to 0.97 LSB. Endpoints remain exact: u=0 gives P1 and
+    // u=1 gives P2. The largest intermediate uses 40 bits, so int64_t is safe.
+    acc = ((acc * u_q16 + 32768) >> 16) + c2;
+    acc = ((acc * u_q16 + 32768) >> 16) + c1;
+    return p1 + (int32_t)((acc * u_q16 + 65536) >> 17);
 }
 
 static uint16_t resample_fallback(const struct drdy_ring_state *ring,
@@ -231,6 +236,11 @@ void drdy_ring_init(enum drdy_channel channel, i2c_inst_t *i2c,
     struct drdy_ring_state *ring = &rings[channel];
     hard_assert(!ring->initialized);
 
+    if (!gpio_irq_original_priority_saved) {
+        gpio_irq_original_priority = irq_get_priority(IO_IRQ_BANK0);
+        gpio_irq_original_priority_saved = true;
+    }
+
     ring->i2c = i2c;
     ring->i2c_address = i2c_address;
     reset_ring(ring);
@@ -239,15 +249,6 @@ void drdy_ring_init(enum drdy_channel channel, i2c_inst_t *i2c,
     gpio_set_dir(ring->gpio, GPIO_IN);
     gpio_disable_pulls(ring->gpio);
     gpio_set_irq_enabled(ring->gpio, GPIO_IRQ_EDGE_FALL, false);
-
-    if (!gpio_irq_priority_set) {
-        // The grid callback runs in an alarm IRQ and can block on the multicore
-        // FIFO during a buffer swap. Give DRDY priority so its timestamps are
-        // not delayed. If it overtakes a consumer copy, AP4's torn check
-        // catches it.
-        irq_set_priority(IO_IRQ_BANK0, 0x40);
-        gpio_irq_priority_set = true;
-    }
 
     irq_handler_t handler = channel == DRDY_CHANNEL_FORK
                                 ? fork_drdy_irq_handler
@@ -265,6 +266,14 @@ void drdy_ring_enable(enum drdy_channel channel) {
 
     gpio_set_irq_enabled(ring->gpio, GPIO_IRQ_EDGE_FALL, false);
     reset_ring(ring);
+    // The grid callback runs in an alarm IRQ and can block on the multicore
+    // FIFO during a buffer swap. Give DRDY priority so its timestamps are not
+    // delayed. If it overtakes a consumer copy, AP4's torn check catches it.
+    // IO_IRQ_BANK0 is one vector for the whole GPIO bank, so this boost also
+    // raises the radio IRQ; scope it to recording rather than raising the bank
+    // for the device's entire runtime.
+    irq_set_priority(IO_IRQ_BANK0, 0x40);
+    ring->enabled = true;
     gpio_set_irq_enabled(ring->gpio, GPIO_IRQ_EDGE_FALL, true);
 }
 
@@ -274,6 +283,15 @@ void drdy_ring_disable(enum drdy_channel channel) {
     struct drdy_ring_state *ring = &rings[channel];
     hard_assert(ring->initialized);
     gpio_set_irq_enabled(ring->gpio, GPIO_IRQ_EDGE_FALL, false);
+    ring->enabled = false;
+
+    bool any_enabled = false;
+    for (unsigned i = 0; i < DRDY_CHANNEL_COUNT; i++) {
+        any_enabled |= rings[i].enabled;
+    }
+    if (!any_enabled) {
+        irq_set_priority(IO_IRQ_BANK0, gpio_irq_original_priority);
+    }
 }
 
 uint32_t drdy_ring_head_snapshot(enum drdy_channel channel) {
