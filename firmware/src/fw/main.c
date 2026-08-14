@@ -38,6 +38,9 @@
 #include "buzzer.h"
 #include "boardid.h"
 
+// On Pico W the RT6154 PS pin hangs on cyw43 WL_GPIO1; high = forced PWM, low = PFM allowed (default).
+#define SMPS_FORCE_PWM_WL_GPIO 1
+
 static volatile enum state state;
 
 // Whether the wireless chip came up in the MSC boot path — VSYS can only be
@@ -538,6 +541,8 @@ static void on_rec_start() {
         return;
     }
 
+    // SMPS PFM ripple at light load reads as broadband downward sag on both ADCs; force PWM while recording (see docs/plan-drdy-resampling.md, "Offene Nebenbefunde").
+    cyw43_arch_gpio_put(SMPS_FORCE_PWM_WL_GPIO, true);
     state = RECORD;
     char msg[16];
     sprintf(msg, "REC:%s|%s", fork_sensor.available ? "F" : ".", shock_sensor.available ? "S" : ".");
@@ -584,6 +589,9 @@ static void on_rec_stop() {
     if (displayed) {
         display_message(&disp, "IDLE");
     }
+
+    // Back to power-save.
+    cyw43_arch_gpio_put(SMPS_FORCE_PWM_WL_GPIO, false);
 }
 
 static void on_sync_data() {

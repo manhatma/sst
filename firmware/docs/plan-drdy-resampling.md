@@ -700,19 +700,50 @@ AP6 / AP7 / AP7b: entfallen durch das exakte 860-Hz-Raster
 Beide Punkte sind beim Umbau aufgefallen, gehören aber nicht dazu. Sie sind
 dokumentiert, damit sie nicht verloren gehen.
 
-**Breitbandrauschen, an den Schreibpuffer gekoppelt.** Aufnahme 00279 zeigt rund
-zehnfach höheres Rauschen als 00278: Fork 10,5 LSB statt 1,1 LSB, Shock 5,7 LSB
-statt 0,9 LSB. Das Muster ist exakt an den 2048-Record-Puffer gekoppelt. Die
-ersten etwa 170 Records nach jedem Puffertausch sind ruhig, die restlichen 1880
-sind gestört, über alle 20 Puffer der Aufnahme gleich. Fork und Shock korrelieren
-dabei mit 0,90, die Werte werden nur nach unten gezogen, und die Obergrenze bleibt
-genau der Ruhewert. Es ist also Gleichtakt, nicht mechanisch. Das Spektrum fällt
-zu hohen Frequenzen ab, passt also zu Analograuschen durch das ADC-Filter und
-nicht zu einem Resampler-Fehler. Die Aufnahmen 00276, 00277, 00278 und
-`ref-vor-drdy` sind frei davon. Unterschied im Aufbau: 00279 entstand mit frisch
-geladenem Akku, alle anderen mit fast leerem. Verdacht: der Spannungswandler
-arbeitet bei hoher Eingangsspannung im Puls-Skip-Betrieb. Der SD-Schreibvorgang
-ist der Auslöser, der Wandler der Verstärker.
+**Breitbandrauschen, an den Schreibpuffer gekoppelt — behoben.** Untersucht am
+2026-08-14 (phasenstarre Faltung auf den 2048-Record-Zyklus, Residuum gegen
+9-Punkt-Median). Betroffen sind 00279, 00280 und 00281 (alle mit frisch
+geladenem Akku), frei sind 00276, 00277, 00278 und `ref-vor-drdy` (alle mit
+fast leerem Akku). Befund:
+
+- Rauschstärke: Fork bis 8,9 LSB MAD-σ statt 1,5 (00278), Shock 4,4 statt <1.
+  Breitbandig, +26 dB gegenüber 00278 in allen Bändern 5–430 Hz, leicht
+  fallend zu hohen Frequenzen, keine Burst-Periode im Record-Raster
+  (Autokorrelation nach Lag 1 ≈ 0).
+- Fensterlage, in allen betroffenen Aufnahmen identisch: Records ~4 bis ~247
+  nach dem Puffertausch sind ruhig (≈284 ms), ab Record 247/248 (scharfe
+  Kante) bis in die Records 0–3 des nächsten Puffers ist das Signal gestört.
+  Die frühere Angabe "erste ~170 Records ruhig" war zu kurz gemessen.
+- Streng einseitig: Obergrenze bleibt der Ruhewert (p99,9 der Abweichung
+  +1 LSB). Median im gestörten Fenster liegt 16 LSB (Fork) bzw. 8 LSB
+  (Shock) unter dem Ruhewert, Extremwerte −45/−23 LSB. Fork/Shock-Korrelation
+  0,82 — Gleichtakt, nicht mechanisch.
+- Der Effekt ist alt: 13 von 205 Archiv-Aufnahmen in
+  `/Volumes/data/DAQ_backup_260712` (Firmware v3, 2026-03 bis 2026-07)
+  zeigen dieselbe Signatur mit gleicher Fensterlage (ruhig bis Record
+  ~253). Der DRDY-Umbau ist als Ursache ausgeschlossen.
+
+Deutung: Der SD-Schreibvorgang (`f_write` + `f_sync` direkt nach dem Tausch)
+ist nicht der Auslöser, sondern der Dämpfer. Seine Last hält den Wandler
+≈285 ms im Dauerbetrieb; solange ist das Signal ruhig. Fällt die Last ab,
+geht der RT6154 in den Puls-Skip-Betrieb (PFM), und die 3V3-Versorgung sackt
+zwischen den Pulsen ein — einseitig nach unten, wie gemessen. Bei fast leerem
+Akku (V_in ≈ V_out) bleibt der Wandler auch bei geringer Last aus dem
+Skip-Betrieb heraus. Die Firmware setzt WL_GPIO1 (SMPS-PSM-Pin des Pico W)
+nie; der Wandler läuft also immer im PFM-Default.
+
+Fix: `on_rec_start` setzt `cyw43_arch_gpio_put(SMPS_FORCE_PWM_WL_GPIO, true)`
+vor `state = RECORD`, `on_rec_stop` nimmt es zurück (`main.c`). WL_GPIO1 high
+zwingt den RT6154 in den PWM-Betrieb, solange die Aufnahme läuft.
+
+Verifikation (00282, voller Akku, 121 s Ruhe, 51 Puffertausche, Version 4,
+860 Hz): Das Rauschen ist vollständig weg. MAD-σ Fork und Shock = 0,0 LSB über
+den ganzen Zyklus, kein ruhig/laut-Fenster mehr, kein einseitiger Sag
+(Median-Delta 0 LSB je Phase, Extremwert −1 LSB), Fork/Shock-Korrelation 0,06
+(vorher 0,82). Echtes Analogsignal bleibt erhalten: Kontrolllinien 88,7 Hz und
+177,3 Hz weiter nachweisbar (Fork +25,4/+21,3 dB, Shock +21,1/+18,8 dB). Damit
+ist der Wandler als Ursache bestätigt und der Fix wirksam. Die opportunistische
+Wiederholung bei teilentladenem Akku (AP8.4) entfällt.
 
 **Reset-Schleife im MSC-Zustand — behoben.** Das Gerät kam bei USB-Versorgung
 nicht in den MSC-Zustand: `read_voltage()` lieferte unter 4,4 V, dreimal in Folge,
