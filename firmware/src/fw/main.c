@@ -43,6 +43,7 @@ static volatile enum state state;
 // Whether the wireless chip came up in the MSC boot path — VSYS can only be
 // read while it is powered (see on_msc).
 static bool msc_vsys_ok;
+static const uint32_t MSC_BOOT_MAGIC = 0x4d534321; // "MSC!"
 
 static uint32_t scb_orig;
 static uint32_t clock0_orig;
@@ -87,6 +88,10 @@ static bool on_battery() {
 // The missing /3 for the sample sum and *3 for the VSYS/3 divider cancel deliberately.
 static float read_voltage() {
     cyw43_thread_enter();
+    // Wake the wireless chip: in power-save it clamps the shared ADC3/GPIO29
+    // line to ~0 V, which reads as an unplugged supply. Any cyw43 GPIO access
+    // wakes it (see pico-examples read_vsys).
+    cyw43_arch_gpio_get(2);
     sleep_ms(1); // NOTE ADC3 readings are way too high without this sleep.
     adc_gpio_init(29);   // GPIO29 measures VSYS/3
     adc_select_input(3); // GPIO29 is ADC #3
@@ -100,16 +105,20 @@ static float read_voltage() {
     return ret;
 }
 
-static bool msc_present() {
-    // Wait for a maximum of 1 second for USB MSC to initialize
+static bool msc_present_timeout(uint32_t timeout_us) {
     uint32_t t = time_us_32();
     while (!tud_ready()) {
-        if (time_us_32() - t > 1000000) {
+        if (time_us_32() - t > timeout_us) {
             return false;
         }
         tud_task();
     }
     return true;
+}
+
+static bool msc_present() {
+    // Wait for a maximum of 1 second for USB MSC to initialize
+    return msc_present_timeout(1000000);
 }
 
 static bool wifi_connect(bool do_ntp) {
@@ -440,6 +449,7 @@ static void on_cal_idle() {
     // tud is not necessary.
     bool battery = on_battery();
     if (!battery && msc_present()) {
+        watchdog_hw->scratch[3] = MSC_BOOT_MAGIC;
         soft_reset();
     }
 
@@ -640,6 +650,7 @@ static void on_idle() {
     // tud is not necessary.
     bool battery = on_battery();
     if (!battery && msc_present()) {
+        watchdog_hw->scratch[3] = MSC_BOOT_MAGIC;
         soft_reset();
     }
 
@@ -730,8 +741,9 @@ static void on_msc() {
     // device a few minutes after mounting (the volume stays mounted and the
     // host resumes the device on the next access), and tud_task() handles
     // resume and host reboots by itself. Unplugging is detected via VSYS
-    // instead — above ~4.4 V only happens on USB power, the battery tops out
-    // at ~4.2 V. The read must go through read_voltage(): on the Pico W the
+    // instead — above ~4.30 V only happens on USB power, leaving about 100 mV
+    // above the battery's ~4.2 V maximum while tolerating USB supply drop. The
+    // read must go through read_voltage(): on the Pico W the
     // unpowered wireless chip clamps the shared ADC3/GPIO29 line to ~0 V, so
     // main() brings it up before entering MSC state. (VBUS via
     // cyw43_arch_gpio_get is no alternative either — the chip's power-save
@@ -740,7 +752,7 @@ static void on_msc() {
     static int vsys_low = 0;
     if (msc_vsys_ok && absolute_time_diff_us(get_absolute_time(), vsys_check) < 0) {
         vsys_check = make_timeout_time_ms(250);
-        if (read_voltage() < 4.4f) {
+        if (read_voltage() < 4.30f) {
             if (++vsys_low >= 3) {
                 soft_reset();
             }
@@ -926,7 +938,13 @@ int main() {
 
     setup_display(&disp);
 
-    if (msc_present()) {
+    bool force_msc = watchdog_caused_reboot() &&
+                     watchdog_hw->scratch[3] == MSC_BOOT_MAGIC;
+    if (force_msc) {
+        watchdog_hw->scratch[3] = 0;
+    }
+
+    if (force_msc ? msc_present_timeout(10000000) : msc_present()) {
         // The wireless chip has to be powered for the VSYS-based unplug
         // detection in on_msc — see there.
         msc_vsys_ok = cyw43_arch_init() == 0;
