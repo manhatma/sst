@@ -60,6 +60,7 @@ struct ds3231 rtc;
 
 extern struct sensor fork_sensor;
 extern struct sensor shock_sensor;
+extern uint16_t linear_sensor_ads1115_last_c_exc(struct sensor *sensor);
 
 #ifdef DEBUG
 #define debug_printf(...) printf(__VA_ARGS__)
@@ -497,6 +498,19 @@ static void on_cal_exp() {
         state = CAL_IDLE_1;
         return;
     }
+
+    char ce_fork[12];
+    char ce_shock[12];
+    snprintf(ce_fork, sizeof(ce_fork), "F %u",
+             linear_sensor_ads1115_last_c_exc(&fork_sensor));
+    snprintf(ce_shock, sizeof(ce_shock), "S %u",
+             linear_sensor_ads1115_last_c_exc(&shock_sensor));
+    ssd1306_clear(&disp);
+    ssd1306_draw_string(&disp, 0,  0, 1, "CEXC");
+    ssd1306_draw_string(&disp, 0, 16, 2, ce_fork);
+    ssd1306_draw_string(&disp, 0, 40, 2, ce_shock);
+    ssd1306_show(&disp);
+    sleep_ms(1500);
 
     FIL calibration_fil;
     FRESULT fr = f_open(&calibration_fil, "CALIBRATION", FA_CREATE_ALWAYS | FA_WRITE);

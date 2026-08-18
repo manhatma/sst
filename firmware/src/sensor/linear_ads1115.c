@@ -13,6 +13,7 @@
 
 #define VREF			3.3
 #define PGA				4.096
+#define ADS1115_FULLSCALE_3P3V 26400u
 static const uint16_t MAX_ADC_3P3V = (uint16_t)((VREF/PGA)*32768.0f + 0.5f); // #define MAX_ADC_3P3V 	26400 
 
 // Forward declarations --------------------------------------------------------
@@ -35,10 +36,12 @@ extern struct sensor shock_sensor;
 // ADS1115 configurations ------------------------------------------------------
 #ifdef FORK_LINEAR
 static ads1115_adc_t fork_adc = {.i2c_addr = 0x48};
+static uint16_t fork_c_exc = ADS1115_FULLSCALE_3P3V;
 #endif
 
 #ifdef SHOCK_LINEAR
 static ads1115_adc_t shock_adc = {.i2c_addr = 0x48};
+static uint16_t shock_c_exc = ADS1115_FULLSCALE_3P3V;
 #endif
 
 // Debugging utilities ---------------------------------------------------------
@@ -86,6 +89,21 @@ static ads1115_adc_t* get_ads1115(struct sensor *sensor) {
     return NULL;
 }
 
+static uint16_t* get_c_exc_slot(struct sensor *sensor) {
+#ifdef FORK_LINEAR
+    if (sensor == &fork_sensor) {
+        return &fork_c_exc;
+    }
+#endif
+#ifdef SHOCK_LINEAR
+    if (sensor == &shock_sensor) {
+        return &shock_c_exc;
+    }
+#endif
+
+    return NULL;
+}
+
 static enum drdy_channel get_drdy_channel(struct sensor *sensor) {
 #ifdef FORK_LINEAR
     if (sensor == &fork_sensor) {
@@ -100,6 +118,8 @@ static enum drdy_channel get_drdy_channel(struct sensor *sensor) {
 
     return DRDY_CHANNEL_COUNT;
 }
+
+static uint16_t measure_c_exc(ads1115_adc_t *adc);
 
 // Sensor operations -----------------------------------------------------------
 static void linear_sensor_ads1115_init(struct sensor *sensor) {
@@ -175,14 +195,16 @@ static bool linear_sensor_ads1115_check_availability(struct sensor *sensor) {
 static bool linear_sensor_ads1115_start(struct sensor *sensor, uint16_t baseline, bool inverted) {
     if (!sensor->check_availability(sensor)) return false;
     sensor->baseline = baseline;
+    ads1115_adc_t *adc = get_ads1115(sensor);
+    uint16_t *slot = get_c_exc_slot(sensor);
+    if (adc && slot) { *slot = measure_c_exc(adc); }
     drdy_ring_enable(get_drdy_channel(sensor));
     return true;
 }
 
-// The register pointer is set to 0x00 during init and no other path may move it.
-// check_availability only reads, and calibrate_expanded uses this function. A
-// future MUX change (ratiometric AIN1 tap, hardware checklist phase E) writes
-// config at pointer 0x01 and must explicitly restore the pointer to 0x00.
+// The register pointer is set to 0x00 during init. check_availability only
+// reads, and the ratiometric AIN1 MUX change explicitly restores the pointer
+// to 0x00 after writing config at pointer 0x01.
 static int ads1115_read_adc_debug(uint16_t *adc_value, ads1115_adc_t *adc) {
     uint8_t dst[2];
 
@@ -196,9 +218,37 @@ static int ads1115_read_adc_debug(uint16_t *adc_value, ads1115_adc_t *adc) {
     return 0;
 }
 
-static uint16_t apply_baseline(const struct sensor *sensor,
+static uint16_t measure_c_exc(ads1115_adc_t *adc) {
+    // Switch MUX to SINGLE_1 (AIN1 = excitation). PGA unchanged (stays 4.096).
+    adc->config = (adc->config & ~ADS1115_MUX_MASK) | ADS1115_MUX_SINGLE_1;
+    ads1115_write_config(adc);            // pointer now at 0x01 (config)
+    // restore pointer to conversion reg so read_adc_debug reads the conversion
+    uint8_t reg = ADS1115_POINTER_CONVERSION;
+    i2c_write_blocking(adc->i2c_port, adc->i2c_addr, &reg, 1, false);
+    // Discard first result and wait >= 2.4 ms after the MUX change (860 SPS => ~1.16 ms/conv).
+    sleep_ms(3);
+    uint16_t discard = 0;
+    (void)ads1115_read_adc_debug(&discard, adc);
+    sleep_ms(3);
+    uint16_t value = 0;
+    int ret = ads1115_read_adc_debug(&value, adc);
+    // Restore MUX to SINGLE_0 (AIN0 = wiper) and pointer to 0x00 (AP2 invariant).
+    adc->config = (adc->config & ~ADS1115_MUX_MASK) | ADS1115_MUX_SINGLE_0;
+    ads1115_write_config(adc);
+    i2c_write_blocking(adc->i2c_port, adc->i2c_addr, &reg, 1, false);
+    // Fallback: out of plausible window => no normalization (use full-scale).
+    if (ret != 0 || value < 20000u || value > 30000u) {
+        return ADS1115_FULLSCALE_3P3V;
+    }
+    return value;
+}
+
+static uint16_t apply_baseline(struct sensor *sensor,
                                uint16_t raw_value) {
-    int16_t adc_travel = (int16_t)raw_value - (int16_t)sensor->baseline;
+    uint16_t *c_exc_slot = get_c_exc_slot(sensor);
+    uint16_t c_exc = c_exc_slot ? *c_exc_slot : ADS1115_FULLSCALE_3P3V;
+    uint16_t norm = (uint16_t)(((uint32_t)raw_value * ADS1115_FULLSCALE_3P3V) / c_exc);
+    int16_t adc_travel = (int16_t)norm - (int16_t)sensor->baseline;
 
 //    uint16_t lower_adc_threshold;
 //    if (sensor == &fork_sensor) { 
@@ -256,11 +306,20 @@ static void linear_sensor_ads1115_calibrate_expanded(struct sensor *sensor) {
     int ret = ads1115_read_adc_debug(&raw_value, adc);
     if (ret != 0) return;
 
-    sensor->baseline = raw_value;
+    uint16_t c_exc = measure_c_exc(adc);
+    uint16_t *slot = get_c_exc_slot(sensor);
+    if (slot) { *slot = c_exc; }
+    uint16_t baseline_norm = (uint16_t)(((uint32_t)raw_value * ADS1115_FULLSCALE_3P3V) / c_exc);
+    sensor->baseline = baseline_norm;
 }
 
 static void linear_sensor_ads1115_calibrate_compressed(struct sensor *sensor) {
 	sensor->inverted = false;
+}
+
+uint16_t linear_sensor_ads1115_last_c_exc(struct sensor *sensor) {
+    uint16_t *slot = get_c_exc_slot(sensor);
+    return slot ? *slot : ADS1115_FULLSCALE_3P3V;
 }
 
 // Sensor instances ------------------------------------------------------------
