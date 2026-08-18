@@ -109,7 +109,7 @@ Senkstrom pro Leitung danach 1,83 mA — innerhalb der 3 mA des ADS1115.
       gegen die Nachbarpins (GP20 Pin 26, GP22 Pin 29, GP26 Pin 31, GP28 Pin 34).
 - [ ] **C3 Kein Schluss** SDA ↔ SCL auf beiden Bussen (Lötbrücke am Modul-Header ist
       der wahrscheinlichste Fehler bei B4).
-- [ ] **C3b Kein Schluss** `A1` ↔ `A0` und `A1` ↔ `ADDR` (Phase E, Nachbarpins auf
+- [x] **C3b Kein Schluss** `A1` ↔ `A0` und `A1` ↔ `ADDR` (Phase E, Nachbarpins auf
       demselben Header). Ein Schluss A1↔A0 legt die Schleiferleitung auf die Speisung
       und sieht in den Daten wie Dauer-Vollausschlag aus.
 - [ ] **C4 Zugentlastung/Fixierung** der neuen Drähte, das Gerät wird bewegt.
@@ -136,31 +136,40 @@ angenommen (heute implizit 3,300 V in `resolution: 14.6883`). Zielt auf
 innerhalb* von Sessions, 1 % = 2,0 mm am 200-mm-Fork. AIN1–AIN3 sind an beiden
 Modulen frei.
 
-- [ ] **E1 Vorbedingung prüfen (Gate).** DMM Durchgang, Gerät aus: Poti-Klemme „+" am
+- [x] **E1 Vorbedingung prüfen (Gate).** DMM Durchgang, Gerät aus: Poti-Klemme „+" am
       Stecker ↔ ADS1115-`VDD` müssen **dasselbe Netz** sein.
       **Poti an 5 V / VSYS ⇒ nicht anschließen** — abs. max. Analogeingang ist
       VDD + 0,3 V. Beide Kanäle einzeln prüfen.
-- [ ] **E2 A1-Pin identifizieren.** Selbe Pinreihe wie A1 in Phase A, von rechts:
+- [x] **E2 A1-Pin identifizieren.** Selbe Pinreihe wie A1 in Phase A, von rechts:
       `VDD, GND, SCL, SDA, ADDR, ALRT, A0, A1, A2, A3`
       → **A1 = 8. von rechts = 3. von links, sitzt zwischen `A0` und `A2`.**
-- [ ] **E3 Fliegender Draht pro Modul: Poti-„+"-Pin → Modul-`A1`.**
+- [x] **E3 Fliegender Draht pro Modul: Poti-„+"-Pin → Modul-`A1`.**
       **Am Stecker abgreifen, nicht irgendwo am 3V3-Netz.** Falls Schutzwiderstand,
       Diode oder Abschalt-FET in Reihe liegt, muss der Abgriff **dahinter** sitzen —
       sonst misst A1 eine andere Spannung als das Poti sieht und der ganze Zweck ist
       weg.
-- [ ] **E4 Kein Teiler, kein RC, kein Serien-R** — weder auf A1 noch auf A0.
+- [x] **E4 Kein Teiler, kein RC, kein Serien-R** — weder auf A1 noch auf A0.
       (Begründung bei A0: ein C auf der Schleiferleitung reißt die Wiper-Stromgrenze
       des ELPM75 und macht den Quellwiderstand positionsabhängig.)
-- [ ] **E5 Zwischenprüfung ohne Firmware.** DMM DC zwischen Modul-`A1` und Modul-`GND`,
+- [x] **E5 Zwischenprüfung ohne Firmware.** DMM DC zwischen Modul-`A1` und Modul-`GND`,
       Gerät an: muss gleich der VDD-Messung aus 0.3 sein (~3,3 V). Abweichung ⇒
       falscher Abgriffspunkt.
-- [ ] **E6 Abnahme mit Firmware-Support.** A1 muss **26400 counts** lesen
+- [x] **E6 Abnahme mit Firmware-Support.** A1 muss **26400 counts** lesen
       (3,3/4,096 × 32768 = exakt 26400,0), Fenster **25600–27200**.
       - **32767 → falsche Schiene, sofort trennen.**
       - ~0 → nicht kontaktiert.
       - Wert **nicht als Voltmeter lesen** — er trägt den ADC-Gain-Fehler. Genau ist
         nur das Verhältnis `c_wiper / c_exc`, und genau darin kürzen sich Speisung
         und Gain weg.
+
+> **Phase E abgenommen am 2026-08-18 (Commit `8776e8c`).** Beide Module: Draht
+> A1 → Modul-`VDD` gelötet. Firmware-Support umgesetzt in
+> `linear_ads1115.c` (c_exc-Messung via MUX SINGLE_1, ratiometrische
+> Normalisierung `raw · 26400 / c_exc`, Pointer-Restore auf 0x00) und
+> `main.c` (c_exc-Anzeige `CEXC F/S` nach CAL EXP). E6 auf Hardware:
+> beide Kanäle im Fenster 25600–27200. Beide Kollisionen mit dem DRDY-Plan
+> gelöst: c_exc-Messung in `start()` vor dem DRDY-Arm, Pointer nach jedem
+> MUX-Wechsel explizit zurückgesetzt.
 
 **Kein Format-Impact:** `baseline_norm = c_w0 · 26400 / c_exc` passt in dasselbe
 `uint16_t` ⇒ CALIBRATION-Datei, `struct record`, `struct header` und der App-Faktor
