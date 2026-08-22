@@ -58,57 +58,62 @@ void buzzer_silence(void) {
     pwm_set_chan_level(slice_num, channel, 0);
 }
 
-// --- Sound functions (frequencies tuned toward 4 kHz PS1240P02BT resonance) ---
+// --- Sound functions ---
+// The measured resonance of the mounted PS1240P02BT is 5125 Hz, not the
+// nominal 4000 Hz. The peak is sharp: +-400 Hz already costs 7 dB. All tones
+// therefore stay inside 4700..5125 Hz, and the intervals are narrow.
 
 // Single short tone — called from button callback (alarm IRQ context).
 // Must not call sleep_ms: blocking on the default alarm pool from within an
 // alarm callback deadlocks the pool.
 void buzzer_sound_confirm(void) {
-    buzzer_beep(4000, 80);
+    buzzer_beep(5125, 80);
 }
 
 // Ascending 3-tone chirp — called from on_rec_start(), blocking safe.
 void buzzer_sound_start(void) {
-    buzzer_beep(2500, 100);
+    buzzer_beep(4900, 100);
     sleep_ms(120);
-    buzzer_beep(3500, 100);
+    buzzer_beep(5000, 100);
     sleep_ms(120);
-    buzzer_beep(4500, 150);
+    buzzer_beep(5125, 150);
 }
 
 // Descending 2-tone — called from on_rec_stop(), blocking safe.
 void buzzer_sound_stop(void) {
-    buzzer_beep(4000, 100);
+    buzzer_beep(5125, 100);
     sleep_ms(120);
-    buzzer_beep(2500, 150);
+    buzzer_beep(4900, 150);
 }
 
 // Single mid-tone — called from button callback in CAL states (non-blocking).
 void buzzer_sound_cal(void) {
-    buzzer_beep(3500, 80);
+    buzzer_beep(4900, 80);
 }
 
-// Low double-tone — called from state handlers in CAL states, blocking safe.
+// Warbling 3-tone — called from state handlers in CAL states, blocking safe.
 void buzzer_sound_error(void) {
-    buzzer_beep(1500, 150);
+    buzzer_beep(5125, 150);
     sleep_ms(180);
-    buzzer_beep(1500, 150);
+    buzzer_beep(4700, 150);
+    sleep_ms(180);
+    buzzer_beep(5125, 150);
 }
 
 // Rising tone — called from on_waking() / startup, blocking.
 void buzzer_sound_wake(void) {
-    buzzer_beep(2000, 100);
+    buzzer_beep(4900, 100);
     sleep_ms(120);
-    buzzer_beep(3500, 150);
+    buzzer_beep(5125, 150);
     sleep_ms(170);
     buzzer_silence();
 }
 
 // Falling tone — called from on_sleep() state handler, blocking.
 void buzzer_sound_sleep(void) {
-    buzzer_beep(3500, 100);
+    buzzer_beep(5125, 100);
     sleep_ms(120);
-    buzzer_beep(2000, 150);
+    buzzer_beep(4900, 150);
     sleep_ms(170);
     buzzer_silence();
 }

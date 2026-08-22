@@ -41,6 +41,16 @@
 // On Pico W the RT6154 PS pin hangs on cyw43 WL_GPIO1; high = forced PWM, low = PFM allowed (default).
 #define SMPS_FORCE_PWM_WL_GPIO 1
 
+// Buzzer resonance sweep test. Comment out the define to disable.
+// Runs once after display init, using the SWEEP_* range below.
+// #define BUZZER_SWEEP_TEST
+#ifdef BUZZER_SWEEP_TEST
+#define SWEEP_FROM_HZ  4800
+#define SWEEP_TO_HZ    5600
+#define SWEEP_STEP_HZ    25
+#define SWEEP_STEP_MS   500
+#endif
+
 static volatile enum state state;
 
 // Whether the wireless chip came up in the MSC boot path — VSYS can only be
@@ -934,6 +944,21 @@ static void on_right_longpress(void *user_data) {
 // ----------------------------------------------------------------------------
 // Entry point 
 
+#ifdef BUZZER_SWEEP_TEST
+// Sweeps the buzzer across its resonance range and shows the current
+// frequency, so the loudest step can be identified by ear.
+static void buzzer_sweep_test(void) {
+    char msg[10];
+    for (uint32_t f = SWEEP_FROM_HZ; f <= SWEEP_TO_HZ; f += SWEEP_STEP_HZ) {
+        snprintf(msg, sizeof(msg), "%lu Hz", (unsigned long)f);
+        display_message(&disp, msg);
+        buzzer_beep(f, SWEEP_STEP_MS - 20);
+        sleep_ms(SWEEP_STEP_MS);
+    }
+    buzzer_silence();
+}
+#endif
+
 int main() {
     board_init();
     buzzer_init();
@@ -959,6 +984,10 @@ int main() {
     rtc_set_datetime(&dt);
 
     setup_display(&disp);
+
+#ifdef BUZZER_SWEEP_TEST
+    buzzer_sweep_test();
+#endif
 
     bool force_msc = watchdog_caused_reboot() &&
                      watchdog_hw->scratch[3] == MSC_BOOT_MAGIC;
