@@ -357,6 +357,9 @@ static int setup_storage() {
     return 0;
 }
 
+// Read on core 0, consumed by open_datafile() on core 1. See the write site.
+static volatile time_t pending_timestamp = 0;
+
 static int open_datafile() {
     // start from 1, 0 is the special value for the headers in tcpserver
     uint16_t index = 1;
@@ -388,7 +391,12 @@ static int open_datafile() {
         return fr;
     }
 
-    struct header h = {"SST", 4, SAMPLE_RATE, rtc_timestamp()};
+    // DS3231 and the display share the PIO-I2C SM. Display runs on core 0,
+    // open_datafile() on core 1, so the timestamp is read on core 0 into
+    // pending_timestamp. A plain global, not extra FIFO words: the OPEN
+    // handler drains the FIFO before it runs, which would eat any word
+    // pushed after OPEN. push(OPEN) / pop(index) is the ordering barrier.
+    struct header h = {"SST", 4, SAMPLE_RATE, pending_timestamp};
     f_write(&recording, &h, sizeof(struct header), NULL);
 
     return index;
@@ -573,6 +581,7 @@ static void on_rec_start() {
     display_message(&disp, msg);
     buzzer_sound_start();
 
+    pending_timestamp = rtc_timestamp();
     multicore_fifo_push_blocking(OPEN);
     int index = (int)multicore_fifo_pop_blocking();
     if (index < 0) {

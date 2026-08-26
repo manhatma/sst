@@ -11,6 +11,7 @@ struct tcpserver {
     int status;
     int requested_file;
     int64_t requested_time;
+    uint32_t requested_time_us;
     int data_len;
     int sent_len;
     s8_t mdns_slot;

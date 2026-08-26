@@ -80,8 +80,12 @@ err_t tcp_server_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err
             server->status = s;
         } else if (s == STATUS_TIME_SYNC) {
             int64_t epoch;
+            uint32_t usec = 0;
             pbuf_copy_partial(p, &epoch, 8, 4);
+            if (p->tot_len >= 16)
+                pbuf_copy_partial(p, &usec, 4, 12);
             server->requested_time = epoch;
+            server->requested_time_us = usec;
             server->status = s;
         } else {
             server->status = s;
@@ -438,7 +442,7 @@ static bool process_sst_file_trash(struct tcpserver *server) {
 // Time sync handler
 
 static bool process_time_sync(struct tcpserver *server) {
-    set_system_time_us((uint32_t)server->requested_time, 0);
+    set_system_time_us((uint32_t)server->requested_time, server->requested_time_us);
 
     static int status = STATUS_TIME_SYNCED;
     cyw43_arch_lwip_begin();
