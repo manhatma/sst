@@ -25,6 +25,7 @@
  */
 
 #include "tusb.h"
+#include "hardware/watchdog.h"
 
 #include "hw_config.h"
 #include "sd_card.h"
@@ -34,6 +35,13 @@
 static const uint16_t BLOCK_SIZE = 512; // hardcoded in FatFs_SPI/sd_driver/sd_card.c@232
 static sd_card_t *sd = NULL;
 static bool ejected = false;
+
+// Hang-detection phase codes, see MSC_PHASE_* in main.c. scratch[4] names
+// the blocking call in flight; 2 is tud_task(), the caller of these callbacks.
+#define MSC_PHASE_TUD      2
+#define MSC_PHASE_SD_INIT  3
+#define MSC_PHASE_SD_READ  4
+#define MSC_PHASE_SD_WRITE 5
 
 // Lazily (re)initialize the card. init() short-circuits when the card is
 // already up and otherwise runs the full init sequence again, so a card left
@@ -47,7 +55,11 @@ static bool sd_ready(void)
             return false;
         }
     }
-    return !(sd->init(sd) & (STA_NOINIT | STA_NODISK));
+    watchdog_hw->scratch[4] = MSC_PHASE_SD_INIT;
+    watchdog_update();
+    bool ready = !(sd->init(sd) & (STA_NOINIT | STA_NODISK));
+    watchdog_hw->scratch[4] = MSC_PHASE_TUD;
+    return ready;
 }
 
 // Invoked when received SCSI_CMD_INQUIRY
@@ -139,7 +151,11 @@ int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buff
     // The (positive) block_dev_err_t codes must not be returned here — TinyUSB
     // treats any positive return as "bytes transferred" and would hand the
     // host garbage sectors; errors have to take the -1 STALL path.
-    if (sd->read_blocks(sd, buffer, lba, bufsize / BLOCK_SIZE) != SD_BLOCK_DEVICE_ERROR_NONE) {
+    watchdog_hw->scratch[4] = MSC_PHASE_SD_READ;
+    watchdog_update();
+    int rc = sd->read_blocks(sd, buffer, lba, bufsize / BLOCK_SIZE);
+    watchdog_hw->scratch[4] = MSC_PHASE_TUD;
+    if (rc != SD_BLOCK_DEVICE_ERROR_NONE) {
         tud_msc_set_sense(lun, SCSI_SENSE_MEDIUM_ERROR, 0x11, 0x00); // unrecovered read error
         return -1;
     }
@@ -177,7 +193,11 @@ int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t* 
 
     // See tud_msc_read10_cb: positive SD error codes would be misread as a
     // byte count and silently corrupt the write.
-    if (sd->write_blocks(sd, buffer, lba, bufsize / BLOCK_SIZE) != SD_BLOCK_DEVICE_ERROR_NONE) {
+    watchdog_hw->scratch[4] = MSC_PHASE_SD_WRITE;
+    watchdog_update();
+    int rc = sd->write_blocks(sd, buffer, lba, bufsize / BLOCK_SIZE);
+    watchdog_hw->scratch[4] = MSC_PHASE_TUD;
+    if (rc != SD_BLOCK_DEVICE_ERROR_NONE) {
         tud_msc_set_sense(lun, SCSI_SENSE_MEDIUM_ERROR, 0x0c, 0x00); // write error
         return -1;
     }
@@ -202,6 +222,13 @@ int32_t tud_msc_scsi_cb (uint8_t lun, uint8_t const scsi_cmd[16], void* buffer, 
     {
         case SCSI_CMD_PREVENT_ALLOW_MEDIUM_REMOVAL:
             // Host is about to read/write etc ... better not to disconnect disk
+            resplen = 0;
+            break;
+
+        case 0x35: // SYNCHRONIZE CACHE(10)
+            // SD writes complete synchronously in write10_cb, nothing to flush.
+            // Answering success avoids a failed-status/STALL round trip that
+            // macOS follows with endpoint halt clears.
             resplen = 0;
             break;
 

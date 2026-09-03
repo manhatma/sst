@@ -46,6 +46,14 @@ add_executable(sufni-suspension-telemetry
     src/sensor/drdy_ring.c      # DRDY timestamp ring buffers for linear sensors
 #    src/sensor/evomini_debug.c  # Evomini debug/logging functions 
 )
+# Route panic() into sst_panic (main.c): records the message and reboots via
+# the watchdog instead of printing to UART and spinning forever.
+target_compile_definitions(sufni-suspension-telemetry PRIVATE PICO_PANIC_FUNCTION=sst_panic)
+# TinyUSB 0.17 rp2040 port: a host Clear-Halt on an endpoint with an armed
+# transfer left the hardware buffer armed while usbd dropped its claim; the
+# re-issued transfer then panicked with "ep was already available". The wrap
+# in main.c disarms the buffer before the stock dcd_edpt_clear_stall runs.
+target_link_options(sufni-suspension-telemetry PRIVATE -Wl,--wrap=dcd_edpt_clear_stall)
 
 add_executable(drdy_probe
     src/tools/drdy_probe.c

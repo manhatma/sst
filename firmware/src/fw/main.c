@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -19,6 +20,7 @@
 #include "hardware/structs/timer.h"
 #include "hardware/timer.h"
 #include "hardware/watchdog.h"
+#include "hardware/structs/usb.h"
 #include "bsp/board.h"
 #include "ff.h"
 
@@ -57,6 +59,62 @@ static volatile enum state state;
 // read while it is powered (see on_msc).
 static bool msc_vsys_ok;
 static const uint32_t MSC_BOOT_MAGIC = 0x4d534321; // "MSC!"
+// Hang detection in MSC state: a watchdog (MSC_WATCHDOG_MS) is armed while
+// in MSC, scratch[5] carries MSC_HANG_MAGIC and scratch[4] the phase code of
+// the blocking call in flight (see MSC_PHASE_* and msc_disk.c). After a
+// watchdog reset with the magic set, main() shows "HANG P<n>" (or "PANIC"
+// with the message, see sst_panic) for 10 s and re-enters MSC state. A
+// deliberate soft_reset() clears both first.
+// History: the MSC session used to die ~20 s after the host mounted the
+// volume. Diagnosed 2026-09-03 with exactly this machinery: a TinyUSB 0.17
+// panic "ep 03 was already available", see __wrap_dcd_edpt_clear_stall.
+static const uint32_t MSC_HANG_MAGIC = 0x48414e47; // "HANG"
+#define MSC_WATCHDOG_MS 4000
+#define MSC_PHASE_NONE     0
+#define MSC_PHASE_VSYS     1  // read_voltage()
+#define MSC_PHASE_TUD      2  // tud_task()
+// 3 = sd init, 4 = sd read, 5 = sd write: set in msc_disk.c
+// (HardFaults are caught by the SD library's isr_hardfault, which resets
+// immediately; a panic() goes through sst_panic below.)
+// panic() replacement (PICO_PANIC_FUNCTION, CMakeLists.txt). The stock panic
+// prints over UART and then spins; with the stdio UART driver registered by
+// TinyUSB's board_init() that print itself hung forever (seen at
+// uart_tx_wait_blocking). Keep the format string's flash address and reboot,
+// main() shows it after the reset when in the MSC path.
+static const uint32_t PANIC_MAGIC = 0x50414e49; // "PANI"
+void __attribute__((noreturn)) sst_panic(const char *fmt, ...) {
+    __asm volatile("cpsid i");
+    watchdog_hw->scratch[6] = (uint32_t)fmt;
+    // First argument (the endpoint address for the TinyUSB rp2040 panics).
+    va_list ap;
+    va_start(ap, fmt);
+    watchdog_hw->scratch[2] = va_arg(ap, uint32_t);
+    va_end(ap);
+    watchdog_hw->scratch[7] = PANIC_MAGIC;
+    watchdog_enable(1, 1);
+    while (1);
+}
+
+// Linker-wrapped dcd_edpt_clear_stall (see CMakeLists.txt). macOS sends
+// CLEAR_FEATURE(ENDPOINT_HALT) on the MSC bulk OUT endpoint as a data-toggle
+// reset while the next-CBW receive is already armed. TinyUSB 0.17's
+// usbd_edpt_clear_stall() then clears the endpoint's busy flag, the MSC class
+// re-arms the CBW transfer, and the rp2040 port panics because the old buffer
+// is still marked AVAIL ("ep 03 was already available"). Disarm the buffer
+// first so the re-issued transfer starts clean. Upstream TinyUSB fixed this
+// in dcd_edpt_clear_stall by aborting and re-issuing the in-flight transfer.
+void __real_dcd_edpt_clear_stall(uint8_t rhport, uint8_t ep_addr);
+void __wrap_dcd_edpt_clear_stall(uint8_t rhport, uint8_t ep_addr) {
+    uint8_t num = ep_addr & 0x0f;
+    if (num != 0) {
+        if (ep_addr & 0x80) {
+            usb_dpram->ep_buf_ctrl[num].in = 0;
+        } else {
+            usb_dpram->ep_buf_ctrl[num].out = 0;
+        }
+    }
+    __real_dcd_edpt_clear_stall(rhport, ep_addr);
+}
 
 static uint32_t scb_orig;
 static uint32_t clock0_orig;
@@ -789,19 +847,36 @@ static void on_msc() {
     // main() brings it up before entering MSC state. (VBUS via
     // cyw43_arch_gpio_get is no alternative either — the chip's power-save
     // makes that report VBUS loss spuriously.)
+    //
+    // Readings below ~2.5 V are not a battery (LiPo range is 3.0-4.2 V):
+    // they are the wireless chip disturbing the shared line, e.g. right
+    // after waking from bus sleep. Such samples are dropped, they neither
+    // count as unplugged nor reset the debounce. Unplug needs 2 s of
+    // plausible battery-range readings (8 x 250 ms).
     static absolute_time_t vsys_check = {0};
     static int vsys_low = 0;
+    watchdog_update();
     if (msc_vsys_ok && absolute_time_diff_us(get_absolute_time(), vsys_check) < 0) {
         vsys_check = make_timeout_time_ms(250);
-        if (read_voltage() < 4.30f) {
-            if (++vsys_low >= 3) {
+        watchdog_hw->scratch[4] = MSC_PHASE_VSYS;
+        float vsys = read_voltage();
+        watchdog_hw->scratch[4] = MSC_PHASE_NONE;
+        if (vsys < 2.50f) {
+            // implausible sample, ignore
+        } else if (vsys < 4.30f) {
+            if (++vsys_low >= 8) {
+                // Deliberate reset: neither a hang nor a forced MSC re-entry.
+                watchdog_hw->scratch[3] = 0;
+                watchdog_hw->scratch[5] = 0;
                 soft_reset();
             }
         } else {
             vsys_low = 0;
         }
     }
+    watchdog_hw->scratch[4] = MSC_PHASE_TUD;
     tud_task();
+    watchdog_hw->scratch[4] = MSC_PHASE_NONE;
 }
 
 static void dummy() {
@@ -1008,6 +1083,35 @@ int main() {
         // The wireless chip has to be powered for the VSYS-based unplug
         // detection in on_msc — see there.
         msc_vsys_ok = cyw43_arch_init() == 0;
+        if (watchdog_caused_reboot() && watchdog_hw->scratch[5] == MSC_HANG_MAGIC) {
+            char msg[12];
+            ssd1306_clear(&disp);
+            if (watchdog_hw->scratch[7] == PANIC_MAGIC) {
+                // The format string lives in flash at the same address as
+                // long as the same image is running.
+                const char *fmt = (const char *)watchdog_hw->scratch[6];
+                char line[22];
+                snprintf(msg, sizeof(msg), "PANIC %02lX", (unsigned long)watchdog_hw->scratch[2]);
+                ssd1306_draw_string(&disp, 0, 0, 2, msg);
+                for (int i = 0; i < 3; i++) {
+                    snprintf(line, sizeof(line), "%.21s", fmt + 21 * i);
+                    ssd1306_draw_string(&disp, 0, 18 + 10 * i, 1, line);
+                }
+            } else {
+                snprintf(msg, sizeof(msg), "HANG P%lu", (unsigned long)watchdog_hw->scratch[4]);
+                ssd1306_draw_string(&disp, 0,  0, 2, msg);
+            }
+            ssd1306_show(&disp);
+            sleep_ms(10000);
+        }
+        watchdog_hw->scratch[6] = 0;
+        watchdog_hw->scratch[7] = 0;
+        // Any watchdog reset from here on returns into MSC state and
+        // reports the phase that was in flight.
+        watchdog_hw->scratch[3] = MSC_BOOT_MAGIC;
+        watchdog_hw->scratch[4] = MSC_PHASE_NONE;
+        watchdog_hw->scratch[5] = MSC_HANG_MAGIC;
+        watchdog_enable(MSC_WATCHDOG_MS, 1);
         state = MSC;
         display_message(&disp, "MSC MODE");
     } else {
