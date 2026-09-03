@@ -755,3 +755,52 @@ der Messung per `cyw43_arch_gpio_get` (Muster aus pico-examples `read_vsys`),
 Schwelle auf 4,30 V präzisiert, und ein absichtlicher Reboot in den MSC-Zustand
 wird über `watchdog_hw->scratch[3]`-Magic mit 10 s USB-Timeout erzwungen. Der
 Umbau war wie vermutet nicht die Ursache; der Fehler bestand auch auf `main`.
+
+**MSC-Session bricht ~20 s nach dem Mount ab — behoben.** Seit Juli 2026
+bekannt (Vermerk in `955ac70`): kurz nach dem Mount fiel das Gerät vom USB-Bus,
+das Display blieb bei „MSC MODE" stehen, nur ein Neustart half. Diagnose am
+2026-09-03 in vier Stufen am Gerät: (1) Watchdog 4 s im MSC-Zustand mit
+Phasen-Code in `scratch[4]` — Ergebnis „HANG P2", also innerhalb von
+`tud_task()`, nicht in SD-Init/Read/Write. (2) Ohne cyw43 und ohne
+VSYS-Messung im MSC-Zustand: Abbruch bleibt, die Absteck-Erkennung ist
+unschuldig. (3) PC-Sampler (Hardware-Alarm alle 1 ms, gestapelten PC in
+`scratch[6]`, `addr2line` gegen das gesicherte ELF): Der Code drehte in
+`uart_tx_wait_blocking` aus `stdio_uart_out_flush` — ein `panic()`, dessen
+Meldung in der UART hängen blieb (TinyUSBs `board_init()` registriert den
+stdio-UART-Treiber auch im Release-Build). (4) `panic()` per
+`PICO_PANIC_FUNCTION=sst_panic` abgefangen, Meldung und erstes Argument in
+Scratch-Registern gesichert, nach dem Reset auf dem OLED gezeigt:
+`ep 03 was already available`, Endpunkt 0x03 = MSC-Bulk-OUT.
+
+Ursache ist ein Fehler in TinyUSB 0.17.0 (Pico SDK 2.1.0), kein eigener Code:
+macOS schickt kurz nach dem Mount `CLEAR_FEATURE(ENDPOINT_HALT)` auf den
+MSC-OUT-Endpunkt, während der Empfang des nächsten CBW schon scharf ist.
+`usbd_edpt_clear_stall()` löscht das `busy`-Flag des Endpunkts, der
+MSC-Klassentreiber sieht ihn als frei und schaltet den CBW-Empfang erneut
+scharf. Der rp2040-Port löscht beim Clear-Halt aber nur das STALL-Bit; der
+alte Puffer bleibt AVAIL, und der zweite Start läuft in
+`panic("ep %02X was already available")` (`rp2040_usb.c`). Upstream ist das
+seit TinyUSB 0.21 (RP2-Treiber-Refactor) behoben: `dcd_edpt_clear_stall`
+bricht den laufenden Transfer ab und startet ihn neu.
+
+Fix in `9b24da0`, ohne Eingriff ins SDK: Linker-Wrap
+`--wrap=dcd_edpt_clear_stall`; `__wrap_dcd_edpt_clear_stall()` in `main.c`
+setzt `usb_dpram->ep_buf_ctrl[n].out/in = 0`, bevor das Original läuft.
+Zusätzlich beantwortet `tud_msc_scsi_cb` SYNCHRONIZE CACHE (0x35) als Erfolg.
+Als Sicherheitsnetz bleiben drin: Watchdog 4 s im MSC-Zustand mit Phasen-Code,
+`scratch[5]`-HANG-Magic, 10 s „HANG P<n>" bzw. „PANIC <ep>" plus Meldungstext
+nach einem Watchdog-Reset, danach automatisch wieder MSC; `sst_panic()` als
+`panic()`-Ersatz (Reboot per Watchdog statt UART-Ausgabe). Der PC-Sampler
+wurde nach der Diagnose wieder entfernt.
+
+Verifikation: 10 min gemountet, 100 MB gelesen, 200 KB und 2 MB geschrieben
+und byteweise zurückgelesen, kein Abbruch; vorher Abbruch nach 15–35 s in
+jedem Lauf. Endversion (mit reaktivierter Absteck-Erkennung): 5 min stabil,
+Abziehen führt korrekt in die Idle-Anzeige.
+
+Ausgeschlossen: RP2040-Errata-E15-Workaround (`UFRAME_FIX=0` getestet, Abbruch
+bleibt) und die VSYS-Messung. Nebenbefund: `read_voltage()`-Werte unter 2,5 V
+gelten jetzt als Störung der geteilten ADC3-Leitung und werden verworfen,
+Entprellung 8 × 250 ms. Auf dem Mac bleiben tote Mounts als Zombie in der
+Mount-Tabelle („Resource busy"); ein neu angestecktes Gerät bekommt dann
+`disk9`/`disk10`, Mount auf einen frischen Mountpoint.
