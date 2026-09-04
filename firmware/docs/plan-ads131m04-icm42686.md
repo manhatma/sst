@@ -1,7 +1,7 @@
 # Plan: ADS131M04 + 4× ICM-42686-P — Rev. 3
 
 Stand 2026-09-04. Ersetzt Rev. 2 (ADS131M02 + 4× MPU6050). Branch
-`claude/upgrade-adc-sensor-wGFyG`.
+`claude/upgrade-adc-sensor-wGFyG`. Datenblätter unter `firmware/docs/`.
 
 ## 0. Was sich gegenüber Rev. 2 ändert und warum
 
@@ -53,24 +53,26 @@ FIFO 2 kB / 8 kB, Pakete 16 B oder 20 B (Hi-Res). ODR-Liste 6400 … 1,5625 Hz
 in Zweierschritten, ohne 1000 Hz (TDK-Treiber `inv_imu_defs.h`, Zephyr
 `dt-bindings/sensor/icm45686.h`).
 
-### ICM-42686-P (Familie ICM-42688-P / IIM-42653; **Datenblatt DS noch nachzureichen**)
+### ICM-42686-P (TDK DS-000348, `firmware/docs/ds-000348-icm-42686-p-datasheet.pdf`)
 
-Aus TDK/Zephyr-Quellen belegt (`icm4268x_reg.h`, `invensense,icm4268x.yaml`),
-im Datenblatt zu bestätigen:
-
-| Punkt | Wert | Quelle |
+| Punkt | Wert | Fundstelle |
 |---|---|---|
-| Bereiche | Accel ±32/16/8/4/2 g, Gyro ±4000 … ±31,25 dps | Zephyr-Binding, WHO_AM_I 0x44 |
-| ODR | 32 k, 16 k, 8 k, 4 k, 2 k, **1 k**, 500, 200, 100, 50, 25, 12,5 Hz | `BIT_ACCEL_ODR_1000 0x06` |
-| CLKIN | INTF_CONFIG1 (0x4D) Bit 2 RTC_MODE, CLKSEL = PLL; Bereich 31–50 kHz laut IIM-42653-Datenblatt (gleiche Familie), 32 kHz nominal | Zephyr-Header, DS-000529 |
-| Pin 9 | INT2 / FSYNC / CLKIN geteilt → CLKIN und FSYNC schließen sich aus | Familie |
-| FIFO | 2 kB; FIFO_CONFIG1 Bit 4 FIFO_HIRES_EN (20 bit); Paket Accel+Gyro+Temp+TMST = 16 B, Hi-Res 20 B | Zephyr-Header |
-| Timestamp | TMST_EN, TMST_STROBE (SIGNAL_PATH_RESET Bit 2) latcht den Zähler in Register | Zephyr-Header |
-| INT | INT_CONFIG: Push-Pull/Open-Drain je Pin wählbar | Zephyr-Header |
-| SPI | Mode 0 oder 3, bis 24 MHz; VDD 1,71–3,6 V, VDDIO 1,71–3,6 V | Familie |
+| Gehäuse, Pins | LGA-14. 1 AP_SDO/AD0, 4 INT1, 5 VDDIO, 6 GND, 7 RESV→GND, 8 VDD, **9 INT2/FSYNC/CLKIN**, 11 RESV→GND, 12 AP_CS, 13 AP_SCLK, 14 AP_SDI; 2, 3, 10 RESV (NC oder GND) | Abschn. 4.1 |
+| Bereiche | Accel ±32 g (1024 LSB/g, 16 bit) bis ±2 g; Gyro ±4000 dps bis ±31,25 dps | Tab. 1, 2 |
+| Rauschen | Accel 70 µg/√Hz, Gyro 5,3 mdps/√Hz | Abschn. 1 |
+| ODR | 32 k … 12,5 Hz in Zweierschritten plus 500 Hz, **1 kHz nativ**; mit CLKIN skaliert ODR um fCLKIN/32 kHz, bei 32,000 kHz exakt | Abschn. 12.5 |
+| CLKIN | **31 bis 50 kHz** (Tab. 4 und Abschn. 3.7, Note 1: „expected results based on design"), tHIGH ≥ 1 µs; Genauigkeit ODR mit CLKIN ±50 ppm statt ±1 % (PLL) bzw. ±8 % (RC) | Tab. 4, Abschn. 3.7, 12.1 |
+| CLKIN aktivieren | Bank 0 INTF_CONFIG1 (0x4D) Bit 2 RTC_MODE = 1; Bank 1 INTF_CONFIG5 (0x7B) Bit 2:1 PIN9_FUNCTION = 10b | Abschn. 12.5, 14/15 |
+| Timestamp im RTC-Modus | TMST_RES = 0 (1 µs): Werte um 32,768/fRTC skalieren; bei 1 kHz und 32 kHz liest man 976/977 → 1000 µs | Abschn. 12.5 |
+| FIFO | physisch 2048 B, Lesecache 2 Pakete, Treiberpuffer 2080 B; Pakete 16 B (Accel+Gyro+Temp+TMST) oder 20 B Hi-Res | Abschn. 6.1, 6.2 |
+| Hi-Res (FIFO_HIRES_EN) | 19 bit Gyro, 18 bit Accel; **erzwingt ±32 g und ±4000 dps**, 4096 LSB/g und 65,5 LSB/dps | Abschn. 6.1 |
+| INT-Pins | INT1/INT2 je Push-Pull oder Open-Drain | Abschn. 4.1 |
+| SPI | 3- oder 4-Draht, SCLK ≤ 24 MHz, Mode 0/3 | Abschn. 9, Note 4 |
+| Versorgung | VDD 1,71–3,6 V, VDDIO 1,71–3,6 V | Abschn. 1 |
+| WHO_AM_I | 0x44 | Zephyr `icm4268x_reg.h` |
 
-Offen bis Datenblatt: exakter CLKIN-Bereich des 42686-P, Verhalten des
-Zeitstempels im RTC-Modus, Rauschdichte bei ±32 g.
+Zum Vergleich liegen ICM-42688-P (DS-000347) und ICM-45686 (DS-000577)
+ebenfalls unter `firmware/docs/`.
 
 ### 74HC4040 (Nexperia Rev. 8, 2024)
 
@@ -93,8 +95,9 @@ Beide Raten sind Ganzzahlteiler desselben Takts: ADC 8,192 M / 8192, IMU
 32 k / 32. Frequenzdrift zwischen Poti- und IMU-Strom ist damit null.
 Phasenversatz zwischen den IMUs ist konstant und kleiner als eine Periode; er
 wird beim Aufnahmestart über TMST_STROBE je IMU gemessen und im Header
-abgelegt (M5). Die IMU-Firmware muss `ACCEL_LP_CLK_SEL`/RTC-Voraussetzungen
-gemäß Datenblatt setzen (beim 45686 dokumentiert, beim 42686 prüfen).
+abgelegt (M5). Aktivierung je IMU: RTC_MODE (Bank 0, 0x4D Bit 2) und
+PIN9_FUNCTION = CLKIN (Bank 1, 0x7B Bit 2:1). FIFO-Zeitstempel sind im
+RTC-Modus um 32,768/32 zu skalieren (DS-000348 Abschn. 12.5).
 
 ### 2.2 Analog-Frontend (Potis)
 
@@ -246,10 +249,12 @@ Rauschen im Stillstand < 0,5 counts rms.
 
 - `firmware/src/sensor/icm42686.c/.h` (neu, ~500 LOC), PIO-SPI-Programm
   (`pio_spi` aus pico-examples, CPHA 0) mit DMA-Helfern.
-- Init je IMU: WHO_AM_I == 0x44, Soft-Reset, INTF_CONFIG1 RTC_MODE = 1
-  (CLKIN), Pin-9-Funktion CLKIN, Accel ±32 g / Gyro ±2000 dps, ODR 1 kHz,
-  AAF/Filter laut Datenblatt, FIFO Stream + Hi-Res + TMST, FIFO_HIRES_EN.
-  Nicht antwortende IMUs: `available = false`.
+- Init je IMU: WHO_AM_I == 0x44, Soft-Reset, Bank 1 INTF_CONFIG5
+  PIN9_FUNCTION = 10b (CLKIN), Bank 0 INTF_CONFIG1 RTC_MODE = 1, ODR 1 kHz
+  für Accel und Gyro, AAF laut Datenblatt, FIFO Stream + TMST +
+  FIFO_HIRES_EN. Hi-Res legt ±32 g und ±4000 dps fest (4096 LSB/g,
+  65,5 LSB/dps), die FS-Register sind dann ohne Wirkung. Nicht antwortende
+  IMUs: `available = false`.
 - Scheduler auf Core 0 im RECORD-Handler (`state_handlers[RECORD]`, heute
   `dummy`, `main.c:936`): alle 50 ms je IMU FIFO_COUNT lesen (kurz,
   blockierend), Burst per DMA, nächste IMU nach Completion. Overflow-Bit
@@ -292,8 +297,9 @@ anwenden, IMU-Daten als Zeitreihen auf dem 1-kHz-Raster der Potis.
 
 ## 5. Risiken und offene Punkte
 
-1. **ICM-42686-P-Datenblatt fehlt noch.** Zu bestätigen: CLKIN-Bereich,
-   RTC-Voraussetzungen, Timestamp im RTC-Modus, Rauschen bei ±32 g.
+1. **CLKIN-Spezifikation des ICM-42686-P trägt Note 1** („expected results
+   based on design, not guaranteed in production"). 32,000 kHz liegt mittig
+   im Bereich 31–50 kHz; beim M3-Bringup ODR-Lock am Analyzer nachweisen.
 2. **SPI über 1 m Kabel bei 2 MHz.** Am Aufbau mit Analyzer prüfen; Fallback
    1 MHz. Datenrate reicht dann noch (64 % Auslastung mit Hi-Res).
 3. **Opamp-Ausgang nahe 0 V.** Bei Pot am unteren Anschlag muss der Puffer
