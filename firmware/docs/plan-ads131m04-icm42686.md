@@ -141,7 +141,7 @@ Schleifer Shock          ─► gleich mit OPA2333 C ─ AIN1P / AIN1N ─ Pot-G
 - Pico → PIO-SPI (PIO1, 1 SM, Mode 0, **2 MHz**, DMA über DREQ_PIO1_TX/RX).
   Hardware-SPI1 bleibt beim ADS131M04 (bestehender Treiber).
 - Gemeinsam: SCLK, MOSI, MISO, CLKIN, 3V3, GND. Je Knoten: CS.
-- Kabel 7 Adern + Schirm, verdrillt SCLK/GND und MISO/GND. Serien-R 33 Ω an
+- Kabel je IMU-Paar 11 Adern + Schirm auf einem 12-poligen Stecker (2.6). Serien-R 33 Ω an
   allen Treiberausgängen auf dem DAQ, 33 Ω an MISO auf jeder Sensor-PCB.
 - Sensor-PCB: ICM-42686-P (LGA-14), 100 nF + 1 µF an VDD, 100 nF an VDDIO,
   33 Ω an MISO, 10 kΩ Pull-up an CS (Bus bleibt definiert, wenn der Knoten
@@ -192,6 +192,125 @@ Schleifer Shock          ─► gleich mit OPA2333 C ─ AIN1P / AIN1N ─ Pot-G
 
 Poti-Pfad läuft komplett in ISRs und wird von nichts blockiert. IMU-Pfad
 läuft ohne IRQ per DMA, Polling im 50-ms-Raster.
+
+### 2.6 Steckverbinder
+
+Vorgaben: mindestens IP65, Ziel IP67. Fork und Shock auf einem gemeinsamen
+Stecker, je zwei IMUs auf einem gemeinsamen Stecker, damit modular nur mit
+Potis oder mit Potis plus zwei IMUs gemessen werden kann. Einbaubuchse am
+Gehaeuse, kein Pigtail. Mindestens 1000 Steckzyklen. Budget bis 40 EUR je
+Verbindungspunkt. Loetkelch, kein Crimpwerkzeug. Kein Stecken unter Spannung.
+
+**Gewaehlt: Hirose HR30**, gedichteter Push-Pull-Rundsteckverbinder aus
+Kunststoff.
+
+| Kriterium | HR30 |
+|---|---|
+| Schutzart | IP67 gesteckt, IP68 (2 m, 14 d) gesteckt oder mit Schutzkappe |
+| Steckzyklen | 1000 |
+| Verriegelung | Push-Pull, verpolungssicher kodiert, Zugentlastung integriert |
+| Kontakte | 3 und 6 in Schale Ø 12,6 mm; 10 und 12 in Schale Ø 15,5 mm |
+| Einbaulaenge | 32,3 mm ab Panel (6-polig), 42,1 mm (12-polig) |
+| Montage | Sechskantmutter von der Gehaeuseinnenseite, 0,5 Nm (6-polig), 0,8 Nm (12-polig) |
+| Anschluss | Loetkelch, Kontakte vergoldet, 2 A, -25 bis +85 °C |
+| Preis | rund 8 USD je Haelfte, also etwa 20 EUR je Verbindungspunkt inkl. Kappe |
+
+Verworfen:
+
+- **M8 und M12** (auch das heutige Lutronic 1220): nach IEC 61076-2-101/-104
+  typisch 100 bis 500 Steckzyklen, Schraubverriegelung ist am Rad
+  unpraktisch. Verfehlt die 1000er-Vorgabe.
+- **binder 720 / M9 IP67**: kompakt und guenstig, aber nur "mehr als 500"
+  Steckzyklen.
+- **Fischer MiniMax 06** (Ø 10 mm, bis 12 Kontakte, IP68, > 5000 Zyklen,
+  360°-Schirmung) und **ODU MINI-SNAP**: technisch die bessere Loesung und
+  deutlich kleiner, aber weit ueber Budget und meist crimppflichtig. Bleibt
+  die Ausweichoption, falls der Bauraum die 15,5 mm der 12-poligen HR30
+  nicht hergibt.
+
+#### Poti-Stecker: HR30, 6-polig
+
+| Kontakt | Signal |
+|---|---|
+| 1 | Speisung 1,0 V (gemeinsam fuer beide Potis) |
+| 2 | Schleifer Fork → AIN0P |
+| 3 | Poti-Masse Fork → AIN0N |
+| 4 | Schleifer Shock → AIN1P |
+| 5 | Poti-Masse Shock → AIN1N |
+| 6 | Schirm, nur DAQ-seitig auf AGND |
+
+Kabel: drei verdrillte Paare unter gemeinsamem Schirm. Paar 1 Schleifer
+Fork mit Poti-Masse Fork, Paar 2 Schleifer Shock mit Poti-Masse Shock,
+Paar 3 Speisung mit Schirmbeidraht.
+
+Begruendung der Aderzahl: Die getrennten Masse-Rueckleitungen auf AIN0N und
+AIN1N sind der eigentliche Genauigkeitsgewinn, denn sie nehmen Kabel- und
+Kontaktwiderstand der Masse komplett aus der Messung. Eine zusaetzliche
+Sense-Ader fuer die Speisung wurde geprueft und **verworfen**: bei 1,0 V an
+zwei Potis fliessen zusammen unter 400 µA, ueber 1 m Litze plus zwei
+Kontakte (rund 0,2 Ω) sind das 80 µV oder 80 ppm Verstaerkungsfehler. Auf
+200 mm Hub entspricht das 0,016 mm und liegt zwei Groessenordnungen unter
+der Poti-Linearitaet. Der sechste Kontakt bringt als Schirm mehr, weil die
+Schleiferleitung ungepuffert mit bis zu 1,25 kΩ Quellwiderstand ueber 1 m
+neben den IMU-Kabeln mit 2-MHz-SPI, dem Schaltregler und dem WLAN-Radio
+laeuft.
+
+#### IMU-Paar-Stecker: HR30, 12-polig (2 Stueck)
+
+| Kontakt | Signal |
+|---|---|
+| 1 | 3V3 |
+| 2 | GND (Rueckleitung 3V3) |
+| 3 | SCLK |
+| 4 | GND (Paar zu SCLK) |
+| 5 | MOSI |
+| 6 | GND (Paar zu MOSI) |
+| 7 | MISO |
+| 8 | CLKIN |
+| 9 | GND (Paar zu CLKIN) |
+| 10 | CS_A |
+| 11 | CS_B |
+| 12 | Schirm, nur DAQ-seitig auf AGND |
+
+Acht Signale waeren das Minimum; die vier freien Kontakte der 12-poligen
+Schale gehen in dedizierte Rueckleitungen fuer SCLK, MOSI und CLKIN. Das ist
+der Grund, 12-polig statt 10-polig zu nehmen — beide sitzen ohnehin in
+derselben Schale mit Ø 15,5 mm, die Mehrkontakte kosten keinen Bauraum.
+MISO teilt sich die Rueckleitung mit CLKIN, weil MISO als einziges Signal
+vom Sensor getrieben wird und nur waehrend des Bursts schaltet.
+
+Der gemeinsame Bus (3V3, GND, SCLK, MOSI, MISO, CLKIN) liegt auf beiden
+Steckern parallel. Ist nur ein Paar gesteckt, bleibt am zweiten Stecker ein
+offener MISO-Stub von wenigen Zentimetern auf dem DAQ-Board; das ist
+unkritisch. Die Pull-ups an CS auf den Sensor-PCBs halten den Bus auch bei
+fehlendem Knoten definiert.
+
+#### Randbedingungen fuer Gehaeuse und Aufbau
+
+- **Buchsen-Geschlecht**: auf dem Gehaeuse Buchsenkontakte (Socket), damit
+  am IMU-Stecker keine 3V3 fuehrenden Stifte freiliegen, wenn die Kappe
+  fehlt. Kabelseitig dann Stiftkontakte. Schalenpaarung (HR30-7 zu HR30-8)
+  aus dem Katalog verifizieren.
+- **Schutzkappen sind Pflicht**, nicht Zubehoer: im Poti-only-Betrieb sind
+  beide IMU-Buchsen offen. HR30 haelt IP68 auch mit Kappe, dabei die
+  mitgelieferte Dichtung der Buchse weglassen, die Kappe bringt ihre eigene
+  mit.
+- **Bauraum**: 12,6 + 2 × 15,5 mm Schalendurchmesser plus Schluesselflaechen
+  ergeben rund 55 mm nutzbare Gehaeusekante, innen 42 mm Einstecktiefe fuer
+  die 12-poligen. Steht das nicht zur Verfuegung, entweder auf Fischer
+  MiniMax 06 wechseln oder alle vier IMUs auf einen 12-poligen Stecker
+  legen (SCLK, MOSI, MISO, CLKIN, 3V3, GND, CS0..CS3, Schirm = 11 Kontakte)
+  und die Paar-Modularitaet ueber ein Breakout im Kabel loesen.
+- **Aderquerschnitt**: HR30 nimmt AWG 26 bis 30 mit maximal 1,0 mm
+  Aussendurchmesser je Ader, also Duennwandisolierung. Der zulaessige
+  Kabelaussendurchmesser je Schalengroesse ist aus dem HR30-Katalog zu
+  entnehmen und muss zur Zugentlastung passen, sonst ist die Dichtigkeit
+  nicht gegeben.
+- **Kein Stecken unter Spannung.** In die Bedienung aufnehmen. Damit
+  entfaellt jede Anforderung an eine Kontaktsequenz.
+- Der HR30-Katalog liegt noch nicht im Repo. Vor M2 nach
+  `firmware/docs/` legen und Panelausschnitt, Kabeldurchmesserbereich und
+  Kappen-Bestellnummern daraus uebernehmen.
 
 ## 3. Meilensteine
 
@@ -293,7 +412,9 @@ anwenden, IMU-Daten als Zeitreihen auf dem 1-kHz-Raster der Potis.
 | 74LVC125 | 4× CLKIN-Puffer für die Kabel |
 | OPA2333 ×2 oder OPA4333 (alternativ MCP6004) | Speisung + 2 Schleifer-Puffer |
 | 4× ICM-42686-P auf Sensor-PCB | IMU, Footprint KX134-1211 vorsehen |
-| Steckverbinder 8-polig je Sensor (z. B. M8 8-pin oder JST-GH 8) | 7 Adern + Schirm |
+| Hirose HR30, 6-polig, Einbaubuchse + Kabelstecker + Kappe | Poti-Stecker Fork/Shock, IP67, 1000 Zyklen (2.6) |
+| Hirose HR30, 12-polig, Einbaubuchse + Kabelstecker + Kappe, 2× | Je ein IMU-Paar, IP67, 1000 Zyklen (2.6) |
+| Kabel: 3 Paare geschirmt (Poti), 6 Paare geschirmt (IMU), AWG 26–30 dünnwandig | HR30 nimmt max. 1,0 mm Aderaußendurchmesser |
 
 ## 5. Risiken und offene Punkte
 
@@ -310,5 +431,9 @@ anwenden, IMU-Daten als Zeitreihen auf dem 1-kHz-Raster der Potis.
    rauschbedingt überschätzt. Clip-Zähler aus M3 entscheidet über KX134.
 6. **CALIBRATION-Migration** erzwingt einmalige Neukalibrierung auf allen
    Boards, auch ADS1115. In Release-Notes aufnehmen.
-7. **DMA-Budget**: 4 eigene Kanäle + SD + cyw43; `dma_claim_unused_channel(true)`
+7. **HR30-Katalog noch nicht verifiziert.** Panelausschnitt, zulaessiger
+   Kabelaussendurchmesser je Schale, Schalenpaarung 7 zu 8 und die
+   Bestellnummern der Schutzkappen sind aus Suchtreffern, nicht aus dem
+   Katalog. Vor der Bestellung gegen `firmware/docs/` pruefen.
+8. **DMA-Budget**: 4 eigene Kanäle + SD + cyw43; `dma_claim_unused_channel(true)`
    macht Engpass beim Boot sichtbar.
