@@ -77,7 +77,7 @@ ebenfalls unter `firmware/docs/`.
 ### 74HC4040 (Nexperia Rev. 8, 2024)
 
 fmax min 6 MHz bei 2,0 V, 30 MHz bei 4,5 V; bei 3,3 V interpoliert ≥ 15 MHz.
-8,192 MHz am CP-Eingang ist sicher. Q8 (÷256) = **32,000 kHz**.
+8,192 MHz am CP-Eingang ist sicher. Q7 (÷256, Pin 13) = **32,000 kHz**. Nexperia zählt ab Q0 = ÷2; Q8 wäre ÷512 = 16 kHz und läge unter dem CLKIN-Minimum 31 kHz.
 
 ## 2. Systemarchitektur
 
@@ -86,7 +86,7 @@ fmax min 6 MHz bei 2,0 V, 30 MHz bei 4,5 V; bei 3,3 V interpoliert ≥ 15 MHz.
 ```
 XO 8,192 MHz (CMOS, 3,3 V)
  ├─ 33 Ω ─► ADS131M04 CLKIN      fMOD 4,096 MHz, OSR 4096 → 1000 SPS
- └─ 74HC4040 CP, Q8 = 32,000 kHz
+ └─ 74HC4040 CP, Q7 = 32,000 kHz
       └─ 74LVC125 (4 Puffer, je 33 Ω) ─► 4× ICM-42686-P Pin 9 (CLKIN)
                                           RTC_MODE = 1, ODR 1000 Hz exakt
 ```
