@@ -1,42 +1,46 @@
 Item #,Designator,Qty,Manufacturer,Mfg Part #,Description / Value,Package/Footprint,Type
 1,BT1,1,Keystone,3001,"Battery holder CR1220, THT",BatteryHolder_Keystone_3001_1x12mm,THT
-2,BZ1,1,TDK,PS1240P02BT,"Piezo buzzer 12 mm, THT",Buzzer_12x9.5RM7.6,THT
-3,"C1,C2,C38",3,any,,Capacitor 1uF X7R 25V 0603,0603,SMD
+2,BZ1,1,TDK,PS1240P02BT,"Piezo buzzer 12 mm, 5 mm pitch, THT",Buzzer_TDK_PS1240P02BT_D12.2mm_H6.5mm,THT
+3,"C2,C23,C38",3,any,,Capacitor 1uF X7R 25V 0603,0603,SMD
 4,C3,1,any,,Capacitor 220nF X7R 25V 0603,0603,SMD
-5,"C4,C5,C19,C23,C28-C30,C32,C34,C37,C39,C40,C42",13,any,,Capacitor 100nF X7R 50V 0603,0603,SMD
-6,"C6,C22,C27,C31,C33,C35,C41",7,any,,Capacitor 10uF X7R 16V 0805,0805,SMD
-7,"C9,C12,C20,C24,C25,C36",6,any,,Capacitor 10nF C0G 50V 0603,0603,SMD
-8,C21,1,any,,Capacitor 4.7uF X7R 16V 0805,0805,SMD
-9,C26,1,KEMET,T491D107K010AT,"Tantalum 100 uF 10 V, case D (7343-31)",CP_EIA-7343-31_Kemet-D,SMD
-10,D1,1,Littelfuse,SMAJ5.0CA,"TVS 5 V bidirectional, SMA",D_SMA,SMD
-11,D2-D4,3,Nexperia,"PESD5V0S2BT,215","ESD protection 5 V, bidirectional double, low leakage, SOT-23 (pin 1 = line, pin 3 = GND, pin 2 unused)",SOT-23,SMD
-12,D_RTC1,1,onsemi,1N4148W,"Small-signal diode, SOD-123",D_SOD-123,SMD
-13,"FB1,FB2",2,Murata,BLM18PG471SN1D,"Ferrite bead 470 R @100 MHz, 0603",0603,SMD
-14,J_BAT1,1,JST,B2B-PH-K-S(LF)(SN),"JST PH 2-pin vertical, THT",JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical,THT
-15,J_DEBUG1,1,generic,PinHeader 1x5 2.54 mm,"Male pin header 1x5, 2.54 mm, vertical, THT",PinHeader_1x05_P2.54mm_Vertical,THT
-16,J_IMU_A1,1,JST,BM12B-SRSS-TB(LF)(SN),"JST SH 12-pin vertical, SMD",JST_SH_BM12B-SRSS-TB_1x12-1MP_P1.00mm_Vertical,SMD
-17,J_IMU_B1,1,JST,BM12B-SRSS-TB(LF)(SN),"JST SH 12-pin vertical, SMD",JST_SH_BM12B-SRSS-TB_1x12-1MP_P1.00mm_Vertical,SMD
-18,J_OLED1,1,JST,BM04B-SRSS-TB(LF)(SN),"JST SH 4-pin vertical, SMD",JST_SH_BM04B-SRSS-TB_1x04-1MP_P1.00mm_Vertical,SMD
-19,J_POT1,1,JST,BM06B-SRSS-TB(LF)(SN),"JST SH 6-pin vertical, SMD",JST_SH_BM06B-SRSS-TB_1x06-1MP_P1.00mm_Vertical,SMD
-20,J_PWR1,1,JST,BM02B-SRSS-TB(LF)(SN),"JST SH 2-pin vertical, SMD",JST_SH_BM02B-SRSS-TB_1x02-1MP_P1.00mm_Vertical,SMD
-21,J_SD1,1,Hirose,DM3AT-SF-PEJM5,"microSD socket, push-push",microSD_HC_Hirose_DM3AT-SF-PEJM5,SMD
-22,"L_FORK_CMC1,L_SHOCK_CMC1",2,Murata,DLW5BTM251SQ2L,"Common-mode choke 250 R @100 MHz, 5 A",L_CommonModeChoke_Murata_DLW5BTMxxxSQ2x_5x5mm,SMD
-23,"R1-R3,R18,R27,R28,R31",7,any,,Resistor 10k 1% 0603,0603,SMD
-24,"R8,R14,R35-R37",5,any,,Resistor 1k 1% 0603,0603,SMD
-25,"R9,R15",2,any,,Resistor 0R 1% 0603,0603,SMD
-26,"R19,R20",2,any,,Resistor 100k 1% 0603,0603,SMD
-27,"R25,R26",2,any,,Resistor 4.7k 1% 0603,0603,SMD
-28,"R29,R34",2,any,,Resistor 47R 1% 0603,0603,SMD
-29,R32,1,Susumu,RG1608P-203-B-T5,"Resistor 20k 0.1% thin film, 0603",0603,SMD
-30,R33,1,Susumu,RG1608P-103-B-T5,"Resistor 10k 0.1% thin film, 0603",0603,SMD
-31,R38-R46,9,any,,Resistor 33R 1% 0603,0603,SMD
-32,SW_L1,1,JST,BM02B-SRSS-TB(LF)(SN),"JST SH 2-pin vertical, SMD",JST_SH_BM02B-SRSS-TB_1x02-1MP_P1.00mm_Vertical,SMD
-33,SW_R1,1,JST,BM02B-SRSS-TB(LF)(SN),"JST SH 2-pin vertical, SMD",JST_SH_BM02B-SRSS-TB_1x02-1MP_P1.00mm_Vertical,SMD
-34,U1,2,Samtec (or equivalent),SSW-120-01-T-S,"Female socket header 1x20, 2.54 mm, 8.5 mm, THT - 2 pcs per board for Raspberry Pi Pico 2 W (Pico NOT supplied/assembled)",RaspberryPi_Pico_Common_THT,THT
-35,U2,1,Texas Instruments,ADS131M04IPWR,"ADC 24-bit 4-ch, TSSOP-20",TSSOP-20_4.4x6.5mm_P0.65mm,SMD
-36,U3,1,Analog Devices / Maxim,DS3231SN#,"RTC, SOIC-16W",SOIC-16W_7.5x10.3mm_P1.27mm,SMD
-37,U_AAF1,1,Texas Instruments,TLV4333IDR,"Quad op-amp, SOIC-14",SOIC-14_3.9x8.7mm_P1.27mm,SMD
-38,U_ANA_LDO1,1,Texas Instruments,TPS7A4700RGWR,"LDO, VQFN-20",QFN-20-1EP_5x5mm_P0.65mm_EP3.35x3.35mm,SMD
-39,U_CLKBUF1,1,Nexperia,"74LVC125APW,118","Quad buffer, TSSOP-14",TSSOP-14_4.4x5mm_P0.65mm,SMD
-40,U_DIV1,1,Nexperia,"74HC4040PW,118","12-stage counter, TSSOP-16",TSSOP-16_4.4x5mm_P0.65mm,SMD
-41,Y1,1,ECS,ECS-2520MVLC-081.92-BN-TR,"Oscillator 8.192 MHz CMOS, 2.5x2.0 mm",Oscillator_SMD_ECS_2520MV-xxx-xx-4Pin_2.5x2.0mm,SMD
+5,"C1,C4,C5,C19,C28-C30,C32,C34,C37,C39,C40,C42,C44",14,any,,Capacitor 100nF X7R 50V 0603,0603,SMD
+6,C6,1,any,,"Capacitor 22uF X7R 10V 0805 (LDO output, >=10 uF effective at 3 V)",0805,SMD
+7,C22,1,any,,Capacitor 10uF X5R 10V 0603 (LDO input),0603,SMD
+8,"C27,C31,C33,C35,C41",5,any,,Capacitor 10uF X7R 16V 0805,0805,SMD
+9,"C9,C12,C20,C24,C25,C36",6,any,,Capacitor 10nF C0G 50V 0603,0603,SMD
+10,C21,1,any,,Capacitor 4.7uF X7R 16V 0805,0805,SMD
+11,C26,1,KEMET,T520D107M010ATE040,"Polymer tantalum 100 uF 10 V, case D (7343-31)",CP_EIA-7343-31_Kemet-D,SMD
+12,D1,1,Littelfuse,SMAJ5.0CA,"TVS 5 V bidirectional, SMA",D_SMA,SMD
+13,D2-D4,3,Nexperia,"PESD5V0S2BT,215","ESD protection 5 V, bidirectional double, low leakage, SOT-23 (pin 1 = line, pin 3 = GND, pin 2 unused)",SOT-23,SMD
+14,D_VSYS1,1,Nexperia,"PMEG3020EH,115","Schottky 30 V 2 A, SOD-123F (blocks USB VBUS backfeed into LiPo)",D_SOD-123F,SMD
+15,"FB1,FB2",2,Murata,BLM18PG471SN1D,"Ferrite bead 470 R @100 MHz, 0603",0603,SMD
+16,J_BAT1,1,JST,B2B-PH-K-S(LF)(SN),"JST PH 2-pin vertical, THT",JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical,THT
+17,J_DEBUG1,1,generic,PinHeader 1x3 2.54 mm,"Male pin header 1x3 (UART RX/TX/GND), 2.54 mm, vertical, THT",PinHeader_1x03_P2.54mm_Vertical,THT
+18,J_IMU_A1,1,JST,BM12B-SRSS-TB(LF)(SN),"JST SH 12-pin vertical, SMD",JST_SH_BM12B-SRSS-TB_1x12-1MP_P1.00mm_Vertical,SMD
+19,J_IMU_B1,1,JST,BM12B-SRSS-TB(LF)(SN),"JST SH 12-pin vertical, SMD",JST_SH_BM12B-SRSS-TB_1x12-1MP_P1.00mm_Vertical,SMD
+20,J_OLED1,1,JST,BM04B-SRSS-TB(LF)(SN),"JST SH 4-pin vertical, SMD",JST_SH_BM04B-SRSS-TB_1x04-1MP_P1.00mm_Vertical,SMD
+21,J_POT1,1,JST,BM06B-SRSS-TB(LF)(SN),"JST SH 6-pin vertical, SMD",JST_SH_BM06B-SRSS-TB_1x06-1MP_P1.00mm_Vertical,SMD
+22,J_PWR1,1,JST,BM02B-SRSS-TB(LF)(SN),"JST SH 2-pin vertical, SMD",JST_SH_BM02B-SRSS-TB_1x02-1MP_P1.00mm_Vertical,SMD
+23,J_SD1,1,Hirose,DM3AT-SF-PEJM5,"microSD socket, push-push",microSD_HC_Hirose_DM3AT-SF-PEJM5,SMD
+24,"L_FORK_CMC1,L_SHOCK_CMC1",2,Murata,DLW5BTM251SQ2L,"Common-mode choke 250 R @100 MHz, 5 A",L_CommonModeChoke_Murata_DLW5BTMxxxSQ2x_5x5mm,SMD
+25,Q_RP1,1,Diodes Inc.,DMG2305UX-7,"P-MOSFET -20 V, SOT-23 (LiPo reverse-polarity protection)",SOT-23,SMD
+26,"R1-R3,R27,R28,R31,R47",7,any,,Resistor 10k 1% 0603,0603,SMD
+27,"R8,R14,R35-R37",5,any,,Resistor 1k 1% 0603,0603,SMD
+28,"R9,R15",2,any,,Resistor 0R 1% 0603,0603,SMD
+29,"R19,R20",2,any,,Resistor 100k 1% 0603,0603,SMD
+30,"R25,R26",2,any,,Resistor 4.7k 1% 0603,0603,SMD
+31,"R29,R34",2,any,,Resistor 47R 1% 0603,0603,SMD
+32,R32,1,Susumu,RG1608P-203-B-T5,"Resistor 20k 0.1% thin film, 0603",0603,SMD
+33,R33,1,Susumu,RG1608P-103-B-T5,"Resistor 10k 0.1% thin film, 0603",0603,SMD
+34,R38-R46,9,any,,Resistor 33R 1% 0603,0603,SMD
+35,R48,1,any,,Resistor 47k 1% 0603 (microSD DAT1 pull-up),0603,SMD
+36,SW_L1,1,JST,BM02B-SRSS-TB(LF)(SN),"JST SH 2-pin vertical, SMD",JST_SH_BM02B-SRSS-TB_1x02-1MP_P1.00mm_Vertical,SMD
+37,SW_R1,1,JST,BM02B-SRSS-TB(LF)(SN),"JST SH 2-pin vertical, SMD",JST_SH_BM02B-SRSS-TB_1x02-1MP_P1.00mm_Vertical,SMD
+38,U1,2,Samtec (or equivalent),SSW-120-01-T-S,"Female socket header 1x20, 2.54 mm, 8.5 mm, THT - 2 pcs per board for Raspberry Pi Pico 2 W (Pico NOT supplied/assembled)",RaspberryPi_Pico_Common_THT,THT
+39,U2,1,Texas Instruments,ADS131M04IPWR,"ADC 24-bit 4-ch, TSSOP-20",TSSOP-20_4.4x6.5mm_P0.65mm,SMD
+40,U3,1,Analog Devices / Maxim,DS3231SN#,"RTC, SOIC-16W",SOIC-16W_7.5x10.3mm_P1.27mm,SMD
+41,U_AAF1,1,Texas Instruments,TLV4333IDR,"Quad op-amp, SOIC-14",SOIC-14_3.9x8.7mm_P1.27mm,SMD
+42,U_ANA_LDO1,1,Texas Instruments,TPS7A4700RGWR,"LDO, VQFN-20 (RGW)",Texas_RGW0020A_VQFN-20-1EP_5x5mm_P0.65mm_EP3.15x3.15mm,SMD
+43,U_CLKBUF1,1,Nexperia,"74LVC125APW,118","Quad buffer, TSSOP-14",TSSOP-14_4.4x5mm_P0.65mm,SMD
+44,U_DIV1,1,Nexperia,"74HC4040PW,118","12-stage counter, TSSOP-16",TSSOP-16_4.4x5mm_P0.65mm,SMD
+45,Y1,1,ECS,ECS-2520MVLC-081.92-BN-TR,"Oscillator 8.192 MHz CMOS, 2.5x2.0 mm",Oscillator_SMD_ECS_2520MV-xxx-xx-4Pin_2.5x2.0mm,SMD
