@@ -1,0 +1,4 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "sst_v2_local")(type "KiCad")(uri "${KIPRJMOD}/lib/sst_v2_local.pretty")(options "")(descr "Projekt-Footprints mit angepassten 3D-Modellen"))
+)

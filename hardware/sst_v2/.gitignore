@@ -1,0 +1,12 @@
+# KiCad lokale Dateien und Backups
+*.bak*
+*.lck
+*.kicad_prl
+.history/
+fp-info-cache
+*-backups/
+# Router-Zwischendateien
+*.dsn
+*.ses
+# Rohdaten der Fertigungsexporte
+fab/*_raw.csv
