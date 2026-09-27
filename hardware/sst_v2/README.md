@@ -8,7 +8,7 @@ Rear, Handlebar-Upgrade) sowie **differential gefahrenem Piezo-Buzzer**.
 ## Öffnen
 
 ```bash
-open -a "KiCad" /Users/niels/Telemetry/hardware/sst_v2/sst_v2.kicad_pro
+open -a "KiCad" /Users/niels/Telemetry/sst/hardware/sst_v2/sst_v2.kicad_pro
 ```
 
 Eeschema öffnet → Doppelklick auf das Schaltplan-Symbol → vollständiger Schaltplan
