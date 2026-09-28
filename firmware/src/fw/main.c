@@ -446,7 +446,7 @@ static int open_datafile() {
     sprintf(filename, "%05u.SST", index);
     fr = f_open(&recording, filename, FA_CREATE_NEW | FA_WRITE);
     if (fr != FR_OK) {
-        return fr;
+        return PICO_ERROR_GENERIC;
     }
 
     // DS3231 and the display share the PIO-I2C SM. Display runs on core 0,
@@ -455,7 +455,8 @@ static int open_datafile() {
     // handler drains the FIFO before it runs, which would eat any word
     // pushed after OPEN. push(OPEN) / pop(index) is the ordering barrier.
     struct header h = {"SST", 4, SAMPLE_RATE, pending_timestamp};
-    f_write(&recording, &h, sizeof(struct header), NULL);
+    UINT bw;
+    f_write(&recording, &h, sizeof(struct header), &bw);
 
     return index;
 }
@@ -468,6 +469,7 @@ static void data_storage_core1() {
     enum command cmd;
     uint16_t size;
     struct record *buffer;
+    UINT bw;
     while (true) {
         cmd = (enum command)multicore_fifo_pop_blocking();
         switch(cmd) {
@@ -480,13 +482,13 @@ static void data_storage_core1() {
             case DUMP:
                 buffer = (struct record *)((uintptr_t)multicore_fifo_pop_blocking());
                 multicore_fifo_push_blocking((uintptr_t)buffer);
-                f_write(&recording, buffer, sizeof(struct record)*BUFFER_SIZE, NULL);
+                f_write(&recording, buffer, sizeof(struct record)*BUFFER_SIZE, &bw);
                 f_sync(&recording);
                 break;
             case FINISH:
                 size = (uint16_t)multicore_fifo_pop_blocking();
                 buffer = (struct record *)((uintptr_t)multicore_fifo_pop_blocking());
-                f_write(&recording, buffer, sizeof(struct record)*size, NULL);
+                f_write(&recording, buffer, sizeof(struct record)*size, &bw);
                 f_sync(&recording);
                 f_close(&recording);
                 break;
