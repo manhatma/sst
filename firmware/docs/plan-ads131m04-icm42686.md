@@ -159,7 +159,7 @@ Schleifer Shock          ─► gleich mit OPA2333 C ─ AIN1P / AIN1N ─ Pot-G
 | 0, 1 | UART debug | unverändert |
 | 2, 3 | PIO0 I2C (RTC, OLED) | unverändert |
 | 4, 5 | Buttons | unverändert |
-| 6 | frei | (Display-RST nur im SPI-Display-Build) |
+| 6 | CHG_STAT (Lader U_CHG1 MCP73831) | Input. Teiler 10k/20k: Laden = 0, fertig = 1. Nur bei VBUS auswerten (ohne VBUS hochohmig → 0). Im SPI-Display-Build belegt Display-RST den Pin. |
 | 7 | ADS131 SYNC/RESET | Output, 10 kΩ Pull-up |
 | 8 | IMU SCLK (PIO1) | |
 | 9 | IMU MOSI (PIO1) | |
