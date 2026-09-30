@@ -1,31 +1,7 @@
 (version 1)
 
-# Lader-Bauteile sitzen unter dem gesteckten Pico (Buchsenleisten 8,5 mm).
-# Der Pico-Courtyard ueberdeckt sie absichtlich.
-(rule "Unter Pico: U_CHG1"
-	(severity ignore)
-	(constraint courtyard_clearance)
-	(condition "(A.Reference == 'U1' && B.Reference == 'U_CHG1') || (A.Reference == 'U_CHG1' && B.Reference == 'U1')"))
-(rule "Unter Pico: C_CHG1"
-	(severity ignore)
-	(constraint courtyard_clearance)
-	(condition "(A.Reference == 'U1' && B.Reference == 'C_CHG1') || (A.Reference == 'C_CHG1' && B.Reference == 'U1')"))
-(rule "Unter Pico: C_CHG2"
-	(severity ignore)
-	(constraint courtyard_clearance)
-	(condition "(A.Reference == 'U1' && B.Reference == 'C_CHG2') || (A.Reference == 'C_CHG2' && B.Reference == 'U1')"))
-(rule "Unter Pico: R_PROG"
-	(severity ignore)
-	(constraint courtyard_clearance)
-	(condition "(A.Reference == 'U1' && B.Reference == 'R_PROG') || (A.Reference == 'R_PROG' && B.Reference == 'U1')"))
-(rule "Unter Pico: R_STAT1"
-	(severity ignore)
-	(constraint courtyard_clearance)
-	(condition "(A.Reference == 'U1' && B.Reference == 'R_STAT1') || (A.Reference == 'R_STAT1' && B.Reference == 'U1')"))
-(rule "Unter Pico: R_STAT2"
-	(severity ignore)
-	(constraint courtyard_clearance)
-	(condition "(A.Reference == 'U1' && B.Reference == 'R_STAT2') || (A.Reference == 'R_STAT2' && B.Reference == 'U1')"))
+# R50 sitzt unter dem gesteckten Pico (Buchsenleisten 8,5 mm).
+# Der Pico-Courtyard ueberdeckt ihn absichtlich.
 (rule "Unter Pico: R50"
 	(severity ignore)
 	(constraint courtyard_clearance)
