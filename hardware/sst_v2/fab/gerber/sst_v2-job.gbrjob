@@ -5,13 +5,13 @@
       "Application": "Pcbnew",
       "Version": "10.0.5"
     },
-    "CreationDate": "2026-09-28T00:53:14+02:00"
+    "CreationDate": "2026-09-30T18:59:56+02:00"
   },
   "GeneralSpecs": {
     "ProjectId": {
       "Name": "sst_v2",
       "GUID": "7373745f-7632-42e6-9b69-6361645f7063",
-      "Revision": "A"
+      "Revision": "3"
     },
     "Size": {
       "X": 60.1,

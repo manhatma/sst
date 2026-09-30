@@ -35,16 +35,17 @@ Item #,Designator,Qty,Manufacturer,Mfg Part #,Description / Value,Package/Footpr
 34,R33,1,Susumu,RG1608P-103-B-T5,"Resistor 10k 0.1% thin film, 0603",0603,SMD
 35,R38-R46,9,any,,Resistor 33R 1% 0603,0603,SMD
 36,"R48,R49",2,any,,Resistor 47k 1% 0603 (microSD DAT1/DAT2 pull-up),0603,SMD
-37,R_PROG,1,any,,Resistor 3.3k 1% 0603 (Ladestrom 300 mA),0603,SMD
-38,R_STAT2,1,any,,Resistor 20k 1% 0603 (CHG_STAT-Teiler),0603,SMD
-39,SW_L1,1,JST,BM02B-SRSS-TB(LF)(SN),"JST SH 2-pin vertical, SMD",JST_SH_BM02B-SRSS-TB_1x02-1MP_P1.00mm_Vertical,SMD
-40,SW_R1,1,JST,BM02B-SRSS-TB(LF)(SN),"JST SH 2-pin vertical, SMD",JST_SH_BM02B-SRSS-TB_1x02-1MP_P1.00mm_Vertical,SMD
-41,U1,2,Samtec (or equivalent),SSW-120-01-T-S,"Female socket header 1x20, 2.54 mm, 8.5 mm, THT - 2 pcs per board for Raspberry Pi Pico 2 W (Pico NOT supplied/assembled)",RaspberryPi_Pico_Common_THT,THT
-42,U2,1,Texas Instruments,ADS131M04IPWR,"ADC 24-bit 4-ch, TSSOP-20",TSSOP-20_4.4x6.5mm_P0.65mm,SMD
-43,U3,1,Analog Devices / Maxim,DS3231SN#,"RTC, SOIC-16W",SOIC-16W_7.5x10.3mm_P1.27mm,SMD
-44,U_AAF1,1,Texas Instruments,TLV4333IDR,"Quad op-amp, SOIC-14",SOIC-14_3.9x8.7mm_P1.27mm,SMD
-45,U_ANA_LDO1,1,Texas Instruments,TPS7A4700RGWR,"LDO, VQFN-20 (RGW)",Texas_RGW0020A_VQFN-20-1EP_5x5mm_P0.65mm_EP3.15x3.15mm,SMD
-46,U_CHG1,1,Microchip,MCP73831T-2ACI/OT,"Li-Po charger 4.20 V, SOT-23-5",SOT-23-5,SMD
-47,U_CLKBUF1,1,Nexperia,"74LVC125APW,118","Quad buffer, TSSOP-14",TSSOP-14_4.4x5mm_P0.65mm,SMD
-48,U_DIV1,1,Nexperia,"74HC4040PW,118","12-stage counter, TSSOP-16",TSSOP-16_4.4x5mm_P0.65mm,SMD
-49,Y1,1,ECS,ECS-2520MVLC-081.92-BN-TR,"Oscillator 8.192 MHz CMOS, 2.5x2.0 mm",Oscillator_SMD_ECS_2520MV-xxx-xx-4Pin_2.5x2.0mm,SMD
+37,R50,1,any,,Resistor 100R 1% 0603 (ADC_RST-Serienwiderstand),0603,SMD
+38,R_PROG,1,any,,Resistor 3.3k 1% 0603 (Ladestrom 300 mA),0603,SMD
+39,R_STAT2,1,any,,Resistor 15k 1% 0603 (CHG_STAT-Teiler),0603,SMD
+40,SW_L1,1,JST,BM02B-SRSS-TB(LF)(SN),"JST SH 2-pin vertical, SMD",JST_SH_BM02B-SRSS-TB_1x02-1MP_P1.00mm_Vertical,SMD
+41,SW_R1,1,JST,BM02B-SRSS-TB(LF)(SN),"JST SH 2-pin vertical, SMD",JST_SH_BM02B-SRSS-TB_1x02-1MP_P1.00mm_Vertical,SMD
+42,U1,2,Samtec (or equivalent),SSW-120-01-T-S,"Female socket header 1x20, 2.54 mm, 8.5 mm, THT - 2 pcs per board for Raspberry Pi Pico 2 W (Pico NOT supplied/assembled)",RaspberryPi_Pico_Common_THT,THT
+43,U2,1,Texas Instruments,ADS131M04IPWR,"ADC 24-bit 4-ch, TSSOP-20",TSSOP-20_4.4x6.5mm_P0.65mm,SMD
+44,U3,1,Analog Devices / Maxim,DS3231SN#,"RTC, SOIC-16W",SOIC-16W_7.5x10.3mm_P1.27mm,SMD
+45,U_AAF1,1,Texas Instruments,TLV4333IDR,"Quad op-amp, SOIC-14",SOIC-14_3.9x8.7mm_P1.27mm,SMD
+46,U_ANA_LDO1,1,Texas Instruments,TPS7A4700RGWR,"LDO, VQFN-20 (RGW)",Texas_RGW0020A_VQFN-20-1EP_5x5mm_P0.65mm_EP3.15x3.15mm,SMD
+47,U_CHG1,1,Microchip,MCP73831T-2ACI/OT,"Li-Po charger 4.20 V, SOT-23-5",SOT-23-5,SMD
+48,U_CLKBUF1,1,Nexperia,"74LVC125APW,118","Quad buffer, TSSOP-14",TSSOP-14_4.4x5mm_P0.65mm,SMD
+49,U_DIV1,1,Nexperia,"74HC4040PW,118","12-stage counter, TSSOP-16",TSSOP-16_4.4x5mm_P0.65mm,SMD
+50,Y1,1,ECS,ECS-2520MVLC-081.92-BN-TR,"Oscillator 8.192 MHz CMOS, 2.5x2.0 mm",Oscillator_SMD_ECS_2520MV-xxx-xx-4Pin_2.5x2.0mm,SMD
