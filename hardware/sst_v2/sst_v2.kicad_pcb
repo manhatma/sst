@@ -3702,7 +3702,7 @@
 				)
 			)
 		)
-		(property "Value" "15k"
+		(property "Value" "10k"
 			(at 0 1.43 0)
 			(layer "F.Fab")
 			(uuid "2e1fb869-aafa-4aa0-8abc-387eca746dc5")
@@ -10266,7 +10266,7 @@
 			(start -0.237258 0.5225)
 			(end 0.237258 0.5225)
 			(stroke
-				(width 0.12)
+				(width 0.15)
 				(type solid)
 			)
 			(layer "F.SilkS")
@@ -10276,7 +10276,7 @@
 			(start -0.237258 -0.5225)
 			(end 0.237258 -0.5225)
 			(stroke
-				(width 0.12)
+				(width 0.15)
 				(type solid)
 			)
 			(layer "F.SilkS")

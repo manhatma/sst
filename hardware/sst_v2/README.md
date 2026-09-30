@@ -52,7 +52,7 @@ prüft Restring und Textstrich mit 0,15 mm.
 | Takt | Y1 ECS-2520MVLC 8,192 MHz, U_DIV1 74HC4040, U_CLKBUF1 74LVC125 | XO → 33 Ω → ADC CLKIN; XO → 4040 Q7 = 32,000 kHz → 2 Puffer → 33 Ω → IMU-CLKIN A/B. |
 | IMU | J_IMU_A1/B1 JST-SH 12 → HR30 12p | 1 IMU_3V3 (FB2), 3 SCLK, 5 MOSI, 7 MISO, 8 CLKIN, 10/11 CS, 2/4/6/9/12 GND. 33 Ω in allen DAQ-Ausgängen. |
 | Strom | J_BAT1, Q_RP1, J_PWR1, D1, D_VSYS1 | LiPo (JST-PH) → Q_RP1 DMG2305UX (Verpolschutz) → externer Schalter J_PWR1 → +VBAT_SW (TVS D1, C26–C28, Teiler R19/R20 → GP28) → D_VSYS1 PMEG3020EH → VSYS. D_VSYS1 verhindert, dass USB-VBUS direkt in den Akku speist. |
-| Lader | U_CHG1 MCP73831T-2ACI/OT, C_CHG1/C_CHG2 4,7 µF, R_PROG 3,3k, R_STAT1/R_STAT2 10k/15k | VDD an +VBUS (Pico Pin 40), Ausgang an +VBAT (vor dem Schalter): Laden auch bei offenem Schalter. 4,20 V, 300 mA (I = 1000 V / R_PROG; 500 mA mit 2,0k). STAT über Teiler 10k/15k an GP6 (CHG_STAT): Laden = 0 V, fertig = 0,6 × VBUS (3,0 V bei 5,0 V, max. 3,15 V bei 5,25 V), ohne VBUS hochohmig → 0 V. USB kommt über ein Kabel von einer Gehäusebuchse in die Micro-USB-Buchse des Pico. |
+| Lader | U_CHG1 MCP73831T-2ACI/OT, C_CHG1/C_CHG2 4,7 µF, R_PROG 3,3k, R_STAT1/R_STAT2 10k/10k | VDD an +VBUS (Pico Pin 40), Ausgang an +VBAT (vor dem Schalter): Laden auch bei offenem Schalter. 4,20 V, 300 mA (I = 1000 V / R_PROG; 500 mA mit 2,0k). STAT über Teiler 10k/10k an GP6 (CHG_STAT): Laden = 0 V, fertig = 0,5 × VBUS (2,5 V bei 5,0 V, max. 2,6 V bei 5,25 V), ohne VBUS hochohmig → 0 V. USB kommt über ein Kabel von einer Gehäusebuchse in die Micro-USB-Buchse des Pico. |
 | RTC | U3 DS3231SN, BT1 CR1220 | VBAT direkt an der Zelle, RST offen. I2C gemeinsam mit OLED (PIO, R25/R26 4,7k). |
 | microSD | J_SD1 DM3AT | SPI0. Pull-ups: SD_CS 10k (R31), DAT1 47k (R48), DAT2 47k (R49). |
 | UI | SW_L1/SW_R1 (JST-SH 2), BZ1 PS1240P02BT, J_OLED1, J_DEBUG1 | Taster mit 10k-Pull-up. Buzzer über 47 Ω an GP22. J_DEBUG1: 1 RX (GP1), 2 TX (GP0), 3 GND. SWD direkt am Pico. |
@@ -65,7 +65,7 @@ prüft Restring und Textstrich mit 0,15 mm.
 | 0/1 | UART TX/RX | 14 | IMU_MISO |
 | 2/3 | DISP_SDA/SCL (PIO I2C, RTC + OLED) | 15 | IMU_CS0 |
 | 4/5 | BTN_L/BTN_R | 16–19 | SD MISO/CS/SCK/MOSI (SPI0) |
-| 6 | CHG_STAT (Lader, Teiler 10k/15k) | 20 | ADC_DRDY |
+| 6 | CHG_STAT (Lader, Teiler 10k/10k) | 20 | ADC_DRDY |
 | 7 | ADC_RST_MCU → R50 100 Ω → ADC_RST (SYNC/RESET) | 21 | IMU_CS1 |
 | 8/9 | IMU_SCLK/MOSI (PIO-SPI) | 22 | Buzzer |
 | 10–12 | ADC SCK/SDI/SDO (SPI1) | 26/27 | IMU_CS2/CS3 |
@@ -113,7 +113,7 @@ kicad-cli pcb export drill --format excellon --excellon-separate-th --excellon-u
 |---|---|
 | 23 Vias +3V3_DIG 0,6/0,4 → 0,7/0,4 mm; `min_via_annular_width` 0,15 | PCBWay: Restring ≥ 0,15 mm (vorher 0,10 mm). Keine neuen Abstandsfehler. |
 | 347 Silkscreen-Linien 0,12 → 0,15 mm; Referenzen 0,8 → 1,0 mm Höhe, Strich 0,15 mm; `min_text_thickness` 0,15 | PCBWay: Strich ≥ 0,15 mm, Höhe ≥ 0,8 mm, Verhältnis 1:5. |
-| R_STAT2 20k → 15k | CHG_STAT-Teiler: „fertig“ = 0,6 × VBUS = 3,15 V bei 5,25 V (mit 20k: 3,5 V über IOVDD 3,3 V). |
+| R_STAT2 20k → 10k | CHG_STAT-Teiler: „fertig“ = 0,5 × VBUS = 2,6 V bei 5,25 V (mit 20k: 3,5 V über IOVDD 3,3 V). |
 | Rule Area „Pico antenna: keepout“: alle Kupferlagen, keine Leiterbahnen, Vias, Pours; volle Pico-Breite + 1 mm am Ende | Vorher nur Pour-Verbot auf F.Cu/B.Cu. ADC_CS, ADC_SCK, ADC_SDI, ADC_SDO liefen durch die Antennenfläche. Neu geroutet (Rasterrouter): ADC_CS/ADC_SCK rechts der Fläche (x > 101 mm), ADC_SDI/ADC_SDO über die Oberkante und links der Fläche (x ≈ 90,1/90,55 mm). Analogblock unverändert. |
 | C1 an U_AAF1 Pin 4 (0,55 mm Pad-zu-Pad, vorher 3,8 mm), eigene GND-Via | Abblockung V+ direkt am Pin. POT_EXC dafür auf F.Cu 0,8 mm nach links verlegt. |
 | C_CHG1 (VBUS) und C_CHG2 (VBAT) getauscht: C_CHG1 1,6 mm Pad-zu-Pad an U_CHG1 Pin 4 (vorher 4,2 mm) | Eingangskondensator direkt am VDD-Pin. +VBUS läuft von Pin 40 über C_CHG1 zu Pin 4, +VBAT zu C_CHG2 links vorbei. |
