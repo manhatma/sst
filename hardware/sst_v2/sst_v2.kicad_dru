@@ -26,3 +26,7 @@
 	(severity ignore)
 	(constraint courtyard_clearance)
 	(condition "(A.Reference == 'U1' && B.Reference == 'R_STAT2') || (A.Reference == 'R_STAT2' && B.Reference == 'U1')"))
+(rule "Unter Pico: R50"
+	(severity ignore)
+	(constraint courtyard_clearance)
+	(condition "(A.Reference == 'U1' && B.Reference == 'R50') || (A.Reference == 'R50' && B.Reference == 'U1')"))
