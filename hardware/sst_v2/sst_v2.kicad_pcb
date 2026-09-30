@@ -25143,8 +25143,8 @@
 			)
 		)
 	)
-	(gr_text "SST v2 Rev 3"
-		(at 109.5 83.5 0)
+	(gr_text "SSDAQ v2 Rev 3"
+		(at 88 68.5 90)
 		(layer "F.SilkS")
 		(uuid "ced52582-64f8-4966-80aa-f5c1b1bfc2e3")
 		(effects
