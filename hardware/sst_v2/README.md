@@ -21,7 +21,8 @@ Platzierung:
 - Links: Poti-Eingang (J_POT1 am Rand, ESD D2–D4, CMCs), darunter Analogblock (LDO, ADC, Opamp, RC-Netz). Der Analogblock liegt weit weg von Funkmodul und SMPS des Pico.
 - Mitte: RTC-Batterie BT1 unter dem Pico, Öffnung zum Pico. Der Bereich zwischen BT1 und den Pico-Buchsenleisten ist frei von Bauteilen, damit die Zelle heraus- und hineingleitet.
 - Rechts: OLED- und Taster-Stecker am Rand neben ihren Pico-Pins, Buzzer BZ1, Stromversorgung (D1, D_VSYS1, C26), microSD. Der Körper von J_SD1 endet 0,25 mm vor der Platinenkante.
-- Unter dem Pico (zwischen den Buchsenleisten, USB-Ende): Lader U_CHG1 mit C_CHG1/C_CHG2, R_PROG, R_STAT1/R_STAT2. Neben GP7: R50 (ADC_RST). `sst_v2.kicad_dru` erlaubt die Courtyard-Überdeckung nur für diese sieben Teile mit U1.
+- Oberkante (x 113–123,6 mm, y 48,3–55,2 mm, zwischen J_PWR1 und J_DEBUG1, außerhalb des Pico): Lader U_CHG1 mit C_CHG1/C_CHG2, R_PROG, R_STAT1/R_STAT2. Thermalfläche: Zone „Lader Thermal“ (GND, F.Cu, Priorität 2, volle Anbindung) über den Laderbereich und den Streifen über J_DEBUG1, gefüllt 0,77 cm² zusammenhängend (0,49 cm² im Laderbereich). Sechs GND-Vias 0,6/0,3 mm links neben dem VSS-Pad (Pin 2) zur GND-Lage In1. +VBUS und +VBAT kommen auf B.Cu, F.Cu bleibt dort fast ganz GND.
+- Unter dem Pico: R50 (ADC_RST) neben GP7. `sst_v2.kicad_dru` erlaubt die Courtyard-Überdeckung mit U1 nur für R50.
 - Pico-Antenne (Ende gegenüber USB, x < 101 mm): Rule Area „Pico antenna: keepout“ auf allen Kupferlagen, ohne Leiterbahnen, Vias und Pours. Sie deckt den Raum zwischen den Buchsenleisten (y 61,3–76,1 mm) und das Pico-Ende über die volle Breite plus 1 mm Rand ab (x 90,7–92,1 mm, y 57,1–80,2 mm). Die Streifen der Buchsenleisten bleiben frei, damit die Leitungen an Pin 17–24 nach außen laufen. In1 (GND) und In2 (+3V3_DIG) haben dort eine Aussparung.
 - Fiducials FID1–FID3 (1 mm, Maske 3 mm) auf F.Cu: (135,95 / 54,8), (89,5 / 106,8), (136,95 / 101,3). Alle ≥ 5 mm von der Kante, außerhalb von Pico und Steckern.
 - Montagelöcher: Alle Courtyards liegen ≥ 3,5 mm von der Bohrungsmitte (Platz für Schraubenkopf oder Scheibe Ø 7 mm).
@@ -52,7 +53,7 @@ prüft Restring und Textstrich mit 0,15 mm.
 | Takt | Y1 ECS-2520MVLC 8,192 MHz, U_DIV1 74HC4040, U_CLKBUF1 74LVC125 | XO → 33 Ω → ADC CLKIN; XO → 4040 Q7 = 32,000 kHz → 2 Puffer → 33 Ω → IMU-CLKIN A/B. |
 | IMU | J_IMU_A1/B1 JST-SH 12 → HR30 12p | 1 IMU_3V3 (FB2), 3 SCLK, 5 MOSI, 7 MISO, 8 CLKIN, 10/11 CS, 2/4/6/9/12 GND. 33 Ω in allen DAQ-Ausgängen. |
 | Strom | J_BAT1, Q_RP1, J_PWR1, D1, D_VSYS1 | LiPo (JST-PH) → Q_RP1 DMG2305UX (Verpolschutz) → externer Schalter J_PWR1 → +VBAT_SW (TVS D1, C26–C28, Teiler R19/R20 → GP28) → D_VSYS1 PMEG3020EH → VSYS. D_VSYS1 verhindert, dass USB-VBUS direkt in den Akku speist. |
-| Lader | U_CHG1 MCP73831T-2ACI/OT, C_CHG1/C_CHG2 4,7 µF, R_PROG 3,3k, R_STAT1/R_STAT2 10k/10k | VDD an +VBUS (Pico Pin 40), Ausgang an +VBAT (vor dem Schalter): Laden auch bei offenem Schalter. 4,20 V, 300 mA (I = 1000 V / R_PROG; 500 mA mit 2,0k). STAT über Teiler 10k/10k an GP6 (CHG_STAT): Laden = 0 V, fertig = 0,5 × VBUS (2,5 V bei 5,0 V, max. 2,6 V bei 5,25 V), ohne VBUS hochohmig → 0 V. USB kommt über ein Kabel von einer Gehäusebuchse in die Micro-USB-Buchse des Pico. |
+| Lader | U_CHG1 MCP73831T-2ACI/OT, C_CHG1/C_CHG2 4,7 µF, R_PROG 3,3k, R_STAT1/R_STAT2 10k/10k | Platz an der Oberkante außerhalb des Pico, mit Thermalfläche (GND-Zone 0,77 cm² an VSS, 6 Vias zu In1). VDD an +VBUS (Pico Pin 40), Ausgang an +VBAT (vor dem Schalter): Laden auch bei offenem Schalter. 4,20 V, 300 mA (I = 1000 V / R_PROG; 500 mA mit 2,0k). STAT über Teiler 10k/10k an GP6 (CHG_STAT): Laden = 0 V, fertig = 0,5 × VBUS (2,5 V bei 5,0 V, max. 2,6 V bei 5,25 V), ohne VBUS hochohmig → 0 V. USB kommt über ein Kabel von einer Gehäusebuchse in die Micro-USB-Buchse des Pico. |
 | RTC | U3 DS3231SN, BT1 CR1220 | VBAT direkt an der Zelle, RST offen. I2C gemeinsam mit OLED (PIO, R25/R26 4,7k). |
 | microSD | J_SD1 DM3AT | SPI0. Pull-ups: SD_CS 10k (R31), DAT1 47k (R48), DAT2 47k (R49). |
 | UI | SW_L1/SW_R1 (JST-SH 2), BZ1 PS1240P02BT, J_OLED1, J_DEBUG1 | Taster mit 10k-Pull-up. Buzzer über 47 Ω an GP22. J_DEBUG1: 1 RX (GP1), 2 TX (GP0), 3 GND. SWD direkt am Pico. |
@@ -102,10 +103,10 @@ kicad-cli pcb export drill --format excellon --excellon-separate-th --excellon-u
   0 Paritätsfehler. 6 Warnungen `lib_footprint_mismatch`, bewusst:
   H1–H4 ohne Courtyard, J_SD1 mit um 0,4 mm gekürzten vorderen Schirm-Pads (Kupfer–Kante 0,3 mm),
   U1 ohne Silkscreen-Linien am Platinenrand.
-- 26 Referenzen im dichten Analogbereich sind auf dem Silkscreen ausgeblendet. 17 Referenzen liegen auf F.Fab: D2, J_OLED1, SW_L1, C23, C40, U_CLKBUF1, Y1 (kein Platz), die sechs Lader-Teile und R50 (unter dem Pico nicht sichtbar), FID1–FID3.
+- 26 Referenzen im dichten Analogbereich sind auf dem Silkscreen ausgeblendet. 17 Referenzen liegen auf F.Fab: D2, J_OLED1, SW_L1, C23, C40, U_CLKBUF1, Y1 und die sechs Lader-Teile (kein Platz für 1-mm-Text), R50 (unter dem Pico nicht sichtbar), FID1–FID3.
 - U_AAF1: Referenz im Gehäuseumriss (links davon sitzt jetzt C1).
-- U1: Die Silkscreen-Markierung im USB-Bereich unter dem Pico ist entfernt (lag über den Lader-Pads).
-- Zonen sind gefüllt gespeichert. Leiterbahnlänge 2633 → 2658 mm, Vias 221 → 225.
+- U1: Die Silkscreen-Markierung im USB-Bereich unter dem Pico ist entfernt (lag über den früheren Lader-Pads).
+- Zonen sind gefüllt gespeichert. Leiterbahnlänge 2658 → 2644 mm, Vias 225 → 228 (Lader an der Oberkante).
 
 ## Review Rev. 3 (2026-09-30)
 
@@ -121,6 +122,7 @@ kicad-cli pcb export drill --format excellon --excellon-separate-th --excellon-u
 | Netz +3V0_DVDD → +3V3_DVDD, PWR_FLAG hinter FB1 | Name entsprach nicht der Spannung; ERC-Warnung „power pin not driven“ an U2 Pin 20 entfällt. |
 | Fiducials FID1–FID3 (Schaltplan + Layout) | Passermarken für die Bestückung. Freie Plätze mit ≥ 1,6 mm Abstand zu Kupfer und Silkscreen. |
 | Titelblock Rev. „3“ (Schaltplan, Layout) | Job-Datei meldete Revision „A“. |
+| Lader umgesetzt: U_CHG1, C_CHG1/C_CHG2, R_PROG, R_STAT1/R_STAT2 von unter dem Pico (141/69) an die Oberkante (x 113–123,6, y 48,3–55,2). GND-Zone „Lader Thermal“ 0,77 cm², 6 GND-Vias am VSS-Pad. C_CHG1 0,75 mm Pad-zu-Pad an VDD, C_CHG2 0,72 mm an VBAT, R_PROG 0,68 mm an PROG. +VBUS 49 mm (Pin 40 → F.Cu x 143,1 → B.Cu y 57,5 → Lader), +VBAT ab J_PWR1 10 mm (vorher 34 mm), CHG_STAT gerade zu GP6. Courtyard-Ausnahmen der sechs Teile aus `sst_v2.kicad_dru` entfernt. R42-Referenz links neben R42. | Unter dem Pico staute sich die Wärme (θJA 230 K/W, 0,4–0,6 W beim Laden) ohne Kupferfläche und ohne Luft. Jetzt liegt der Lader frei, mit Kupfer an VSS und Vias zur GND-Lage. |
 
 ## Review Rev. 3 (2026-09-27) — behobene Fehler
 
@@ -174,8 +176,7 @@ Keine Digitalleitung im Analogbereich. Leiterbahnlänge 2577 → 2633 mm (Lader 
 
 - **microSD:** Eine gesteckte Karte ragt 5,2 mm über die Platinenkante (Push-Push, Karte zum Greifen). Gehäuse braucht an dieser Stelle einen Schlitz.
 - **USB im Gehäuse:** Wasserdichte USB-C-Panelbuchse mit 5,1 kΩ an CC1/CC2 (sonst liefert ein C-auf-C-Netzteil keine Spannung), kurzes Kabel mit 90°-Micro-B-Stecker in den Pico. Platz neben der Platinenkante einplanen (~10–12 mm).
-- **Lader im Gehäuse:** IC-Temperatur beim Laden (300 mA) im geschlossenen Gehäuse messen.
-- **Lader-Platz (Analyse 2026-09-30, nicht umgesetzt):** U_CHG1 unter dem Pico staut Wärme (θJA 230 K/W, 0,4–0,6 W). Freie Fläche außerhalb des Pico: x 113,0–123,6 mm, y 48,3–55,2 mm (zwischen J_PWR1 und J_DEBUG1, ohne Leiterbahnen). +VBAT (J_PWR1 Pin 1, Q_RP1) liegt 4–7 mm entfernt, GP6 6 mm. +VBUS (Pico Pin 40) braucht eine Leitung von ca. 40 mm. Alternative am jetzigen Platz: R_PROG 5k (200 mA).
+- **Lader im Gehäuse:** IC-Temperatur beim Laden (300 mA) im geschlossenen Gehäuse messen. Der Lader sitzt jetzt an der Oberkante mit Thermalfläche 0,77 cm². Wenn U_CHG1 trotzdem zu heiß wird (thermische Regelung senkt den Strom), R_PROG 5k (200 mA).
 - **Akku-Polarität** am JST-PH prüfen: Pin 1 = Plus. Q_RP1 schützt bei Verpolung.
 - **Gehäuse:** J_POT1 liegt jetzt am linken Rand, J_OLED1/SW_L1/SW_R1 am rechten Rand. Kabelwege im Gehäuse anpassen.
 - **Autorouting prüfen:** Die Digitalnetze stammen aus Freerouting, einzelne Reste (IMU_CS0/CS1, SD_MISO/MOSI, +VBAT_SW) und die ADC-SPI-Leitungen am Pico-Ende (2026-09-30) aus einem Rasterrouter mit Glättung. Elektrisch geprüft (DRC), Sichtprüfung im KiCad empfohlen.
