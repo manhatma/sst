@@ -17,14 +17,14 @@ Nur diesen Ordner bearbeiten. Vor Skript-Änderungen KiCad schließen
 
 Platzierung:
 
-- Oben: Pico 2 W auf Buchsenleisten. Der Pico mit USB-Buchse liegt ganz innerhalb der Platine (x 91,7–144,1 mm, Rand bei 144,55 mm).
+- Oben: Pico 2 W auf Buchsenleisten, U1 bei (134,4 / 59,8). Der Körper liegt bei x 84,7–137,1 mm. Das Antennenende liegt am linken Platinenrand (Kante 84,5 mm), wie Raspberry Pi es empfiehlt. Das USB-Ende liegt bei x 137,1 mm. Vor dem USB-Ende liegen 7,4 mm Platine (Rand 144,5 mm).
 - Links: Poti-Eingang (J_POT1 am Rand, ESD D2–D4, CMCs), darunter Analogblock (LDO, ADC, Opamp, RC-Netz). Der Analogblock liegt weit weg von Funkmodul und SMPS des Pico.
 - Mitte: RTC-Batterie BT1 unter dem Pico, Öffnung zum Pico. Der Bereich zwischen BT1 und den Pico-Buchsenleisten ist frei von Bauteilen, damit die Zelle heraus- und hineingleitet.
 - Rechts: OLED- und Taster-Stecker am Rand neben ihren Pico-Pins, Buzzer BZ1, Stromversorgung (D1, D_VSYS1, C26), microSD. Der Körper von J_SD1 endet 0,25 mm vor der Platinenkante.
 - Oberkante (x 113–123,6 mm, y 48,3–55,2 mm, zwischen Q_RP1 und J_DEBUG1, außerhalb des Pico): Lader U_CHG1 mit C_CHG1/C_CHG2, R_PROG, R_STAT1/R_STAT2. Thermalfläche: Zone „Lader Thermal“ (GND, F.Cu, Priorität 2, volle Anbindung) über den Laderbereich und den Streifen über J_DEBUG1, gefüllt 0,77 cm² zusammenhängend (0,49 cm² im Laderbereich). Sechs GND-Vias 0,6/0,3 mm links neben dem VSS-Pad (Pin 2) zur GND-Lage In1. +VBUS und +VBAT kommen auf B.Cu, F.Cu bleibt dort fast ganz GND.
-- Unter dem Pico: R50 (ADC_RST) neben GP7. Soft-Power-Steuerung (U_PWR1, C_PWR1, Q_PWR2, Q_PWR3, R_PWR2–R_PWR4, D_PWR1) und Fuel Gauge (U_FG1, C_FG1) zwischen den Buchsenleisten bei x 120–135 mm, y 61–74 mm (Bauhöhe ≤ 1,1 mm, Buchsenleisten 8,5 mm). `sst_v2.kicad_dru` erlaubt die Courtyard-Überdeckung mit U1 nur für diese Teile.
+- Unter dem Pico: R50 (ADC_RST) bei (110,0 / 62,3) neben GP7 (Pin 10). Soft-Power-Steuerung (U_PWR1, C_PWR1, Q_PWR2, Q_PWR3, R_PWR2–R_PWR4, D_PWR1) und Fuel Gauge (U_FG1, C_FG1) zwischen den Buchsenleisten bei x 120–135 mm, y 61–74 mm (Bauhöhe ≤ 1,1 mm, Buchsenleisten 8,5 mm). `sst_v2.kicad_dru` erlaubt die Courtyard-Überdeckung mit U1 nur für diese Teile.
 - Unter der unteren Pico-Buchsenleiste (außerhalb des Pico): Lastschalter Q_PWR1 (119,6 / 82,1) mit Gate-Pull-up R_PWR1 (122,9 / 82,1), direkt vor C26.
-- Pico-Antenne (Ende gegenüber USB, x < 101 mm): Rule Area „Pico antenna: keepout“ auf allen Kupferlagen, ohne Leiterbahnen, Vias und Pours. Sie deckt den Raum zwischen den Buchsenleisten (y 61,3–76,1 mm) und das Pico-Ende über die volle Breite plus 1 mm Rand ab (x 90,7–92,1 mm, y 57,1–80,2 mm). Die Streifen der Buchsenleisten bleiben frei, damit die Leitungen an Pin 17–24 nach außen laufen. In1 (GND) und In2 (+3V3_DIG) haben dort eine Aussparung.
+- Pico-Antenne (Ende gegenüber USB, x < 94 mm, am linken Rand): Rule Area „Pico antenna: keepout“ auf allen Kupferlagen, ohne Leiterbahnen, Vias und Pours. Sie deckt den Raum zwischen den Buchsenleisten (x 84,5–94,0 mm, y 61,3–76,1 mm) und das Pico-Ende über die volle Breite ab (x 84,5–85,1 mm, y 57,1–80,2 mm). Der Rand von 1 mm liegt außerhalb der Platine, die Fläche endet an der Kante. Die Streifen der Buchsenleisten bleiben frei, damit die Leitungen an Pin 17–24 nach außen laufen. In1 (GND) und In2 (+3V3_DIG) haben dort eine Aussparung.
 - Fiducials FID1–FID3 (1 mm, Maske 3 mm) auf F.Cu: (135,95 / 54,8), (89,5 / 106,8), (136,95 / 101,3). Alle ≥ 5 mm von der Kante, außerhalb von Pico und Steckern.
 - Montagelöcher: Alle Courtyards liegen ≥ 3,5 mm von der Bohrungsmitte (Platz für Schraubenkopf oder Scheibe Ø 7 mm).
 - Unten: IMU-Stecker, Taktteiler und Taktpuffer.
@@ -132,13 +132,30 @@ Abstand Pad zu Pad ≥ 2,54 mm. Keine Pads in der Pico-Antennenfläche. Vias 228
 - DRC mit Schaltplan-Parität (`--refill-zones --all-track-errors --severity-all`): 0 Fehler, 0 offene Verbindungen,
   0 Paritätsfehler. 6 Warnungen `lib_footprint_mismatch`, bewusst:
   H1–H4 ohne Courtyard, J_SD1 mit um 0,4 mm gekürzten vorderen Schirm-Pads (Kupfer–Kante 0,3 mm),
-  U1 ohne Silkscreen-Linien am Platinenrand.
-- Alle Referenzen stehen auf dem Silkscreen mit 0,8 mm Höhe und 0,15 mm Strich, von Hand positioniert (2026-10-03). Nur H1, H2 und FID1–FID3 haben die Referenz auf F.Fab. Referenzen unter dem Pico (R2, R27–R29, R41, R42, R44–R46, R50, D_VSYS1) sind nach dem Aufstecken verdeckt.
+  U1 ohne Silkscreen-Linien am USB-Ende (lag bis 2026-10-03 am Platinenrand).
+- Alle Referenzen stehen auf dem Silkscreen mit 0,8 mm Höhe und 0,15 mm Strich, von Hand positioniert (2026-10-03). Nur H1, H2 und FID1–FID3 haben die Referenz auf F.Fab. Referenzen unter dem Pico (R2, R27–R29, R41, R42, R44–R46, R50) sind nach dem Aufstecken verdeckt.
 - U_AAF1: Referenz im Gehäuseumriss (links davon sitzt jetzt C1).
 - U1: Die Silkscreen-Markierung im USB-Bereich unter dem Pico ist entfernt (lag über den früheren Lader-Pads).
 - Zonen sind gefüllt gespeichert. Leiterbahnlänge 2658 → 2644 mm, Vias 225 → 228 (Lader an der Oberkante).
 - Soft-Power + Fuel Gauge (2026-10-03): ERC und DRC wie oben (keine neue Warnung). Leiterbahnlänge 2649 → 2697 mm, Vias 233 → 250. Neue Verbindungen mit einem Rasterrouter (Raster 0,05 mm, Abstand netzklassengerecht), danach DRC. Neue Referenzen unter dem Pico (U_PWR1, C_PWR1, D_PWR1, Q_PWR2, Q_PWR3, R_PWR2–R_PWR4, U_FG1, C_FG1) sind nach dem Aufstecken verdeckt.
+- Pico 7 mm nach links (2026-10-03): ERC und DRC wie oben (keine neue Warnung). Leiterbahnlänge 2697 → 2735 mm, Vias 250 → 264. Details im Review unten.
 - Doppelte UUIDs: TP1–TP15 teilten sich 5 UUIDs (Pad und Grafik, 70 Duplikate aus dem Kopier-Skript). Alle Duplikate haben jetzt eigene UUIDs.
+
+## Review Rev. 3 (2026-10-03): Pico 7 mm nach links
+
+| Änderung | Grund |
+|---|---|
+| U1 (Pico 2 W) 7,0 mm nach links: (141,4 / 59,8) → (134,4 / 59,8). Körper x 84,7–137,1 mm. Vor dem USB-Ende liegen jetzt 7,4 mm Platine (vorher 0,4 mm). | Gehäusegröße: Der 90°-Micro-USB-Stecker brauchte 9 mm über den Platinenrand. Er ragt jetzt 7 mm weniger heraus. |
+| Antennenende am linken Rand (Körper 84,7 mm, Kante 84,5 mm). Rule Area „Pico antenna: keepout“ um 7 mm mit verschoben und an der Kante abgeschnitten: x 84,5–94,0 mm (vorher 90,7–101,0 mm). | Raspberry Pi empfiehlt die Antenne am Platinenrand. Unter der Antenne liegt kein Kupfer, auch nicht in In1/In2. |
+| R50 6,6 mm nach links: (116,6 / 62,3) → (110,0 / 62,3). | Der Serienwiderstand bleibt direkt an GP7 (Pin 10). ADC_RST_MCU ist 1,5 mm lang. |
+| Leitungen am Pico neu geroutet: Rasterrouter (Raster 0,05 mm, Abstand netzklassengerecht, Rip-up bei Konflikten). Entfernt: Leiterbahnen und Vias der Pico-Netze im Band y 56,6–84 mm, dazu IMU_CS0, IMU_MOSI, IMU_SCLK und ADC_RST im selben Band. Die neuen Leitungen schließen an die vorhandenen Leitungen unterhalb von y 84 mm und an der Oberkante an. | Die Pins liegen 7 mm weiter links. Die alten Leitungen kreuzten die neuen Pads. Analogblock und Poti-Block bleiben unverändert. |
+| +VBAT (0,5 mm) unter dem Pico 0,62 mm nach rechts. PSW_GATE an Pin 34 vorbei neu gelegt. | Beide Leitungen liefen durch die neuen Pad-Positionen. Die Lücken der Buchsenleisten liegen jetzt 0,62 mm weiter rechts. |
+| ADC-SPI im Poti-Block weiter nur auf B.Cu, keine neuen Vias dort. Unter den linken unteren Pico-Pins (y 78,4–85 mm) laufen die SD-Leitungen nur auf F.Cu und die ADC-Leitungen nur auf B.Cu, dort ohne Vias. | Die ADC-Leitungen kommen jetzt zwischen den Buchsenleisten herunter (x 94–102 mm) und laufen unter den SD-Abgängen zum linken Rand. Die GND-Lage In1 trennt beide Gruppen. |
+| +VBUS (0,5 mm) von Pin 40 über den Streifen rechts vom Pico (x 135,1–135,7 mm), F.Cu bei y 53,25 mm, B.Cu zum Lader. VSYS (0,5 mm) auf F.Cu von Pin 39 zu D_VSYS1. | Die Power-Leitungen laufen nicht durch die Lücken der Buchsenleisten. |
+| 2 GND-Vias 0,6/0,3 mm mit 0,25-mm-Leitung an U1 Pin 3 (128,27 / 58,95) und Pin 28 (103,92 / 78,93). | DRC `starved_thermal`: An Pin 28 war die F.Cu-Pour-Fläche eine Insel. An Pin 3 erreichte nur ein Steg den Pour. |
+| Texte „SSDAQ v1 Rev 3“ und „10/2026“ an den rechten Rand (x 139,6 / 142,0 mm). | Der alte Platz links vom Pico liegt jetzt unter dem Pico. |
+
+Ergebnis: ERC 0 Fehler (2 bekannte MP-Warnungen). DRC 0 Fehler, 0 offene Verbindungen, 0 Paritätsfehler, 6 bekannte `lib_footprint_mismatch`. Leiterbahnlänge 2697 → 2735 mm, Vias 250 → 264 (Pico-Netze 1135 → 1175 mm, 33 → 44 Vias). Gerber, Bohrdaten, ZIP, CPL (U1, R50) und `enclosure/sst_v2_board.step` neu erzeugt. BOM unverändert.
 
 ## Review Rev. 3 (2026-10-03): Soft-Power MAX16150 + Fuel-Gauge MAX17048
 
@@ -249,11 +266,11 @@ Keine Digitalleitung im Analogbereich. Leiterbahnlänge 2577 → 2633 mm (Lader 
 ## Offene Punkte
 
 - **microSD:** Eine gesteckte Karte ragt 5,2 mm über die Platinenkante (Push-Push, Karte zum Greifen). Gehäuse braucht an dieser Stelle einen Schlitz.
-- **USB im Gehäuse:** Wasserdichte USB-C-Panelbuchse mit 5,1 kΩ an CC1/CC2 (sonst liefert ein C-auf-C-Netzteil keine Spannung), kurzes Kabel mit 90°-Micro-B-Stecker in den Pico. Platz neben der Platinenkante einplanen (~10–12 mm).
+- **USB im Gehäuse:** Wasserdichte USB-C-Panelbuchse mit 5,1 kΩ an CC1/CC2 (sonst liefert ein C-auf-C-Netzteil keine Spannung), kurzes Kabel mit 90°-Micro-B-Stecker in den Pico. Seit 2026-10-03 liegen vor dem USB-Ende 7,4 mm Platine. Der Stecker ragt damit 7 mm weniger über die Kante (vorher 9 mm). Maß am Muster prüfen.
 - **Lader im Gehäuse:** IC-Temperatur beim Laden (300 mA) im geschlossenen Gehäuse messen. Der Lader sitzt jetzt an der Oberkante mit Thermalfläche 0,77 cm². Wenn U_CHG1 trotzdem zu heiß wird (thermische Regelung senkt den Strom), R_PROG 5k (200 mA).
 - **Akku-Polarität** am JST-PH prüfen: Pin 1 = Plus. Q_RP1 schützt bei Verpolung.
 - **Gehäuse:** J_POT1 liegt jetzt am linken Rand, J_OLED1/SW_L1/SW_R1 am rechten Rand. Kabelwege im Gehäuse anpassen.
-- **Autorouting prüfen:** Die Digitalnetze stammen aus Freerouting, einzelne Reste (IMU_CS0/CS1, SD_MISO/MOSI, +VBAT_SW) und die ADC-SPI-Leitungen am Pico-Ende (2026-09-30) aus einem Rasterrouter mit Glättung. Elektrisch geprüft (DRC), Sichtprüfung im KiCad empfohlen.
+- **Autorouting prüfen:** Die Digitalnetze stammen aus Freerouting, einzelne Reste (IMU_CS0/CS1, SD_MISO/MOSI, +VBAT_SW) und die ADC-SPI-Leitungen am Pico-Ende (2026-09-30) aus einem Rasterrouter mit Glättung. Die Leitungen am Pico (2026-10-03) stammen aus einem Rasterrouter mit Rip-up, ohne Glättung. BTN_R hat 6 Vias. Elektrisch geprüft (DRC), Sichtprüfung im KiCad empfohlen.
 - **Testpads Sichtprüfung:** Lage und Beschriftung (B-Seite) im KiCad prüfen. TP4–TP6, TP8–TP10, TP13, TP14 haben eine Via im Pad (offen, nicht bestückt, für Prüfspitzen unkritisch).
 - **Soft-Power, Zustand nach Akku-Einstecken:** Laut MAX16150-Datenblatt (Rev 4) ist OUT nach dem ersten Anlegen von VCC nicht festgelegt („use PB_IN or CLR to set OUT“). Das Gerät kann beim Einstecken des Akkus einschalten. Die Firmware schaltet dann normal ab. Am Muster prüfen.
 - **Fuel Gauge, Messpunkt:** U_FG1 misst an der +VBAT-Abzweigung ≈ 25 mm hinter Q_RP1, nicht mit eigener Leitung am Akku. Fehler ≈ (Q_RP1 ≈ 52 mΩ + Leiterzug ≈ 25 mΩ) × Laststrom: ≈ 10 mV bei 130 mA, ≈ 40 mV bei 0,5 A Spitze. ModelGauge glättet das. Der SOC unter Last ist etwas zu niedrig.
