@@ -38,8 +38,8 @@ Platzierung:
 
 Fertigungsregeln (PCBWay): Leiterbahn/Abstand ≥ 0,2 mm, Via 0,6/0,3 mm (+3V3_DIG: 0,7/0,4 mm,
 Power: 0,8/0,4 mm), Via-Restring ≥ 0,15 mm, Kupfer–Kante ≥ 0,3 mm, Lötstopp-Steg ≥ 0,1 mm
-(grüner Lötstopp). Silkscreen: Strichbreite ≥ 0,15 mm, Texthöhe ≥ 1,0 mm. `sst_v2.kicad_pro`
-prüft Restring und Textstrich mit 0,15 mm.
+(grüner Lötstopp). Silkscreen: Strichbreite ≥ 0,15 mm, Texthöhe ≥ 0,8 mm (PCBWay-Minimum). `sst_v2.kicad_pro`
+prüft Restring und Textstrich mit 0,15 mm, Texthöhe mit 0,8 mm.
 
 ## Schaltung
 
@@ -103,7 +103,7 @@ kicad-cli pcb export drill --format excellon --excellon-separate-th --excellon-u
   0 Paritätsfehler. 6 Warnungen `lib_footprint_mismatch`, bewusst:
   H1–H4 ohne Courtyard, J_SD1 mit um 0,4 mm gekürzten vorderen Schirm-Pads (Kupfer–Kante 0,3 mm),
   U1 ohne Silkscreen-Linien am Platinenrand.
-- 26 Referenzen im dichten Analogbereich sind auf dem Silkscreen ausgeblendet. 17 Referenzen liegen auf F.Fab: D2, J_OLED1, SW_L1, C23, C40, U_CLKBUF1, Y1 und die sechs Lader-Teile (kein Platz für 1-mm-Text), R50 (unter dem Pico nicht sichtbar), FID1–FID3.
+- Alle Referenzen stehen auf dem Silkscreen mit 0,8 mm Höhe und 0,15 mm Strich, von Hand positioniert (2026-10-03). Nur H1, H2 und FID1–FID3 haben die Referenz auf F.Fab. Referenzen unter dem Pico (R2, R27–R29, R41, R42, R44–R46, R50, D_VSYS1) sind nach dem Aufstecken verdeckt.
 - U_AAF1: Referenz im Gehäuseumriss (links davon sitzt jetzt C1).
 - U1: Die Silkscreen-Markierung im USB-Bereich unter dem Pico ist entfernt (lag über den früheren Lader-Pads).
 - Zonen sind gefüllt gespeichert. Leiterbahnlänge 2658 → 2644 mm, Vias 225 → 228 (Lader an der Oberkante).
