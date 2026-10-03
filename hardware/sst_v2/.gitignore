@@ -10,3 +10,9 @@ fp-info-cache
 *.ses
 # Rohdaten der Fertigungsexporte
 fab/*_raw.csv
+
+# Hirose 3D-Modelle: Lizenz verbietet Weitergabe (öffentliches Repo).
+# Auch Baugruppen, die diese Modelle enthalten, bleiben lokal.
+enclosure/3d/HR30-*
+enclosure/3d/datasheets/Hirose_3D_Readme.pdf
+enclosure/*_assembly*

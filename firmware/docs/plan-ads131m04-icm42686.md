@@ -157,8 +157,8 @@ Schleifer Shock          ─► gleich mit OPA2333 C ─ AIN1P / AIN1N ─ Pot-G
 | GPIO | Funktion | Anmerkung |
 |---|---|---|
 | 0, 1 | UART debug | unverändert |
-| 2, 3 | PIO0 I2C (RTC, OLED) | unverändert |
-| 4, 5 | Buttons | unverändert |
+| 2, 3 | PIO0 I2C (RTC, OLED, Fuel Gauge MAX17048 0x36) | Fuel Gauge ab Rev. 3 (2026-10-03) |
+| 4, 5 | Buttons | GP4 (BTN_L) zusätzlich Power-Taste über D_PWR1 an MAX16150 PB_IN; > 8 s halten = Hardware-Aus |
 | 6 | CHG_STAT (Lader U_CHG1 MCP73831) | Input. Teiler 10k/10k (max. 2,6 V bei VBUS 5,25 V): Laden = 0, fertig = 1. Nur bei VBUS auswerten (ohne VBUS hochohmig → 0). Im SPI-Display-Build belegt Display-RST den Pin. |
 | 7 | ADS131 SYNC/RESET | Output über R50 100 Ω in Serie (Netz ADC_RST_MCU → ADC_RST), 10 kΩ Pull-up am ADC |
 | 8 | IMU SCLK (PIO1) | |
@@ -175,7 +175,7 @@ Schleifer Shock          ─► gleich mit OPA2333 C ─ AIN1P / AIN1N ─ Pot-G
 | 22 | Buzzer | unverändert |
 | 26 | IMU CS2 | |
 | 27 | IMU CS3 | (im ADS1115-Build: Shock-DRDY) |
-| 28 | Reserve | z. B. gemeinsame IMU-INT-Leitung, open-drain, später |
+| 28 | PWR_OFF (Soft-Power) | Output, aktiv high: Q_PWR3 zieht MAX16150 ~CLR low → Gerät aus. Beim Start sofort low (R_PWR4 100k Pull-down). Siehe `hardware/sst_v2/README.md` (Rev. 3, 2026-10-03). |
 | 29 | VSYS/3 | unverändert |
 
 `SPI_DISPLAY` kollidiert mit GPIO 10–13 → `#error` bleibt.

@@ -6,3 +6,10 @@
 	(severity ignore)
 	(constraint courtyard_clearance)
 	(condition "(A.Reference == 'U1' && B.Reference == 'R50') || (A.Reference == 'R50' && B.Reference == 'U1')"))
+
+# Soft-Power (MAX16150) und Fuel Gauge (MAX17048) sitzen ebenfalls unter dem Pico.
+# Bauhoehe max. 1,1 mm, Buchsenleisten 8,5 mm. Der Pico-Courtyard ueberdeckt sie absichtlich.
+(rule "Unter Pico: Soft-Power + Fuel Gauge"
+	(severity ignore)
+	(constraint courtyard_clearance)
+	(condition "(A.Reference == 'U1' && (B.Reference == 'D_PWR1' || B.Reference == 'U_PWR1' || B.Reference == 'C_PWR1' || B.Reference == 'R_PWR2' || B.Reference == 'R_PWR3' || B.Reference == 'R_PWR4' || B.Reference == 'Q_PWR2' || B.Reference == 'Q_PWR3' || B.Reference == 'U_FG1' || B.Reference == 'C_FG1')) || (B.Reference == 'U1' && (A.Reference == 'D_PWR1' || A.Reference == 'U_PWR1' || A.Reference == 'C_PWR1' || A.Reference == 'R_PWR2' || A.Reference == 'R_PWR3' || A.Reference == 'R_PWR4' || A.Reference == 'Q_PWR2' || A.Reference == 'Q_PWR3' || A.Reference == 'U_FG1' || A.Reference == 'C_FG1'))"))

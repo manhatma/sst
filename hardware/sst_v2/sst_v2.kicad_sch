@@ -12,6 +12,900 @@
 		(comment 2 "Per sst/firmware/docs/plan-ads131m04-icm42686.md Rev. 3")
 	)
 	(lib_symbols
+		(symbol "sst_v2_local:MAX16150AUT"
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "U"
+				(at -7.62 6.35 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Value" "MAX16150AUT"
+				(at -7.62 -6.35 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Footprint" "Package_TO_SOT_SMD:SOT-23-6"
+				(at 0 -8.89 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" "https://www.analog.com/media/en/technical-documentation/data-sheets/MAX16150.pdf"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "nanoPower pushbutton on/off controller, 50 ms debounce, 8 s forced off (version A), SOT-23-6"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "pushbutton power latch on off controller"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "SOT?23*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "MAX16150AUT_0_1"
+				(rectangle
+					(start -7.62 5.08)
+					(end 7.62 -5.08)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+			)
+			(symbol "MAX16150AUT_1_1"
+				(pin input line
+					(at -10.16 2.54 0)
+					(length 2.54)
+					(name "PB_IN"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 0 -7.62 90)
+					(length 2.54)
+					(name "GND"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 0 7.62 270)
+					(length 2.54)
+					(name "VCC"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 10.16 2.54 180)
+					(length 2.54)
+					(name "OUT"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin open_collector line
+					(at 10.16 -2.54 180)
+					(length 2.54)
+					(name "~{INT}"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at -10.16 -2.54 0)
+					(length 2.54)
+					(name "~{CLR}"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "sst_v2_local:MAX17048G+T10"
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "U"
+				(at -7.62 8.89 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Value" "MAX17048G+T10"
+				(at -7.62 -8.89 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Footprint" "Package_DFN_QFN:TDFN-8-1EP_2x2mm_P0.5mm_EP0.8x1.2mm"
+				(at 0 -11.43 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" "https://www.analog.com/media/en/technical-documentation/data-sheets/max17048-max17049.pdf"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "1-cell Li+ fuel gauge ModelGauge, I2C 0x36, TDFN-8 2x2 mm with EP"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "fuel gauge battery lithium ModelGauge"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "TDFN*2x2*P0.5mm*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "MAX17048G+T10_0_1"
+				(rectangle
+					(start -7.62 7.62)
+					(end 7.62 -7.62)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+			)
+			(symbol "MAX17048G+T10_1_1"
+				(pin passive line
+					(at -10.16 -2.54 0)
+					(length 2.54)
+					(name "CTG"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -10.16 2.54 0)
+					(length 2.54)
+					(name "CELL"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at -10.16 5.08 0)
+					(length 2.54)
+					(name "VDD"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 0 -10.16 90)
+					(length 2.54)
+					(name "GND"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin open_collector line
+					(at 10.16 -2.54 180)
+					(length 2.54)
+					(name "~{ALRT}"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at -10.16 -5.08 0)
+					(length 2.54)
+					(name "QSTRT"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin input line
+					(at 10.16 2.54 180)
+					(length 2.54)
+					(name "SCL"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at 10.16 5.08 180)
+					(length 2.54)
+					(name "SDA"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "8"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 2.54 -10.16 90)
+					(length 2.54)
+					(name "EP"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "9"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "sst_v2_local:2N7002"
+			(pin_names
+				(offset 0)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "Q"
+				(at 5.08 1.905 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Value" "2N7002"
+				(at 5.08 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
+				(at 5.08 2.54 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" "https://www.diodes.com/assets/Datasheets/ds11303.pdf"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "N-MOSFET 60 V 0.21 A, SOT-23 (pin 1 G, 2 S, 3 D)"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "transistor NMOS N-MOS N-MOSFET"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "2N7002_0_1"
+				(polyline
+					(pts
+						(xy 0.254 1.905) (xy 0.254 -1.905)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.254 0) (xy -2.54 0)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.762 2.286) (xy 0.762 1.27)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.762 0.508) (xy 0.762 -0.508)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.762 -1.27) (xy 0.762 -2.286)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0.762 -1.778) (xy 3.302 -1.778) (xy 3.302 1.778) (xy 0.762 1.778)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.016 0) (xy 2.032 0.381) (xy 2.032 -0.381) (xy 1.016 0)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(circle
+					(center 1.651 0)
+					(radius 2.794)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.54 2.54) (xy 2.54 1.778)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(circle
+					(center 2.54 1.778)
+					(radius 0.254)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(circle
+					(center 2.54 -1.778)
+					(radius 0.254)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.54 -2.54) (xy 2.54 0) (xy 0.762 0)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.921 0.381) (xy 3.683 0.381)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 3.302 0.381) (xy 2.921 -0.254) (xy 3.683 -0.254) (xy 3.302 0.381)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "2N7002_1_1"
+				(pin input line
+					(at -5.08 0 0)
+					(length 2.54)
+					(name "G"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 2.54 -5.08 90)
+					(length 2.54)
+					(name "S"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 2.54 5.08 270)
+					(length 2.54)
+					(name "D"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "Connector:TestPoint"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0.762)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "TP"
+				(at 0 6.858 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "TestPoint"
+				(at 0 5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 5.08 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 5.08 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "test point"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "test point tp"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "Pin* Test*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "TestPoint_0_1"
+				(circle
+					(center 0 3.302)
+					(radius 0.762)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "TestPoint_1_1"
+				(pin passive line
+					(at 0 0 90)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "sst_v2_local:Fiducial"
 			(pin_names
 				(offset 1.016)
@@ -7558,7 +8452,7 @@
 			(embedded_fonts no)
 		)
 	)
-	(text "SST v2 — Suspension Telemetry Mainboard\nGreenfield revision (post-SBAS853A hardware review)\n\nKey signal-quality features:\n  • TPS7A4700 ultra-low-noise LDO (4 µVrms) supplies +3V0_ANA for ADC + Pot\n  • Decoupling per SBAS853A §10: 1 µF X7R on AVDD/DVDD, 220 nF on CAP — single GND plane (no AGND/DGND split)\n  • OPA2333 Sallen-Key (Gain = 1, f_c ≈ 250 Hz) + 2.5:1 voltage divider + TI differential 1 kΩ+10 nF+1 kΩ AAF at ADC input → overall Gain 0.4 (0…3 V pot → 0…1.2 V matches ADC FSR ±1.2 V)\n  • ADS131M02 has only internal 1.2 V Vref — no external REFIN; gain calibrated via CHn_GCAL register\n  • Common-mode chokes at every pot connector\n  • Buzzer differential drive (GP21+GP22, ±3.3V, +6 dB vs single-ended)\n\nPin-Map (verify against firmware/src/fw/hardware_config.h):\n  GP2/3   PIO-I2C    → DS3231 RTC + SSD1306 OLED\n  GP4/5   Buttons L/R\n  GP7     ADS131 /RESET   GP10-13 spi1 SCK/SDI/SDO/CS   GP20 DRDY\n  GP8/9   i2c0  → IMU Fork (0x6A) + Rear (0x6B)\n  GP14/15 i2c1  → IMU Frame (0x6A) + Handlebar (0x6B, upgrade slot)\n  GP16-19 spi0  → MicroSD\n  GP21+22 Buzzer differential\n  GP28    Battery sense (VSYS/2 via 100k/100k divider)\n\nNote: passive R/C placements and inter-component wires are left for the layout pass in KiCad.\nAll nets are tied via global labels; ERC will resolve correctly on first open."
+	(text "SST v2 — Suspension Telemetry Mainboard\nGreenfield revision (post-SBAS853A hardware review)\n\nKey signal-quality features:\n  • TPS7A4700 ultra-low-noise LDO (4 µVrms) supplies +3V0_ANA for ADC + Pot\n  • Decoupling per SBAS853A §10: 1 µF X7R on AVDD/DVDD, 220 nF on CAP — single GND plane (no AGND/DGND split)\n  • OPA2333 Sallen-Key (Gain = 1, f_c ≈ 250 Hz) + 2.5:1 voltage divider + TI differential 1 kΩ+10 nF+1 kΩ AAF at ADC input → overall Gain 0.4 (0…3 V pot → 0…1.2 V matches ADC FSR ±1.2 V)\n  • ADS131M02 has only internal 1.2 V Vref — no external REFIN; gain calibrated via CHn_GCAL register\n  • Common-mode chokes at every pot connector\n  • Buzzer differential drive (GP21+GP22, ±3.3V, +6 dB vs single-ended)\n\nPin-Map (verify against firmware/src/fw/hardware_config.h):\n  GP2/3   PIO-I2C    → DS3231 RTC + SSD1306 OLED + MAX17048 Fuel Gauge\n  GP4/5   Buttons L/R (L zusaetzlich Power-Taste via MAX16150)\n  GP7     ADS131 /RESET   GP10-13 spi1 SCK/SDI/SDO/CS   GP20 DRDY\n  GP8/9   i2c0  → IMU Fork (0x6A) + Rear (0x6B)\n  GP14/15 i2c1  → IMU Frame (0x6A) + Handlebar (0x6B, upgrade slot)\n  GP16-19 spi0  → MicroSD\n  GP21+22 Buzzer differential\n  GP28    PWR_OFF (high = Abschalten, Q_PWR3 -> MAX16150 CLR)\n\nNote: passive R/C placements and inter-component wires are left for the layout pass in KiCad.\nAll nets are tied via global labels; ERC will resolve correctly on first open."
 		(exclude_from_sim no)
 		(at 16.51 15.24 0)
 		(effects
@@ -7636,7 +8530,7 @@
 		)
 		(uuid "5c1a3e10-1000-0000-0000-000000000060")
 	)
-	(text "POWER — LiPo → SW → Schottky → VSYS\n+VBAT_SW → D_VSYS1 (PMEG3020EH) → VSYS (Pico)\nTPS7A4700: +3V3_DIG → +3V0_ANA"
+	(text "POWER — LiPo → Q_RP1 → Q_PWR1 (Soft-Power MAX16150) → Schottky → VSYS\n+VBAT_SW → D_VSYS1 (PMEG3020EH) → VSYS (Pico)\nTPS7A4700: +3V3_DIG → +3V0_ANA"
 		(exclude_from_sim no)
 		(at 221.46 56.12 0)
 		(effects
@@ -7786,10 +8680,6 @@
 	(no_connect
 		(at 650.24 250.19)
 		(uuid "a77e78d5-d6fe-418a-95ac-2d5a4981b98c")
-	)
-	(no_connect
-		(at 248.92 78.74)
-		(uuid "bdf5008c-93f2-4f38-ac3d-c1abe15a7bf7")
 	)
 	(no_connect
 		(at 151.13 153.67)
@@ -9644,8 +10534,8 @@
 			)
 		)
 	)
-	(global_label "VBAT_SENSE"
-		(shape input)
+	(global_label "PWR_OFF"
+		(shape output)
 		(at 231.14 142.24 0)
 		(effects
 			(font
@@ -10370,50 +11260,6 @@
 			)
 		)
 	)
-	(global_label "+VBAT"
-		(shape passive)
-		(at 254 71.12 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "5c1a3e10-3000-0000-0000-000000001001")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 246.38 71.12 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-	)
-	(global_label "+VBAT_SW"
-		(shape passive)
-		(at 254 73.66 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "5c1a3e10-3000-0000-0000-000000001002")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 254 73.66 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-	)
 	(global_label "+VBAT_SW"
 		(shape passive)
 		(at 270.51 77.47 90)
@@ -10810,7 +11656,7 @@
 			)
 		)
 	)
-	(global_label "BTN_L"
+	(global_label "PWR_BTN"
 		(shape passive)
 		(at 224.79 332.74 0)
 		(effects
@@ -12117,138 +12963,6 @@
 		(uuid "5c1a3e10-3000-6066-0000-000000000001")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 573 358.29 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-	)
-	(global_label "+VBAT_SW"
-		(shape passive)
-		(at 545 368.45 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "5c1a3e10-3000-6067-0000-000000000001")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 545 368.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-	)
-	(global_label "VBAT_SENSE"
-		(shape passive)
-		(at 545 376.07 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "5c1a3e10-3000-6068-0000-000000000001")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 545 376.07 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-	)
-	(global_label "VBAT_SENSE"
-		(shape passive)
-		(at 559 368.45 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "5c1a3e10-3000-6069-0000-000000000001")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 559 368.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-	)
-	(global_label "GND"
-		(shape passive)
-		(at 559 376.07 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "5c1a3e10-3000-606a-0000-000000000001")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 559 376.07 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-	)
-	(global_label "VBAT_SENSE"
-		(shape passive)
-		(at 573 368.45 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "5c1a3e10-3000-606b-0000-000000000001")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 573 368.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-	)
-	(global_label "GND"
-		(shape passive)
-		(at 573 376.07 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right)
-		)
-		(uuid "5c1a3e10-3000-606c-0000-000000000001")
-		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 573 376.07 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -16817,86 +17531,6 @@
 		)
 	)
 	(symbol
-		(lib_id "sst_v2_local:Conn_2P1MP_SH")
-		(at 251.46 73.66 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "5c1a3e10-2000-0000-0000-000000000031")
-		(property "Reference" "J_PWR1"
-			(at 251.46 80.01 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "JST SH 2-pin (PWR switch)"
-			(at 251.46 67.31 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Connector_JST:JST_SH_BM02B-SRSS-TB_1x02-1MP_P1.00mm_Vertical"
-			(at 251.46 73.66 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 251.46 73.66 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 251.46 73.66 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "5c1a3e10-2000-0031-0000-000000000001")
-		)
-		(pin "2"
-			(uuid "5c1a3e10-2000-0031-0000-000000000002")
-		)
-		(pin "MP"
-			(uuid "10bca65d-87ff-479b-b5c8-2eb362dabadd")
-		)
-		(instances
-			(project "sst_v2"
-				(path "/5c1a3e10-0000-0000-0000-000000000001"
-					(reference "J_PWR1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "sst_v2_local:D_TVS")
 		(at 270.51 80.01 0)
 		(unit 1)
@@ -20021,243 +20655,6 @@
 			(project "sst_v2"
 				(path "/5c1a3e10-0000-0000-0000-000000000001"
 					(reference "C28")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "sst_v2_local:R")
-		(at 545 372.26 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "5c1a3e10-2000-3034-0000-000000000001")
-		(property "Reference" "R19"
-			(at 547.5 370.99 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "100k"
-			(at 547.5 373.53 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
-			(at 545 372.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 545 372.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 545 372.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "5c1a3e10-2000-3034-0000-000000000002")
-		)
-		(pin "2"
-			(uuid "5c1a3e10-2000-3034-0000-000000000003")
-		)
-		(instances
-			(project "sst_v2"
-				(path "/5c1a3e10-0000-0000-0000-000000000001"
-					(reference "R19")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "sst_v2_local:R")
-		(at 559 372.26 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "5c1a3e10-2000-3035-0000-000000000001")
-		(property "Reference" "R20"
-			(at 561.5 370.99 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "100k"
-			(at 561.5 373.53 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
-			(at 559 372.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 559 372.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 559 372.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "5c1a3e10-2000-3035-0000-000000000002")
-		)
-		(pin "2"
-			(uuid "5c1a3e10-2000-3035-0000-000000000003")
-		)
-		(instances
-			(project "sst_v2"
-				(path "/5c1a3e10-0000-0000-0000-000000000001"
-					(reference "R20")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "sst_v2_local:C")
-		(at 573 372.26 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "5c1a3e10-2000-3036-0000-000000000001")
-		(property "Reference" "C29"
-			(at 575.5 370.99 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "100nF X7R"
-			(at 575.5 373.53 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
-			(at 573 372.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 573 372.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 573 372.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "5c1a3e10-2000-3036-0000-000000000002")
-		)
-		(pin "2"
-			(uuid "5c1a3e10-2000-3036-0000-000000000003")
-		)
-		(instances
-			(project "sst_v2"
-				(path "/5c1a3e10-0000-0000-0000-000000000001"
-					(reference "C29")
 					(unit 1)
 				)
 			)
@@ -25225,6 +25622,3344 @@
 		(uuid "dd0368ec-c71e-4c55-9f4e-a112a8e2ad4f")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
 			(at 782.32 190.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(text "Testpads (Unterseite, nicht bestückt)\nTP1..TP15: SMD-Pad D1,0 mm auf B.Cu, nicht in BOM/CPL"
+		(exclude_from_sim no)
+		(at 721.36 406.4 0)
+		(effects
+			(font
+				(size 1.5 1.5)
+				(bold yes)
+			)
+			(justify left)
+		)
+		(uuid "b1498f79-81ff-4e9b-b560-2dfee4236fd6")
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 746.76 421.64 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "a1b34e36-4b0f-4386-85ab-89e6931ff887")
+		(property "Reference" "TP1"
+			(at 749.3 417.19 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "GND"
+			(at 749.3 419.1 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 746.76 421.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 746.76 421.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 746.76 421.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "ef12e9d6-455f-4392-9069-9e17e28af079")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 746.76 421.64 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "b663fab7-ea1d-47ef-a994-a054aeff1f0e")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 746.76 421.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 746.76 434.34 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "a2b6c6af-5d6f-41c2-af6c-033f5fe03cde")
+		(property "Reference" "TP2"
+			(at 749.3 429.89 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "GND"
+			(at 749.3 431.8 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 746.76 434.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 746.76 434.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 746.76 434.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "6c939a41-d562-4fdb-a115-ce7e400578b9")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 746.76 434.34 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "9b844a89-839a-4a2a-bdef-81bbfc455157")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 746.76 434.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 746.76 447.04 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "23d6fa6c-b1fb-46af-baaf-60d694369224")
+		(property "Reference" "TP3"
+			(at 749.3 442.59 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "GND"
+			(at 749.3 444.5 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 746.76 447.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 746.76 447.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 746.76 447.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "a24bf1fa-556d-41e5-adee-bf2bc7c3fc9d")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 746.76 447.04 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "3796c32f-5e70-4442-a0e4-36d8a0755812")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 746.76 447.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 746.76 459.74 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "04a0d6de-12e4-4b90-931e-3c68e8fc699f")
+		(property "Reference" "TP4"
+			(at 749.3 455.3 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "3V0A"
+			(at 749.3 457.2 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 746.76 459.74 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 746.76 459.74 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 746.76 459.74 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "a980c9b3-f850-498e-96bf-96cd086942bb")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "+3V0_ANA"
+		(shape passive)
+		(at 746.76 459.74 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "d10a513e-13fc-42e8-8d46-bfe0e8a023a7")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 746.76 459.74 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 746.76 472.44 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "5c8d51ad-a1a8-4a30-9d1b-a7a33afe663f")
+		(property "Reference" "TP5"
+			(at 749.3 468 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "DVDD"
+			(at 749.3 469.9 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 746.76 472.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 746.76 472.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 746.76 472.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "e0edbca3-6319-41aa-90a3-154ea61bb000")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "+3V3_DVDD"
+		(shape passive)
+		(at 746.76 472.44 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "38eda050-a430-4a25-a631-37a92380d0fc")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 746.76 472.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 746.76 485.14 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "577b92ea-a532-48ad-a017-15bdec5e246f")
+		(property "Reference" "TP6"
+			(at 749.3 480.69 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "CLK"
+			(at 749.3 482.6 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 746.76 485.14 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 746.76 485.14 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 746.76 485.14 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "808a71f4-e536-4c7e-b843-b859f0650c89")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP6")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "ADC_CLKIN"
+		(shape passive)
+		(at 746.76 485.14 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "bdf9ae8a-9f70-412c-9145-4324493509ad")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 746.76 485.14 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 746.76 497.84 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "e9231f0f-909f-4de4-9726-b93c05961a74")
+		(property "Reference" "TP7"
+			(at 749.3 493.39 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "VBSW"
+			(at 749.3 495.3 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 746.76 497.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 746.76 497.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 746.76 497.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "597f1286-5b60-46f1-b794-c0caf4ac5d1e")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP7")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "+VBAT_SW"
+		(shape passive)
+		(at 746.76 497.84 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "98176952-df03-4002-bbf3-6f9f474b659e")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 746.76 497.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 746.76 510.54 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "6913b34b-51f1-44a8-b701-94686021ab46")
+		(property "Reference" "TP8"
+			(at 749.3 506.09 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "VBAT"
+			(at 749.3 508 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 746.76 510.54 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 746.76 510.54 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 746.76 510.54 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "a11d7fea-c662-45b4-b0d3-a76ab8e16d58")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP8")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "+VBAT"
+		(shape passive)
+		(at 746.76 510.54 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "f8f3b52f-6621-4fa7-bd47-82e0e3f5ef26")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 746.76 510.54 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 802.64 421.64 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "5148a2fe-453e-448c-917f-e01cf912399c")
+		(property "Reference" "TP9"
+			(at 805.18 417.19 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "REF"
+			(at 805.18 419.1 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 802.64 421.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 802.64 421.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 802.64 421.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "ee02368c-33b5-4815-8f35-bcd89ce7f9ca")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP9")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "EXC_REF"
+		(shape passive)
+		(at 802.64 421.64 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "5770a651-3661-463a-8944-c0b772e9265a")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 802.64 421.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 802.64 434.34 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "1ba830b4-b4b0-41cd-8481-5e3721b81863")
+		(property "Reference" "TP10"
+			(at 805.18 429.89 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "EXC"
+			(at 805.18 431.8 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 802.64 434.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 802.64 434.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 802.64 434.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "f42b7964-2460-4cbb-808c-4d6514526fcf")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP10")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "POT_EXC"
+		(shape passive)
+		(at 802.64 434.34 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "034eca9a-4126-43c7-a4fa-1e8eea922358")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 802.64 434.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 802.64 447.04 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "5e5b2588-2de7-400b-b310-7cd12768bfa4")
+		(property "Reference" "TP11"
+			(at 805.18 442.59 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "FORK"
+			(at 805.18 444.5 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 802.64 447.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 802.64 447.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 802.64 447.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "a15cd731-d4ef-45b3-89d7-ce9d3372b4eb")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP11")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "FORK_AIN_P"
+		(shape passive)
+		(at 802.64 447.04 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "f8f7032f-bb93-4dd9-a641-827281cfa869")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 802.64 447.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 802.64 459.74 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "a9c91ca5-1bdd-483d-9b30-6904ed3002d1")
+		(property "Reference" "TP12"
+			(at 805.18 455.3 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "SHCK"
+			(at 805.18 457.2 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 802.64 459.74 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 802.64 459.74 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 802.64 459.74 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "fe1bfb72-f910-4707-8230-942c50baadff")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP12")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "SHOCK_AIN_P"
+		(shape passive)
+		(at 802.64 459.74 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "b00efb6d-73c2-4745-b814-fc92697e8800")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 802.64 459.74 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 802.64 472.44 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "a9e7faa1-6ba1-4659-83a0-1002aca2bc3c")
+		(property "Reference" "TP13"
+			(at 805.18 468 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "32K"
+			(at 805.18 469.9 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 802.64 472.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 802.64 472.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 802.64 472.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "7bdc5853-9bf9-42be-9ab1-93f442074ff2")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP13")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "IMU_CLK32K"
+		(shape passive)
+		(at 802.64 472.44 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "46e01aeb-bbff-4f87-8a09-c2fd437daf8b")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 802.64 472.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 802.64 485.14 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "2790da88-e15c-4101-bd28-15721e389326")
+		(property "Reference" "TP14"
+			(at 805.18 480.69 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "IMU"
+			(at 805.18 482.6 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 802.64 485.14 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 802.64 485.14 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 802.64 485.14 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "65f6c34f-d200-4c20-8bbf-bc48b52f57e1")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP14")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "IMU_3V3"
+		(shape passive)
+		(at 802.64 485.14 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "c057e29e-2a70-4548-9007-50bf6768f900")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 802.64 485.14 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 802.64 497.84 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "182eed62-e64c-4d15-ac17-d989feb656aa")
+		(property "Reference" "TP15"
+			(at 805.18 493.39 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "GND"
+			(at 805.18 495.3 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 802.64 497.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 802.64 497.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Testpad Unterseite, nicht bestueckt"
+			(at 802.64 497.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "d0183f70-20b9-4b33-911b-9d1a82862e21")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "TP15")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 802.64 497.84 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "fce5dd34-983f-4dc4-9495-7d0fa0b0b159")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 802.64 497.84 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(text "Soft-Power + Fuel-Gauge (Rev. 3, 2026-10-03)\nSW_L1 (Taster links) -> PWR_BTN -> U_PWR1 PB_IN (interner Pull-up 1,4 MOhm an VCC).\nBTN_L (GP4, R27 10k an +3V3_DIG) ueber D_PWR1 RB751S40 an PWR_BTN: Taste bleibt UI-Taste.\nU_PWR1 OUT -> PSW_EN -> Q_PWR2 -> PSW_GATE low -> Q_PWR1 (P-MOS) leitet: +VBAT -> +VBAT_SW.\nAus: GP28 PWR_OFF high -> Q_PWR3 zieht CLR low -> OUT low. Taste > 8 s halten = Hardware-Aus.\nCLR-Pull-up R_PWR3 an OUT (Datenblatt-Empfehlung), kein VBAT-Pegel an GPIOs.\nU_FG1 MAX17048 (0x36) dauerhaft an +VBAT; Sleep bei SDA/SCL low > 2,5 s (MODE.EnSleep = 1)."
+		(exclude_from_sim no)
+		(at 299.72 416.56 0)
+		(effects
+			(font
+				(size 1.5 1.5)
+				(bold yes)
+			)
+			(justify left)
+		)
+		(uuid "cc7ce2f9-009d-4f41-8bdf-18b53620db0c")
+	)
+	(symbol
+		(lib_id "sst_v2_local:MAX16150AUT")
+		(at 330.2 449.58 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "3f546816-73a1-4aad-9389-f4d43193a694")
+		(property "Reference" "U_PWR1"
+			(at 332.74 448.31 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "MAX16150AUT+T"
+			(at 332.74 450.85 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-6"
+			(at 330.2 449.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://www.analog.com/media/en/technical-documentation/data-sheets/MAX16150.pdf"
+			(at 330.2 449.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Soft-Power-Controller: 50 ms Entprellung, > 8 s Halten = Aus (Version A)"
+			(at 330.2 449.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "600f11e2-296e-474d-81ab-436e04b85c57")
+		)
+		(pin "2"
+			(uuid "cf144918-7143-4ff8-94cb-7b0ab1e3e549")
+		)
+		(pin "3"
+			(uuid "4150db0c-06be-4a92-9552-5a14e2ac0a42")
+		)
+		(pin "4"
+			(uuid "95e35196-1f5e-4c37-8176-b1dbbff6900a")
+		)
+		(pin "5"
+			(uuid "ec1a10d5-6089-489d-8a94-c809225edb5e")
+		)
+		(pin "6"
+			(uuid "2d6199cb-7527-4754-8264-69736a8e7fcd")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "U_PWR1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "PWR_BTN"
+		(shape passive)
+		(at 320.04 447.04 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "81b6504c-0ee8-482f-825a-504ecda46ed6")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 320.04 447.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 330.2 457.2 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "da0b76e6-8846-41e0-b903-8cb5b2d37d2e")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 330.2 457.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "+VBAT"
+		(shape passive)
+		(at 330.2 441.96 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "39135d7c-edaa-4c7e-83b4-73ce352bbc6a")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 330.2 441.96 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "PSW_EN"
+		(shape passive)
+		(at 340.36 447.04 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "92c933a5-d66e-41cc-ace8-3c95ddd2b59a")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 340.36 447.04 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(no_connect
+		(at 340.36 452.12)
+		(uuid "d0356b61-6cc4-4370-9a15-b237d496109a")
+	)
+	(global_label "PWR_CLR"
+		(shape passive)
+		(at 320.04 452.12 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "31224c17-c09d-4f9c-9e74-6ecb5cb3a4a4")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 320.04 452.12 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "sst_v2_local:C")
+		(at 309.88 449.58 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "b1aceb74-bfc6-4799-9f0a-794106f46e35")
+		(property "Reference" "C_PWR1"
+			(at 312.42 448.31 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "100nF X7R"
+			(at 312.42 450.85 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
+			(at 309.88 449.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 309.88 449.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 309.88 449.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "d494b25d-65b5-445e-a93e-6830e17e3476")
+		)
+		(pin "2"
+			(uuid "98cd1a55-7854-4e85-967d-240a07b943bb")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "C_PWR1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "+VBAT"
+		(shape passive)
+		(at 309.88 445.77 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "669c5300-9aeb-48dd-ade8-05aec9790792")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 309.88 445.77 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 309.88 453.39 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "6171c35e-2f1e-4c04-b9fe-c3d46718e21e")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 309.88 453.39 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "sst_v2_local:DMG2305UX")
+		(at 406.4 444.5 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "1440ad04-e952-45ff-9a98-b346c3df5e1f")
+		(property "Reference" "Q_PWR1"
+			(at 408.94 443.23 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "DMG2305UX"
+			(at 408.94 445.77 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
+			(at 406.4 444.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://www.diodes.com/assets/Datasheets/DMG2305UX.pdf"
+			(at 406.4 444.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "High-Side-Schalter +VBAT -> +VBAT_SW (Soft-Power)"
+			(at 406.4 444.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "c5945ecb-0d08-49d3-bba9-73ef4754a697")
+		)
+		(pin "2"
+			(uuid "3ba26859-37c3-41d1-b138-1db9e5453164")
+		)
+		(pin "3"
+			(uuid "4a9fdd99-d214-4c4e-8007-0b780ac1454a")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "Q_PWR1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "PSW_GATE"
+		(shape passive)
+		(at 401.32 444.5 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "eba52fd3-90b0-4bc0-9491-d84709181e99")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 401.32 444.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "+VBAT"
+		(shape passive)
+		(at 408.94 449.58 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "74edb1a7-0b2c-4093-940c-ad904e51f45a")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 408.94 449.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "+VBAT_SW"
+		(shape passive)
+		(at 408.94 439.42 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "b6a7d766-fd45-429a-b0b5-f9784c9c0870")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 408.94 439.42 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "sst_v2_local:R")
+		(at 391.16 449.58 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "14990057-9de3-4341-8abc-63ea09394f91")
+		(property "Reference" "R_PWR1"
+			(at 393.7 448.31 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "100k"
+			(at 393.7 450.85 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+			(at 391.16 449.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 391.16 449.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 391.16 449.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "d144c320-7428-426e-a8d2-c137d5d5f786")
+		)
+		(pin "2"
+			(uuid "69407397-317e-40ea-83d4-6c4bad4b40f8")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "R_PWR1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "+VBAT"
+		(shape passive)
+		(at 391.16 445.77 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "127e46cc-9c1b-41e2-8887-c2b295ee864b")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 391.16 445.77 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "PSW_GATE"
+		(shape passive)
+		(at 391.16 453.39 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "062822b0-2bc2-411f-9bf1-b000ddbce1ad")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 391.16 453.39 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "sst_v2_local:2N7002")
+		(at 370.84 457.2 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "0661a736-7154-49de-8706-4e3296effea3")
+		(property "Reference" "Q_PWR2"
+			(at 373.38 455.93 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "2N7002"
+			(at 373.38 458.47 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
+			(at 370.84 457.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://www.diodes.com/assets/Datasheets/ds11303.pdf"
+			(at 370.84 457.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Gate-Treiber fuer Q_PWR1 (OUT high -> Q_PWR1 ein)"
+			(at 370.84 457.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "7df46ba3-6fa2-4c8c-857f-50a343443a81")
+		)
+		(pin "2"
+			(uuid "3f4ed674-1f93-4dad-8f6a-d077b8829297")
+		)
+		(pin "3"
+			(uuid "e4146c75-412a-41a2-bfdc-d95424e39c31")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "Q_PWR2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "PSW_EN"
+		(shape passive)
+		(at 365.76 457.2 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "ff89757e-b1b2-4669-9899-129c6515fc80")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 365.76 457.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 373.38 462.28 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "1fbbf8cf-2ac0-48e5-98ae-98d24cfe9a1f")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 373.38 462.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "PSW_GATE"
+		(shape passive)
+		(at 373.38 452.12 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "15fd55c4-c51d-4923-a907-88e891e9dacf")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 373.38 452.12 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "sst_v2_local:R")
+		(at 358.14 464.82 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "8272bbc0-7919-40d5-99b6-50563f93fc6d")
+		(property "Reference" "R_PWR2"
+			(at 360.68 463.55 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "100k"
+			(at 360.68 466.09 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+			(at 358.14 464.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 358.14 464.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 358.14 464.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "f73ef5ea-1a0f-472c-a864-9c1c30a89594")
+		)
+		(pin "2"
+			(uuid "f4c3b11f-32d4-4848-b4c2-729bd47c7fbe")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "R_PWR2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "PSW_EN"
+		(shape passive)
+		(at 358.14 461.01 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "8f635db0-03a3-406f-afb7-a35b49e9c70a")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 358.14 461.01 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 358.14 468.63 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "778c6f6b-b205-445e-8996-4a26d29075d7")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 358.14 468.63 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "sst_v2_local:R")
+		(at 345.44 464.82 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "8646a3cd-f287-44c4-a8e6-acacf25dac8d")
+		(property "Reference" "R_PWR3"
+			(at 347.98 463.55 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "100k"
+			(at 347.98 466.09 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+			(at 345.44 464.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 345.44 464.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 345.44 464.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "8237051f-69f1-4e01-a765-9e322fecdea3")
+		)
+		(pin "2"
+			(uuid "bdf68768-0fb5-4ab5-8def-c9ce78cea096")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "R_PWR3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "PSW_EN"
+		(shape passive)
+		(at 345.44 461.01 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "5c535099-4327-43f7-9bcd-008c61151f24")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 345.44 461.01 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "PWR_CLR"
+		(shape passive)
+		(at 345.44 468.63 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "975497da-4d18-4a8b-833f-9455cc6f4590")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 345.44 468.63 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "sst_v2_local:2N7002")
+		(at 330.2 480.06 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "86876f9f-9534-4f5f-b271-3c0e94c3689b")
+		(property "Reference" "Q_PWR3"
+			(at 332.74 478.79 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "2N7002"
+			(at 332.74 481.33 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Package_TO_SOT_SMD:SOT-23"
+			(at 330.2 480.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://www.diodes.com/assets/Datasheets/ds11303.pdf"
+			(at 330.2 480.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "GP28 PWR_OFF high -> CLR low -> Abschalten"
+			(at 330.2 480.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "365fc682-9da4-44e9-9815-dccbc3525f31")
+		)
+		(pin "2"
+			(uuid "2913cff8-2bc3-43a2-a512-29f3417778ec")
+		)
+		(pin "3"
+			(uuid "89a52998-d2f9-4105-803d-0eeb985ffe0c")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "Q_PWR3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "PWR_OFF"
+		(shape passive)
+		(at 325.12 480.06 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "a0f35f15-62f4-43bb-9cdb-036b5bf166e9")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 325.12 480.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 332.74 485.14 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "a075220d-7504-472d-ad74-16d00be7b769")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 332.74 485.14 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "PWR_CLR"
+		(shape passive)
+		(at 332.74 474.98 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "5d547537-dff5-416c-ba33-a4ae308c48e6")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 332.74 474.98 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "sst_v2_local:R")
+		(at 314.96 485.14 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "55fed1ef-9311-407b-88f4-376ad21fa526")
+		(property "Reference" "R_PWR4"
+			(at 317.5 483.87 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "100k"
+			(at 317.5 486.41 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+			(at 314.96 485.14 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 314.96 485.14 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 314.96 485.14 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "05138835-3789-4c2c-8903-8d10c7b96f8d")
+		)
+		(pin "2"
+			(uuid "3349ad0f-ed4e-4a0b-887a-98ab4aec57fd")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "R_PWR4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "PWR_OFF"
+		(shape passive)
+		(at 314.96 481.33 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "327804aa-3fde-4c60-9d03-3faf4f573eaa")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 314.96 481.33 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 314.96 488.95 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "99221974-f88e-48f1-bf48-41fb86183e7c")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 314.96 488.95 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "sst_v2_local:Diode")
+		(at 350.52 480.06 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "ae155af9-7616-4da5-9103-a94dac483a1a")
+		(property "Reference" "D_PWR1"
+			(at 353.06 478.79 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "RB751S40"
+			(at 353.06 481.33 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Diode_SMD:D_SOD-523"
+			(at 350.52 480.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/RB751S40.pdf"
+			(at 350.52 480.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Schottky 40 V, low leakage: BTN_L (Anode) -> PWR_BTN (Kathode)"
+			(at 350.52 480.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "e5e20377-2983-4698-b05f-36241d350d99")
+		)
+		(pin "2"
+			(uuid "aa65343e-8faf-4229-9df3-60cfe849be9d")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "D_PWR1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "PWR_BTN"
+		(shape passive)
+		(at 353.06 480.06 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "8b905ed8-4f65-4079-abc6-4cdeaf7611bb")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 353.06 480.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "BTN_L"
+		(shape passive)
+		(at 347.98 480.06 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "d8d39452-d389-4292-9470-0f4df2e142a8")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 347.98 480.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "sst_v2_local:MAX17048G+T10")
+		(at 444.5 459.74 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "d86c1359-ce1e-45cd-8624-87c417e47d5a")
+		(property "Reference" "U_FG1"
+			(at 447.04 458.47 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "MAX17048G+T10"
+			(at 447.04 461.01 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Package_DFN_QFN:TDFN-8-1EP_2x2mm_P0.5mm_EP0.8x1.2mm"
+			(at 444.5 459.74 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://www.analog.com/media/en/technical-documentation/data-sheets/max17048-max17049.pdf"
+			(at 444.5 459.74 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Fuel Gauge 1S Li+, I2C 0x36 (PIO-I2C mit DS3231/OLED)"
+			(at 444.5 459.74 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "80fc7cc0-da91-4cd9-b0cc-4992b0d11cc3")
+		)
+		(pin "2"
+			(uuid "25593b8f-5149-4b2a-8d3b-f53d51f30146")
+		)
+		(pin "3"
+			(uuid "a9356e09-ef7a-484f-8f30-df39fa9ed6b7")
+		)
+		(pin "4"
+			(uuid "7cb94c22-13b2-41cf-aba0-d625b46f0986")
+		)
+		(pin "5"
+			(uuid "09a77fa9-ce7b-4877-a09d-39b711ba5488")
+		)
+		(pin "6"
+			(uuid "62b580f3-60d4-4a85-b933-9977adf95997")
+		)
+		(pin "7"
+			(uuid "943612c6-79f8-45f0-8208-d455293bec82")
+		)
+		(pin "8"
+			(uuid "44531dc8-b018-4b66-9127-a27571f81c79")
+		)
+		(pin "9"
+			(uuid "5437ad84-a028-4166-95d3-db58f307ead7")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "U_FG1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 434.34 462.28 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "d2748541-77cb-487f-acdd-03444de579e3")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 434.34 462.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "+VBAT"
+		(shape passive)
+		(at 434.34 457.2 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "419b9a8b-703a-4694-8e6f-1ac1023fc973")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 434.34 457.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "+VBAT"
+		(shape passive)
+		(at 434.34 454.66 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "e8deab08-d0ea-4a03-b9d8-2c488e324643")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 434.34 454.66 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 444.5 469.9 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "b0c80ae4-0a8b-4a83-89b7-178987c3faf9")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 444.5 469.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(no_connect
+		(at 454.66 462.28)
+		(uuid "afeaaadd-9763-440c-8459-9a0ead57cb8e")
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 434.34 464.82 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "90843efb-e5cb-4a26-adac-ce59109c32c9")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 434.34 464.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "DISP_SCL"
+		(shape passive)
+		(at 454.66 457.2 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "ec6c0727-8f70-42f2-acf6-2267d1e45654")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 454.66 457.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "DISP_SDA"
+		(shape passive)
+		(at 454.66 454.66 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "d0612dc2-4e2e-4837-a58d-6db63448ca1a")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 454.66 454.66 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 447.04 469.9 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "9daf6eaf-fcdd-4a5a-b93b-d17defa8de0b")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 447.04 469.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "sst_v2_local:C")
+		(at 424.18 462.28 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "49fd9760-9657-459e-a80d-915e58498ad6")
+		(property "Reference" "C_FG1"
+			(at 426.72 461.01 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "100nF X7R"
+			(at 426.72 463.55 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
+			(at 424.18 462.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 424.18 462.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 424.18 462.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "9edff735-39e4-4434-9c40-a6b5edd8d164")
+		)
+		(pin "2"
+			(uuid "05396de2-596a-465a-8043-7b21b2a1be5a")
+		)
+		(instances
+			(project "sst_v2"
+				(path "/5c1a3e10-0000-0000-0000-000000000001"
+					(reference "C_FG1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(global_label "+VBAT"
+		(shape passive)
+		(at 424.18 458.47 90)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "26dbd168-a982-41dc-925c-570077fad404")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 424.18 458.47 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+	)
+	(global_label "GND"
+		(shape passive)
+		(at 424.18 466.09 270)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "6699fab9-28e6-4922-9c0a-4ee2e6a5657c")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 424.18 466.09 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)

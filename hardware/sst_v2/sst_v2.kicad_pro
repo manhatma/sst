@@ -773,10 +773,6 @@
       },
       {
         "netclass": "Power",
-        "pattern": "VBAT_SENSE"
-      },
-      {
-        "netclass": "Power",
         "pattern": "IMU_3V3"
       }
     ]
